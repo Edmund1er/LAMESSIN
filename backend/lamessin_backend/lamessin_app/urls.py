@@ -4,12 +4,11 @@ from .import views
 
 urlpatterns = [
 # Route pour le Connexion
-      path('login/', views.Login.as_view(), name='token_obtain_pair'),
+      path('login/', views.Login.as_view(), name='login'),
 
-# Route pour l'Inscription
-      path('register/', views.Inscription.as_view(), name='register'),
+    path('inscription/', views.inscription.as_view(), name='inscription'),
 
 # Route pour le Profil é
-      path('profile/', views.UserProfil.as_view(), name='user_profile'),
+      path('profil/', views.UserProfil.as_view(), name='user_profil'),
 ]
 

@@ -36,7 +36,7 @@ class Login(TokenObtainPairView):
       pass
 
 #creer les comptes
-class Inscription(APIView):
+class inscription(APIView):
 
       permission_classes = [AllowAny]
 

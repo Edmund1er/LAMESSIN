@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'PAGES_/splash.dart';
-import 'PAGES_/acceuill.dart';
 import 'PAGES_/login.dart';
 import 'PAGES_/register.dart';
+import 'PAGES_/home_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -15,12 +14,15 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      initialRoute: "/",
+      
+      initialRoute: "/login", 
+      
       routes: {
-        "/": (context) => const Splash(),
-        "/home": (context) => const Acceuill(),
         "/login": (context) => const Login(),
+        
         "/register": (context) => const Register(),
+        
+        "/home_page": (context) => const HomePage(), 
       },
     );
   }
