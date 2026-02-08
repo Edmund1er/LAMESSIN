@@ -7,7 +7,7 @@ class Hopitaux(models.Model):
     Addresse = models.CharField(max_length=100)
     Telephone = models.CharField(max_length=20)
     Est_de_garde = models.BooleanField(default=False)
-    Services_disponibles = models.CharField(max_length=200)
+    Services_disponibles = models.CharField(max_length=500)
 
 # Utilisateur de base
 class Utilisateurs(models.Model):
