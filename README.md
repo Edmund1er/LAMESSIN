@@ -3,7 +3,7 @@
 ### Backend : Django
 <!-- C -->
 Le serveur gère l'authentification et la base de données.
-1-Installez les paquets :  pip install -r requirements.txt
+1-Installez les dépendances : :  pip install -r requirements.txt
 2- Fichier Credentials : si le fichiers est absent créer le fichiers `credentials.py` dans le meme dossiers que le `settings.py` et y mettre ces infos de connexion 
 3- appliquer les migrations
    python manage.py makemigrations
@@ -15,7 +15,7 @@ Le serveur gère l'authentification et la base de données.
 
 ### 2. Frontend : Flutter
 L'interface mobile pour les patients.
-1-Installez les paquets :  flutter pub get
+1-Installez les dépendances : :  flutter pub get
 
 2-Lancez l'application : flutter run
     
