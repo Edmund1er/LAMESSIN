@@ -34,6 +34,7 @@ class Login extends StatelessWidget {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text("Connexion réussie !")),
                   );
+                  Navigator.pushNamed(context, "/page_utilisateur");
                 },
                 child: const Text("Se connecter"),
               ),

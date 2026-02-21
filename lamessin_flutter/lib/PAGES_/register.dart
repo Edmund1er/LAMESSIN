@@ -43,6 +43,10 @@ class Register extends StatelessWidget {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text("Compte créé !")),
                     );
+                    Navigator.pushReplacementNamed(
+                      context,
+                      "/page_utilisateur",
+                    );
                   },
                   child: const Text("S'inscrire"),
                 ),
