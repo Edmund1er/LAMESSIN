@@ -9,19 +9,21 @@ class Register extends StatefulWidget {
 }
 
 class _RegisterState extends State<Register> {
-// Contrôleurs communs
+  // --- Contrôleurs pour récupérer le texte ---
   final TextEditingController _nom = TextEditingController();
   final TextEditingController _prenom = TextEditingController();
   final TextEditingController _telephone = TextEditingController();
   final TextEditingController _email = TextEditingController();
   final TextEditingController _password = TextEditingController();
-
-// Contrôleurs spécifiques
+  
+  // Contrôleurs spécifiques aux rôles
   final TextEditingController _specialite = TextEditingController();
+  final TextEditingController _licence = TextEditingController(); 
+  
   DateTime? _dateNaissance; 
-  String _roleChoisi = "patient"; 
+  String _roleChoisi = "patient"; // Rôle par défaut
 
-// Fonction pour choisir la date
+  // Fonction simple pour choisir la date de naissance
   Future<void> _selectionnerDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -32,8 +34,9 @@ class _RegisterState extends State<Register> {
     if (picked != null) setState(() => _dateNaissance = picked);
   }
 
+  // Fonction qui envoie les données à Django
   void _lancerInscription() async {
-// On prépare le colis dynamiquement
+    // Préparation du dictionnaire (JSON) pour l'API
     Map<String, dynamic> monColis = {
       "username": _telephone.text,
       "numero_telephone": _telephone.text,
@@ -44,13 +47,17 @@ class _RegisterState extends State<Register> {
       "type_compte": _roleChoisi,
     };
 
-// Ajout des données selon le rôle
+    // Ajout des données selon le rôle choisi
     if (_roleChoisi == "patient") {
       monColis["date_naissance"] = _dateNaissance?.toIso8601String().split('T')[0] ?? "2000-01-01";
-    } else {
+    } else if (_roleChoisi == "medecin") {
       monColis["specialite_medicale"] = _specialite.text;
+      monColis["numero_licence"] = _licence.text;
+    } else if (_roleChoisi == "pharmacien") {
+      monColis["numero_licence"] = _licence.text;
     }
 
+    // Envoi au service API
     bool succes = await ApiService.inscription(monColis);
 
     if (succes) {
@@ -60,7 +67,7 @@ class _RegisterState extends State<Register> {
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Échec de l'inscription. Vérifiez vos infos.")),
+        const SnackBar(content: Text("Échec. Vérifiez vos informations.")),
       );
     }
   }
@@ -68,25 +75,26 @@ class _RegisterState extends State<Register> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Création de compte LAMESSIN")),
+      appBar: AppBar(title: const Text("Créer un compte LAMESSIN")),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-// Sélecteur de rôle
+            // 1. Sélecteur de rôle (3 choix)
             SegmentedButton<String>(
               segments: const [
                 ButtonSegment(value: 'patient', label: Text('Patient'), icon: Icon(Icons.person)),
                 ButtonSegment(value: 'medecin', label: Text('Médecin'), icon: Icon(Icons.medical_services)),
+                ButtonSegment(value: 'pharmacien', label: Text('Pharma'), icon: Icon(Icons.local_pharmacy)),
               ],
               selected: {_roleChoisi},
               onSelectionChanged: (newSelection) {
                 setState(() => _roleChoisi = newSelection.first);
               },
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 25),
 
-            // Champs communs
+            // 2. Champs communs à tout le monde
             TextField(controller: _nom, decoration: const InputDecoration(labelText: "Nom", border: OutlineInputBorder())),
             const SizedBox(height: 15),
             TextField(controller: _prenom, decoration: const InputDecoration(labelText: "Prénom", border: OutlineInputBorder())),
@@ -96,9 +104,9 @@ class _RegisterState extends State<Register> {
             TextField(controller: _email, decoration: const InputDecoration(labelText: "Email", border: OutlineInputBorder())),
             const SizedBox(height: 15),
             TextField(controller: _password, obscureText: true, decoration: const InputDecoration(labelText: "Mot de passe", border: OutlineInputBorder())),
-            const SizedBox(height: 15),
+            const SizedBox(height: 20),
 
-// --- CHAMPS DYNAMIQUES ---
+            // 3. Champs dynamiques (S'affichent selon le rôle)
             if (_roleChoisi == "patient") ...[
               ListTile(
                 title: Text(_dateNaissance == null 
@@ -109,15 +117,21 @@ class _RegisterState extends State<Register> {
                 tileColor: Colors.blue.withOpacity(0.1),
               ),
             ] else if (_roleChoisi == "medecin") ...[
-              TextField(controller: _specialite, decoration: const InputDecoration(labelText: "Spécialité (ex: Cardiologue)", border: OutlineInputBorder())),
+              TextField(controller: _specialite, decoration: const InputDecoration(labelText: "Spécialité (ex: Gynécologue)", border: OutlineInputBorder())),
+              const SizedBox(height: 15),
+              TextField(controller: _licence, decoration: const InputDecoration(labelText: "N° de Licence Médicale", border: OutlineInputBorder())),
+            ] else if (_roleChoisi == "pharmacien") ...[
+              TextField(controller: _licence, decoration: const InputDecoration(labelText: "N° de Licence Pharmacie", border: OutlineInputBorder())),
             ],
 
             const SizedBox(height: 30),
+
+            // 4. Bouton final
             SizedBox(
               width: double.infinity,
+              height: 50,
               child: ElevatedButton(
                 onPressed: _lancerInscription,
-                style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 15)),
                 child: const Text("S'INSCRIRE MAINTENANT"),
               ),
             ),
