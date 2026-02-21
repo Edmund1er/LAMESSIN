@@ -58,6 +58,8 @@ class InscriptionSerializer(serializers.ModelSerializer):
         )
 
 # fonction de validation pour s'assurer que les champs requis selon le rôle sont remplis
+
+
     def validate(self, data):
         type_compte = data.get('type_compte')
         errors = {}
