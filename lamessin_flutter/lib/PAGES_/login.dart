@@ -25,7 +25,7 @@ class _LoginState extends State<Login> {
 //  On vérifie le résultat
     if (token != null) {
 //  On va à la page d'accueil du patient si ca marche
-      Navigator.pushReplacementNamed(context, "/dashboard_patient");
+      Navigator.pushReplacementNamed(context, "/page_utilisateur");
     } else {
 // On affiche un petit message d'erreur en bas si il ya erreur
       ScaffoldMessenger.of(context).showSnackBar(
