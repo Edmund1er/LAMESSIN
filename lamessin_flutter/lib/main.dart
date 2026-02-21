@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'PAGES_/splash.dart';
 import 'PAGES_/login.dart';
 import 'PAGES_/register.dart';
 import 'PAGES_/home_page.dart';
@@ -17,9 +18,10 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       
-      initialRoute: "/login", 
+      initialRoute: "/splash", 
       
       routes: {
+        "/splash": (context) => const Splash(),
         "/login": (context) => const Login(), 
         "/register": (context) => const Register(),
         "/home_page": (context) => const HomePage(), 

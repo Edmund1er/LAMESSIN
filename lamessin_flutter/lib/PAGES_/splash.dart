@@ -13,9 +13,13 @@ class _SplashState extends State<Splash> {
   void initState() {
     super.initState();
 
-    Timer(const Duration(seconds: 3), () {
-      Navigator.pushReplacementNamed(context, "/home");
-    });
+    Timer(const Duration(seconds: 10), () {
+// "mounted" vérifie que la page existe toujours avant de naviguer
+      if (mounted) 
+        {
+          Navigator.pushReplacementNamed(context, "/login");
+        }
+      });
   }
 
   @override
