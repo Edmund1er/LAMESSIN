@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'PAGES_/splash.dart';
-import 'PAGES_/login.dart';
-import 'PAGES_/register.dart';
+import 'PAGES_/AUTH_/splash.dart';
+import 'PAGES_/AUTH_/login.dart';
+import 'PAGES_/AUTH_/register.dart';
 import 'PAGES_/home_page.dart';
-import 'PAGES_/page_utilisateur.dart';
-import 'PAGES_/recherches_services_medicaux.dart';
+import 'PAGES_/PATIENT_/page_utilisateur.dart';
+import 'PAGES_/PATIENT_/recherches_services_medicaux.dart';
 
 void main() {
   runApp(const MyApp());
