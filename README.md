@@ -15,10 +15,14 @@ Le serveur gère l'authentification et la base de données.
 
 ### 2. Frontend : Flutter
 L'interface mobile pour les patients.
-1-Installez les dépendances : :  flutter pub get
+1-Installez les dépendances :  flutter pub get
 
 2-Lancez l'application : flutter run
     
+
+
+
+
 Commandes Git 
     Sauvegarder et charger son travail :
     
