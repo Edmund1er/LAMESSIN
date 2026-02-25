@@ -13,7 +13,7 @@ class _SplashState extends State<Splash> {
   void initState() {
     super.initState();
 
-    Timer(const Duration(seconds: 10), () {
+    Timer(const Duration(seconds: 4), () {
 // "mounted" vérifie que la page existe toujours avant de naviguer
       if (mounted) 
         {
