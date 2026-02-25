@@ -45,7 +45,7 @@ class _RendezVousPageState extends State<RendezVousPage>
             const SnackBar(content: Text("Veuillez préciser le motif de la visite."), backgroundColor: Colors.orange),);
             return; 
           }
-        //ce qui sera envoyer a django
+//ce qui sera envoyer a django
 
         Map<String , dynamic> rdv = {
           "patient_demandeur": 1,
