@@ -6,8 +6,7 @@ import 'PAGES_/home_page.dart';
 import 'PAGES_/PATIENT_/page_utilisateur.dart';
 import 'PAGES_/PATIENT_/recherches_services_medicaux.dart';
 import 'PAGES_/PATIENT_/prise_rdv_patient.dart';
-
-
+import "PAGES_/PATIENT_/services.dart";
 
 void main() {
   runApp(const MyApp());
@@ -20,18 +19,19 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      
-      initialRoute: "/splash", 
-      
+
+      initialRoute: "/splash",
+
       routes: {
         "/splash": (context) => const Splash(),
-        "/login": (context) => const Login(), 
+        "/login": (context) => const Login(),
         "/register": (context) => const Register(),
-        "/home_page": (context) => const HomePage(), 
+        "/home_page": (context) => const HomePage(),
         "/page_utilisateur": (context) => const page_utilisateur(),
-        "/recherches_services_medicaux": (context) => const recherches_services_medicaux(),
-        "/rendez_vous_page":(context) => const RendezVousPage(),
-
+        "/recherches_services_medicaux": (context) =>
+            const recherches_services_medicaux(),
+        "/rendez_vous_page": (context) => const RendezVousPage(),
+        "services": (context) => const Services(),
       },
     );
   }

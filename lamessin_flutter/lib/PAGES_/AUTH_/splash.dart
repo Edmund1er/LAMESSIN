@@ -14,12 +14,11 @@ class _SplashState extends State<Splash> {
     super.initState();
 
     Timer(const Duration(seconds: 4), () {
-// "mounted" vérifie que la page existe toujours avant de naviguer
-      if (mounted) 
-        {
-          Navigator.pushReplacementNamed(context, "/login");
-        }
-      });
+      // "mounted" vérifie que la page existe toujours avant de naviguer
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, "/login");
+      }
+    });
   }
 
   @override
