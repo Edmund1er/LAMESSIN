@@ -6,32 +6,99 @@ class page_utilisateur extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("LAMESIN")),
-      backgroundColor: Color(0xFFE1F0FF),
+      appBar: AppBar(title: const Text("LAMESIN"), centerTitle: true),
+      backgroundColor: const Color(0xFFE1F0FF),
       body: Center(
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
-            color: Color.fromARGB(255, 59, 98, 137),
-          ),
-          child: Column(
-            children: [
-              ElevatedButton(
-                onPressed: () {},
-                child: Text("hopitaux pharmacies les plus proches"),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SizedBox(
+              width: MediaQuery.of(context).size.width * 0.85,
+              height: 90,
+              child: Card(
+                color: const Color(0xFF0056b3),
+                clipBehavior: Clip.antiAlias,
+                child: InkWell(
+                  onTap: () {
+                    Navigator.pushNamed(
+                      context,
+                      '/recherches_services_medicaux',
+                    );
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      children: const [
+                        Icon(Icons.local_hospital, color: Colors.white),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            "Hôpitaux et pharmacies les plus proches",
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
-              SizedBox(height: 15),
-              ElevatedButton.icon(
-                onPressed: () {
-                  print("");
-                },
-                icon: Icon(Icons.chat_bubble),
-                label: Text("chatbot"),
+            ),
+
+            const SizedBox(height: 10),
+
+            SizedBox(
+              height: 90,
+              width: MediaQuery.of(context).size.width * 0.85,
+              child: Card(
+                color: const Color(0xFF0056b3),
+                clipBehavior: Clip.antiAlias,
+                child: InkWell(
+                  onTap: () {
+                    Navigator.pushNamed(context, '/rendez_vous_page');
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      children: const [
+                        Icon(Icons.calendar_month, color: Colors.white),
+                        SizedBox(width: 10),
+                        Text(
+                          "rendez vous",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
-              SizedBox(height: 15),
-              ElevatedButton(onPressed: () {}, child: Text("rendez vous")),
-            ],
-          ),
+            ),
+
+            const SizedBox(height: 10),
+
+            SizedBox(
+              height: 90,
+              width: MediaQuery.of(context).size.width * 0.85,
+              child: Card(
+                color: const Color(0xFF0056b3),
+                clipBehavior: Clip.antiAlias,
+                child: InkWell(
+                  onTap: () {
+                    Navigator.pushNamed(context, '/chatbot');
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      children: const [
+                        Icon(Icons.chat_bubble, color: Colors.white),
+                        SizedBox(width: 10),
+                        Text("chatbot", style: TextStyle(color: Colors.white)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

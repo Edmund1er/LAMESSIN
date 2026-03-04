@@ -102,6 +102,3 @@ class _RendezVousPageState extends State<RendezVousPage>
         );
       }
   }
-
-
-  
