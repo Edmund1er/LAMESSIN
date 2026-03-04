@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 // Pour transformer les dates en texte
-import 'package:intl/intl.dart'; 
+
 
 //creeons le widget state ful
 
