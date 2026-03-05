@@ -7,6 +7,7 @@ import 'PAGES_/PATIENT_/page_utilisateur.dart';
 import 'PAGES_/PATIENT_/recherches_services_medicaux.dart';
 import 'PAGES_/PATIENT_/prise_rdv_patient.dart';
 import "PAGES_/PATIENT_/services.dart";
+import "PAGES_/PATIENT_/assistant.dart";
 
 void main() {
   runApp(const MyApp());
@@ -32,6 +33,7 @@ class MyApp extends StatelessWidget {
             const recherches_services_medicaux(),
         "/rendez_vous_page": (context) => const RendezVousPage(),
         "services": (context) => const Services(),
+        "/assistant": (context) => const Assistant(),
       },
     );
   }

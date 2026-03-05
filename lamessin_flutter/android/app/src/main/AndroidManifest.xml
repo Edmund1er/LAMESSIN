@@ -1,8 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
         <!-- Autoriser Internet et gerer le HTTP (dans la balise application 2eme ligne) -->
-    <uses-permission android:name="android.intent.action.INTERNET" />
 
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application 
         android:label="lamessin_flutter"
         android:usesCleartextTraffic="true"

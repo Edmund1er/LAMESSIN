@@ -83,7 +83,7 @@ class page_utilisateur extends StatelessWidget {
                 clipBehavior: Clip.antiAlias,
                 child: InkWell(
                   onTap: () {
-                    Navigator.pushNamed(context, '/chatbot');
+                    Navigator.pushNamed(context, '/assistant');
                   },
                   child: Padding(
                     padding: const EdgeInsets.all(8.0),
