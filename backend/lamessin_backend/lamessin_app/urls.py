@@ -10,5 +10,9 @@ urlpatterns = [
 
 # Route pour le Profil é
       path('profil/', views.UserProfil.as_view(), name='user_profil'),
+
+# Routes pour les rdv
+      path('listeMedecins/',views.LiteMedecins.as_view(),name='liste_medecins'),
+      path('rendezvous/',views.CreezRendezVous.as_view,name='creer_rendezvous'),
 ]
 

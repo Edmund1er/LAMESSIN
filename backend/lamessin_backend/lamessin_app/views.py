@@ -77,3 +77,28 @@ class UserProfil(APIView):
                   data = UtilisateurSerializer(user).data
 
             return Response(data)
+      
+# =========================
+# VUES POUR LES RENDEZ-VOUS
+# =========================
+
+class LiteMedecins(APIView):
+      permission_classes = [IsAuthenticated]
+
+      def get(self, request):
+            Medecins  = Medecin.objects.all()
+            serializer = MedecinSerializer(medecins, many=True)
+            return Response(serializer.data, status= status.HTTP_200_OK)
+      
+class CreezRendezVous(APIView):
+      
+      permission_classes = [IsAuthenticated]
+      
+      def post(self, request):
+            serializer = RendezVousCreateSerializer(data = request.data)
+
+            if serializer.is_valid():
+                  serializer.save()
+                  return Response({"success" : True,"message": "Rendez_vous enregistré"},status=status.HTTP_201_CREATED)
+            
+            return Response(serializer.errors, status =status.HTTP_400_BAD_REQUEST)

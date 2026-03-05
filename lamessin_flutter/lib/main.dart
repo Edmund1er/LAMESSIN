@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'PAGES_/AUTH_/splash.dart';
 import 'PAGES_/AUTH_/login.dart';
 import 'PAGES_/AUTH_/register.dart';
@@ -8,7 +9,11 @@ import 'PAGES_/PATIENT_/recherches_services_medicaux.dart';
 import 'PAGES_/PATIENT_/prise_rdv_patient.dart';
 import "PAGES_/PATIENT_/services.dart";
 
-void main() {
+void main() async{
+// On s'assure que les widgets sont bien liés
+  WidgetsFlutterBinding.ensureInitialized();
+// On initialise les données de date pour le français
+  await initializeDateFormatting('fr_FR', null);
   runApp(const MyApp());
 }
 

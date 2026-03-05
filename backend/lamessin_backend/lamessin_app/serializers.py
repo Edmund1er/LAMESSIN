@@ -169,8 +169,60 @@ class RendezVousSerializer(serializers.ModelSerializer):
             model = RendezVous
             fields = ('id', 'patient_demandeur', 'medecin_concerne', 'creneau_reserve', 'motif_consultation',
                       'statut_actuel_rdv')
+            
+# Serializer utilisé uniquement pour l'envoi de données depuis Flutter
+class RendezVousCreateSerializer(serializers.ModelSerializer):
+    # On accepte ces champs depuis Flutter
+    date_selectionnee = serializers.DateField(write_only=True)
+    heure_selectionnee = serializers.CharField(write_only=True) # Format "HH:MM"
 
+    class Meta:
+        model = RendezVous
+        fields = [
+            'patient_demandeur', 'medecin_concerne', 
+            'date_selectionnee', 'heure_selectionnee', 
+            'motif_consultation', 'statut_actuel_rdv'
+        ]
 
+    def create(self, validated_data):
+        # 1. Récupérer les données
+        date_jour = validated_data.pop('date_selectionnee')
+        heure_str = validated_data.pop('heure_selectionnee')
+        medecin = validated_data['medecin_concerne']
+        
+        # 2. Convertir l'heure string en objet time
+        try:
+            heure, minute = map(int, heure_str.split(':'))
+            heure_obj = time(heure, minute)
+        except:
+            raise serializers.ValidationError("Format de l'heure invalide (attendu HH:MM).")
+
+        # 3. Créer les objets DateTime complets pour le créneau
+        debut_creneau = datetime.combine(date_jour, heure_obj)
+        fin_creneau = debut_creneau + timedelta(minutes=30) # Supposons créneau de 30min
+
+        # 4. Gérer l'Agenda et le Créneau
+        # Récupérer ou créer l'agenda du médecin
+        agenda, _ = Agenda.objects.get_or_create(medecin_proprietaire=medecin)
+
+        # Vérifier si le créneau existe déjà ou en créer un nouveau
+        # Note: Dans une vraie app, il faut vérifier si 'est_libre' est True
+        creneau, created = Creneau.objects.get_or_create(
+            agenda=agenda,
+            date_debut_creneau=debut_creneau,
+            defaults={
+                'date_fin_creneau': fin_creneau,
+                'est_libre': True
+            }
+        )
+
+        if not creneau.est_libre:
+             raise serializers.ValidationError("Ce créneau horaire est déjà pris.")
+
+        # 5. Créer le Rendez-vous en liant le créneau trouvé/créé
+        validated_data['creneau_reserve'] = creneau
+        
+        return super().create(validated_data)
 # =========================
 # SERIALIZERS COMMANDES
 # =========================
