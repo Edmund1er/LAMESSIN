@@ -138,11 +138,9 @@ class CreneauxDispo(APIView):
                   return Response({"error": "Paramètres requis."}, status=400)
 
             date_obj = parse_date(date_str)
+            maintenant = timezone.localtime(timezone.now())  # Heure actuelle locale
 
-# On récupère les plages de travail du médecin pour ce jour
             plages = PlageHoraire.objects.filter(medecin_id=medecin_id, date=date_obj)
-
-#  On récupère les RDV déjà pris pour ne pas les proposer
             rdvs_existants = RendezVous.objects.filter(
                   medecin_concerne_id=medecin_id,
                   date_rdv=date_obj
@@ -151,7 +149,6 @@ class CreneauxDispo(APIView):
             creneaux_virtuels = []
 
             for plage in plages:
-#transformer en datetime pour faire des calculs
                   debut = datetime.combine(plage.date, plage.heure_debut)
                   fin = datetime.combine(plage.date, plage.heure_fin)
                   pas = timedelta(minutes=plage.duree_consultation)
@@ -160,12 +157,19 @@ class CreneauxDispo(APIView):
                   while temps_actuel + pas <= fin:
                         heure_test = temps_actuel.time()
 
-# si l'heure n'est pas déjà dans les RDV pris, on l'ajoute
+#On vérifie si le créneau est déjà pris
+                        pas_pris = heure_test not in rdvs_existants
 
-                        if heure_test not in rdvs_existants:
+#Si c'est pour AUJOURD'HUI, on vérifie si l'heure est passée
+                        est_futur = True
+                        if date_obj == maintenant.date():
+                              if heure_test <= maintenant.time():
+                                    est_futur = False
+
+                        if pas_pris and est_futur:
                               heure_formatee = heure_test.strftime('%H:%M')
                               creneaux_virtuels.append({
-                                    "id": heure_formatee,  # On utilise l'heure comme ID pour Flutter
+                                    "id": heure_formatee,
                                     "heure": heure_formatee
                               })
 
@@ -173,7 +177,7 @@ class CreneauxDispo(APIView):
 
             return Response(creneaux_virtuels)
 
-#la liste des rendez-vous
+#-------------------------------------------------la liste des rendez-vous----------------------------------------------------------------------
 class ListeRendezVousPatient(generics.ListAPIView):
     serializer_class = RendezVousSerializer
     permission_classes = [IsAuthenticated]
@@ -206,3 +210,45 @@ class AnnulerRendezVous(generics.UpdateAPIView):
                   "success": True,
                   "message": "Rendez-vous annulé avec succès"
             }, status=status.HTTP_200_OK)
+
+
+# ------------------------------------------------------LISTE DES ETABLISSEMENTS : Hôpitaux & Pharmacies------------------------------------------------------
+class ListeEtablissements(APIView):
+      permission_classes = [IsAuthenticated]
+
+      def get(self, request):
+            # On peut filtrer par type (pharmacie ou hopital) si besoin
+            type_filtre = request.query_params.get('type')
+            if type_filtre:
+                  etablissements = EtablissementSante.objects.filter(type_etablissement=type_filtre)
+            else:
+                  etablissements = EtablissementSante.objects.all()
+
+            serializer = EtablissementSanteSerializer(etablissements, many=True)
+            return Response(serializer.data)
+
+#-------------------------------------------------RAPPELS TRAITEMENT-----------------------------------------------------------------------------------
+class ListeNotifications(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # On récupère les notifications de l'utilisateur 'romaric' (ou celui connecté)
+        notifications = Notification.objects.filter(destinataire=request.user).order_by('-heure_envoi')
+        serializer = NotificationSerializer(notifications, many=True)
+        return Response(serializer.data)
+
+
+# -------------------------------------------------les TRAITEMENT-----------------------------------------------------------------------------------
+
+class ListeTraitementsPatient(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # On récupère le patient lié à l'utilisateur connecté
+        try:
+            patient = Patient.objects.get(compte_utilisateur=request.user)
+            traitements = Traitement.objects.filter(patient_concerne=patient)
+            serializer = TraitementSerializer(traitements, many=True)
+            return Response(serializer.data)
+        except Patient.DoesNotExist:
+            return Response({"error": "Profil patient non trouvé"}, status=404)

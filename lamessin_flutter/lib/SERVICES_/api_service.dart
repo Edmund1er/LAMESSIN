@@ -20,9 +20,38 @@ class ApiService {
   
     return prefs.getString('access_token'); 
   }
+// ================================================================================================================
+// MÉTHODES D'AUTHENTIFICATION 
+// ================================================================================================================
 
-// -------------------------------MÉTHODES D'AUTHENTIFICATION -----------------------------------
+// -----------------------------------------RÉCUPÉRATION DU PROFIL----------------------------------------------------
 
+  static Future<Map<String, dynamic>?> getProfil() async {
+    String? token = await getToken();
+    if (token == null) return null;
+
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/profil/'),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        // utf8.decode pour gérer les accents dans les noms/prénoms
+        return json.decode(utf8.decode(response.bodyBytes));
+      } else {
+        print("Erreur profil: ${response.statusCode}");
+        return null;
+      }
+    } catch (e) {
+      print("Erreur réseau profil: $e");
+      return null;
+    }
+  }
+// -------------------------------Register -----------------------------------
   static Future<bool> inscription(Map<String, dynamic> data) async {
     try {
       final response = await http.post(
@@ -36,7 +65,7 @@ class ApiService {
       return false;
     }
   }
-
+// -------------------------------login -----------------------------------
   static Future<String?> login(String telephone, String password) async {
     try {
       final reponse = await http.post(
@@ -65,16 +94,15 @@ class ApiService {
     }
   }
 
-// deconnexion
-
+// -------------------------------Deconnexion-----------------------------------
 static Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('access_token');
     print("Utilisateur déconnecté");
   }
-
-// ------------------------------ MÉTHODES DE GESTION DES RENDEZ-VOUS------------------------------------------
-
+// ================================================================================================================
+//MÉTHODES DE GESTION DES RENDEZ-VOUS
+// ================================================================================================================
   static Future<bool> creerRendezVous(Map<String, dynamic> rdvData) async {
     final url = Uri.parse("$baseUrl/rendezvous/creer/");
     
@@ -104,9 +132,11 @@ static Future<void> logout() async {
       return false;
     }
   }
-
-  // --- MÉTHODES DE RÉCUPÉRATION DE DONNÉES ---
-
+// ================================================================================================================
+// MÉTHODES DE RÉCUPÉRATION DE DONNÉES pour le patient  
+// ================================================================================================================
+ 
+// -------------------------------Listes des medecins-----------------------------------
   static Future<List<dynamic>> getListeMedecins() async {
     final url = Uri.parse("$baseUrl/listeMedecins/");
     String? token = await getToken();
@@ -127,7 +157,7 @@ static Future<void> logout() async {
       return [];
     }
   }
-
+// -------------------------------Plage d'heure -----------------------------------
   static Future<List<dynamic>> getCreneaux(int medecinId, String date) async {
     final url = Uri.parse("$baseUrl/creneauxDisponible/?medecin=$medecinId&date=$date");
     String? token = await getToken();
@@ -149,7 +179,8 @@ static Future<void> logout() async {
     }
   }
 
-// Récupérer les RDV du patient connecté
+//-------------------------------Récupérer les RDV du patient connecté-----------------------------------
+
 static Future<List<dynamic>> getMesRendezVous() async {
     String? token = await getToken(); 
     try {
@@ -170,7 +201,8 @@ static Future<List<dynamic>> getMesRendezVous() async {
     }
   }
 
-//annuler un rendez-vous
+//-------------------------------Annulez RDV-----------------------------------
+
   static Future<bool> annulerRendezVous(int id) async {
     String? token = await getToken();
     try {
@@ -188,5 +220,74 @@ static Future<List<dynamic>> getMesRendezVous() async {
       return false;
     }
   }
+// -------------------------------Récupérer Hôpitaux et Pharmacies-----------------------------------
+static Future<List<dynamic>> getEtablissements() async {
+  String? token = await getToken();
+  final url = Uri.parse("$baseUrl/etablissements/");
 
+  try {
+    final reponse = await http.get(
+      url,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+    );
+
+    if (reponse.statusCode == 200) {
+// On décode le JSON 
+      return json.decode(utf8.decode(reponse.bodyBytes));
+    } else {
+      print("Erreur récupération établissements: ${reponse.statusCode}");
+      return [];
+    }
+  } catch (e) {
+    print("Erreur réseau (établissements): $e");
+    return [];
+  }
+}
+// -------------------------------Rappel traitement-----------------------------------
+static Future<List<dynamic>> getNotifications() async {
+  String? token = await getToken();
+  try {
+    final response = await http.get(
+      Uri.parse('$baseUrl/notifications/'),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+    );
+    if (response.statusCode == 200) {
+      return json.decode(utf8.decode(response.bodyBytes));
+    }
+    return [];
+  } catch (e) {
+    print("Erreur notifications: $e");
+    return [];
+  }
+}
+
+// -------------------------------les listes traitement-----------------------------------
+static Future<List<dynamic>> getTraitements() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString('access_token');
+    
+    final response = await http.get(
+      Uri.parse('$baseUrl/traitements/'),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    return [];
+  } catch (e) {
+    print("Erreur getTraitements: $e");
+    return [];
+  }
+}
 }

@@ -4,9 +4,9 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 
 from django.contrib.auth.models import AbstractUser
 
-# ==========================================================
+# ====================================================================================================================
 # MODULE : INTERFACE UTILISATEURS
-# ==========================================================
+# ====================================================================================================================
 
 # AbstractUser contient déjà : username, password, email, first_name, last_name
 
@@ -23,6 +23,8 @@ class Utilisateur(AbstractUser):
     def __str__(self):
        return f"{self.last_name} - {self.numero_telephone}"
 
+#-----------------------------------------------models patient----------------------------------------------------
+
 class Patient(models.Model):
     compte_utilisateur = models.OneToOneField(Utilisateur, on_delete=models.CASCADE, primary_key=True)
     date_naissance= models.DateField(null=True, blank=True)
@@ -30,6 +32,7 @@ class Patient(models.Model):
 
     def __str__(self):
         return f"Patient: {self.compte_utilisateur.last_name}"
+#-----------------------------------------------models medecin----------------------------------------------------
 
 class Medecin(models.Model):
     compte_utilisateur = models.OneToOneField(Utilisateur, on_delete=models.CASCADE, primary_key=True)
@@ -39,6 +42,8 @@ class Medecin(models.Model):
     def __str__(self):
         return f"Dr {self.compte_utilisateur.last_name}"
 
+#-----------------------------------------------models pharmacien----------------------------------------------------
+
 class Pharmacien(models.Model):
     compte_utilisateur = models.OneToOneField(Utilisateur, on_delete=models.CASCADE, primary_key=True)
     numero_licence = models.CharField(max_length=50, unique=True)
@@ -46,9 +51,12 @@ class Pharmacien(models.Model):
     def __str__(self):
         return f"Pharmacien: {self.compte_utilisateur.last_name}"
 
-# ==========================================================
+# ====================================================================================================================
 # MODULE : GEOLOCALISATION & ETABLISSEMENTS
-# ==========================================================
+# ====================================================================================================================
+
+
+#-----------------------------------------------models etablissements----------------------------------------------------
 
 class EtablissementSante(models.Model):
     nom = models.CharField(max_length=100)
@@ -61,16 +69,23 @@ class EtablissementSante(models.Model):
     def __str__(self):
         return self.nom
 
+#-----------------------------------------------models hopital----------------------------------------------------
+
+
 class Hopital(EtablissementSante):
     type_urgences= models.CharField(max_length=100)
     liste_services = models.TextField()
 
+#-----------------------------------------------models pharmacie----------------------------------------------------
+
 class Pharmacie(EtablissementSante):
     pharmacie_est_garde = models.BooleanField(default=False)
 
-# ==========================================================
+# ====================================================================================================================
 # MODULE : PRODUITS & STOCKS
-# ==========================================================
+# ====================================================================================================================
+
+#-----------------------------------------------models Medicament----------------------------------------------------
 
 class Medicament(models.Model):
     nom_commercial = models.CharField(max_length=100)
@@ -80,6 +95,8 @@ class Medicament(models.Model):
 
     def __str__(self):
         return self.nom_commercial
+
+#-----------------------------------------------models Stock----------------------------------------------------
 
 class Stock(models.Model):
     produit_concerne = models.ForeignKey(Medicament, on_delete=models.CASCADE)
@@ -91,6 +108,8 @@ class Stock(models.Model):
     def __str__(self):
         return f"{self.produit_concerne.nom_commercial} ({self.quantite_actuelle_en_stock})"
 
+#-----------------------------------------------models Ordonnance----------------------------------------------------
+
 class Ordonnance(models.Model):
     medecin_prescripteur = models.ForeignKey(Medecin, on_delete=models.CASCADE)
     patient_beneficiaire = models.ForeignKey(Patient, on_delete=models.CASCADE)
@@ -100,9 +119,12 @@ class Ordonnance(models.Model):
     def __str__(self):
         return f"Ordonnance de {self.patient_beneficiaire.compte_utilisateur.last_name}"
 
-# ==========================================================
+# ====================================================================================================================
 # MODULE : GESTION DES RENDEZ-VOUS
-# ==========================================================
+# ====================================================================================================================
+
+#-----------------------------------------------models Plage Horaire----------------------------------------------------
+
 
 class PlageHoraire(models.Model):
     medecin = models.ForeignKey(Medecin, on_delete=models.CASCADE, related_name="plages")
@@ -113,6 +135,9 @@ class PlageHoraire(models.Model):
 
     def __str__(self):
         return f"Dispo Dr {self.medecin.compte_utilisateur.last_name} le {self.date}"
+
+
+#-----------------------------------------------models RDV----------------------------------------------------
 
 
 class RendezVous(models.Model):
@@ -133,9 +158,11 @@ class RendezVous(models.Model):
         return f"RDV: {self.patient_demandeur.compte_utilisateur.last_name} - {self.date_rdv} à {self.heure_rdv}"
 
 
-# ==========================================================
+# ====================================================================================================================
 # MODULE : COMMANDES & PAIEMENTS
-# ==========================================================
+# ====================================================================================================================
+
+#-----------------------------------------------models commandes----------------------------------------------------
 
 class Commande(models.Model):
     patient_acheteur = models.ForeignKey(Patient, on_delete=models.CASCADE)
@@ -146,30 +173,35 @@ class Commande(models.Model):
     def __str__(self):
         return f"Commande {self.id}"
 
+#-----------------------------------------------models lignes de commandes----------------------------------------------------
+
+
 class LigneCommande(models.Model):
     ma_commande = models.ForeignKey(Commande, on_delete=models.CASCADE, related_name="lignes")
     medicament_ajoute = models.ForeignKey(Medicament, on_delete=models.CASCADE)
     quantite_commandee = models.PositiveIntegerField()
     prix_unitaire = models.FloatField()
 
+#-----------------------------------------------models paiement----------------------------------------------------
+
 class Paiement(models.Model):
     commande_associee = models.OneToOneField(Commande, on_delete=models.CASCADE)
     montant_total = models.FloatField()
     moyen_de_paiement = models.CharField(max_length=50)
 
-
     identifiant_transaction_mobile = models.CharField(max_length=100, unique=True)
-
-
 
     confirmation_paiement = models.BooleanField(default=False)
 
     def __str__(self):
         return f"Paiement {self.identifiant_transaction_mobile}"
 
-# ==========================================================
+# ====================================================================================================================
 # MODULE : SUIVI DE SANTÉ
-# ==========================================================
+# ====================================================================================================================
+
+#-----------------------------------------------models Traitement----------------------------------------------------
+
 
 class Traitement(models.Model):
     patient_concerne = models.ForeignKey(Patient, on_delete=models.CASCADE)
@@ -180,11 +212,15 @@ class Traitement(models.Model):
     def __str__(self):
         return f"Traitement: {self.nom_du_traitement}"
 
+#-----------------------------------------------models Prise de medicament----------------------------------------------------
+
 class PriseMedicament(models.Model):
     traitement= models.ForeignKey(Traitement, on_delete=models.CASCADE)
     heure_prise_prevue = models.TimeField()
     prise_effectuee = models.BooleanField(default=False)
     date_prise_reelle = models.DateField()
+
+#-----------------------------------------------models Notifications----------------------------------------------------
 
 class Notification(models.Model):
     destinataire = models.ForeignKey(Utilisateur, on_delete=models.CASCADE)
@@ -192,15 +228,19 @@ class Notification(models.Model):
     heure_envoi = models.DateTimeField(auto_now_add=True)
     type_notification = models.CharField(max_length=50)
 
-# ==========================================================
+# ==============================================================================================================================================================================
 # MODULE : ASSISTANCE VIRTUELLE
-# ==========================================================
+# ==============================================================================================================================================================================
+
+#-----------------------------------------------models chat----------------------------------------------------
 
 class Chatbot(models.Model):
     date_ouverture_session = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"Session Chat {self.id}"
+
+#-----------------------------------------------models Message----------------------------------------------------
 
 class Message(models.Model):
     chatbot_associe = models.ForeignKey(Chatbot, on_delete=models.CASCADE, related_name="messages")

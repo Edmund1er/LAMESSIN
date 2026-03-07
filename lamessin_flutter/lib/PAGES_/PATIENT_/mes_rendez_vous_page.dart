@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../../SERVICES_/api_service.dart';
 
 class MesRendezVousPage extends StatefulWidget {
@@ -20,7 +19,6 @@ class _MesRendezVousPageState extends State<MesRendezVousPage> {
   }
 
   // --- LOGIQUE API ---
-
   Future<void> _recupererRendezVous() async {
     setState(() => _chargement = true);
     final data = await ApiService.getMesRendezVous();
@@ -31,22 +29,21 @@ class _MesRendezVousPageState extends State<MesRendezVousPage> {
   }
 
   Future<void> _annulerRDV(int id) async {
-    // On appelle l'API (à créer dans ApiService)
     bool succes = await ApiService.annulerRendezVous(id);
     if (succes) {
       _afficherMessage("Rendez-vous annulé", Colors.orange);
-      _recupererRendezVous(); // On rafraîchit la liste
+      _recupererRendezVous();
     } else {
       _afficherMessage("Erreur lors de l'annulation", Colors.red);
     }
   }
 
   // --- FILTRES ---
-
   List<dynamic> get _rdvFuturs {
     DateTime now = DateTime.now();
     return _tousMesRDV.where((rdv) {
       DateTime dateRdv = DateTime.parse(rdv['date_rdv']);
+      // On garde ce qui est aujourd'hui ou dans le futur et non annulé
       return dateRdv.isAfter(now.subtract(const Duration(days: 1))) && 
              rdv['statut_actuel_rdv'] != 'annulé';
     }).toList();
@@ -61,7 +58,6 @@ class _MesRendezVousPageState extends State<MesRendezVousPage> {
   }
 
   // --- INTERFACE ---
-
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -69,7 +65,14 @@ class _MesRendezVousPageState extends State<MesRendezVousPage> {
       child: Scaffold(
         backgroundColor: Colors.blueGrey[50],
         appBar: AppBar(
-          title: const Text("Mes Rendez-vous", style: TextStyle(fontWeight: FontWeight.bold)),
+          // LA PETITE MAISON POUR REVENIR AU DASHBOARD
+          leading: IconButton(
+            icon: const Icon(Icons.home_rounded, size: 28),
+            onPressed: () => Navigator.pushNamedAndRemoveUntil(
+                context, '/page_utilisateur', (route) => false),
+          ),
+          title: const Text("Mes Rendez-vous", 
+            style: TextStyle(fontWeight: FontWeight.bold)),
           centerTitle: true,
           backgroundColor: Colors.white,
           foregroundColor: Colors.blueAccent,
@@ -92,6 +95,17 @@ class _MesRendezVousPageState extends State<MesRendezVousPage> {
                 _buildListeVue(_rdvPassesOuAnnules, estAncien: true),
               ],
             ),
+        
+// --- TON BOUTON VERT POUR PRENDRE RENDEZ-VOUS ---
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () {
+            Navigator.pushNamed(context, '/rendez_vous_page'); 
+          },
+          label: const Text("Prendre rendez-vous", 
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          icon: const Icon(Icons.add, color: Colors.white),
+          backgroundColor: const Color.fromARGB(255, 78, 192, 17), // Ton vert
+        ),
       ),
     );
   }
@@ -101,7 +115,7 @@ class _MesRendezVousPageState extends State<MesRendezVousPage> {
     return RefreshIndicator(
       onRefresh: _recupererRendezVous,
       child: ListView.builder(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 90),
         itemCount: liste.length,
         itemBuilder: (context, index) => _buildRDVCard(liste[index], grise: estAncien),
       ),
@@ -109,6 +123,7 @@ class _MesRendezVousPageState extends State<MesRendezVousPage> {
   }
 
   Widget _buildRDVCard(dynamic rdv, {bool grise = false}) {
+    // On récupère les infos du médecin selon tes modèles Django
     final medecin = rdv['medecin_concerne']['compte_utilisateur'];
     final specialite = rdv['medecin_concerne']['specialite_medicale'];
     
@@ -120,18 +135,28 @@ class _MesRendezVousPageState extends State<MesRendezVousPage> {
         child: Column(
           children: [
             ListTile(
-              leading: const CircleAvatar(child: Icon(Icons.person)),
-              title: Text("Dr ${medecin['last_name']}", style: const TextStyle(fontWeight: FontWeight.bold)),
+              leading: const CircleAvatar(
+                backgroundColor: Colors.blueAccent,
+                child: Icon(Icons.person, color: Colors.white),
+              ),
+              title: Text("Dr ${medecin['last_name']}", 
+                style: const TextStyle(fontWeight: FontWeight.bold)),
               subtitle: Text(specialite),
               trailing: _buildStatusBadge(rdv['statut_actuel_rdv']),
             ),
             const Divider(height: 1),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text("${rdv['date_rdv']} à ${rdv['heure_rdv']}"),
+                  Row(
+                    children: [
+                      const Icon(Icons.access_time, size: 16, color: Colors.grey),
+                      const SizedBox(width: 5),
+                      Text("${rdv['date_rdv']} à ${rdv['heure_rdv']}"),
+                    ],
+                  ),
                   if (!grise && rdv['statut_actuel_rdv'] != 'annulé') 
                     TextButton.icon(
                       onPressed: () => _confirmerAnnulation(rdv['id']),
@@ -184,15 +209,26 @@ class _MesRendezVousPageState extends State<MesRendezVousPage> {
   }
 
   Widget _buildStatusBadge(String statut) {
-    Color color = statut == 'confirmé' ? Colors.green : (statut == 'annulé' ? Colors.red : Colors.orange);
+    Color color = (statut == 'confirmé' || statut == 'validé') 
+        ? Colors.green 
+        : (statut == 'annulé' ? Colors.red : Colors.orange);
+    
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-      child: Text(statut, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold)),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1), 
+        borderRadius: BorderRadius.circular(8)
+      ),
+      child: Text(
+        statut.toUpperCase(), 
+        style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold)
+      ),
     );
   }
 
   void _afficherMessage(String msg, Color couleur) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: couleur));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: couleur)
+    );
   }
 }

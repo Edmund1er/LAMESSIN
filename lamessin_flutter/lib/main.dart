@@ -11,6 +11,8 @@ import 'PAGES_/PATIENT_/recherches_services_medicaux.dart';
 import 'PAGES_/PATIENT_/prise_rdv_patient.dart';
 import "PAGES_/PATIENT_/services.dart";
 import "PAGES_/PATIENT_/assistant.dart";
+import 'PAGES_/PATIENT_/suivi_traitements.dart';
+import 'PAGES_/PATIENT_/mon_profil.dart';
 import "PAGES_/PATIENT_/mes_rendez_vous_page.dart"; 
 
 void main() async {
@@ -46,18 +48,20 @@ class MyApp extends StatelessWidget {
       initialRoute: "/splash",
 
       routes: {
-        // Dashboard et Services patient
+        // authentification, profils et comptes  
         "/splash": (context) => const Splash(),
         "/login": (context) => const Login(),
         "/register": (context) => const Register(),
         "/home_page": (context) => const HomePage(),
-        
+        "/profil_patient": (context) => const ProfilPatientPage(),
+
         // Dashboard et Services patient
         "/page_utilisateur": (context) => const PageUtilisateur (),
 
-        "/recherches_services_medicaux": (context) => const recherches_services_medicaux(),
+        "/recherches_services_medicaux": (context) => const RechercheServicesPage(),
         "/services": (context) => const Services(),
         "/assistant": (context) => const Assistant(),
+        '/suivi_traitements': (context) => const SuiviTraitementsPage(),
 
         // Gestion des Rendez-vous patient
         "/rendez_vous_page": (context) => const RendezVousPage(), 

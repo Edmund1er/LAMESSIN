@@ -121,11 +121,10 @@ if (succes) {
       if (!mounted) return;
       
       // On remplace la page actuelle par la page "Mes Rendez-vous"
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const MesRendezVousPage()),
-      );
-    });
+        Navigator.pushNamedAndRemoveUntil(
+        context, '/mes_rendez_vous_page', 
+          ModalRoute.withName('/page_utilisateur') // On s'arrête au Dashboard
+    );});
   } else {
     _afficherMessage("Erreur lors de l'enregistrement.", Colors.red);
   }
