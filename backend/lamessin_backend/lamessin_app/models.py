@@ -104,30 +104,33 @@ class Ordonnance(models.Model):
 # MODULE : GESTION DES RENDEZ-VOUS
 # ==========================================================
 
-class Agenda(models.Model):
-    medecin_proprietaire = models.OneToOneField(Medecin, on_delete=models.CASCADE)
+class PlageHoraire(models.Model):
+    medecin = models.ForeignKey(Medecin, on_delete=models.CASCADE, related_name="plages")
+    date = models.DateField()
+    heure_debut = models.TimeField()  # Ex: 08:00
+    heure_fin = models.TimeField()  # Ex: 12:00
+    duree_consultation = models.PositiveIntegerField(default=60)  # en minutes
 
     def __str__(self):
-        return f"Agenda du Dr {self.medecin_proprietaire.compte_utilisateur.last_name}"
+        return f"Dispo Dr {self.medecin.compte_utilisateur.last_name} le {self.date}"
 
-class Creneau(models.Model):
-    agenda = models.ForeignKey(Agenda, on_delete=models.CASCADE)
-    date_debut_creneau = models.DateTimeField()
-    date_fin_creneau = models.DateTimeField()
-    est_libre = models.BooleanField(default=True)
-
-    def __str__(self):
-        return f"Creneau du {self.date_debut_creneau}"
 
 class RendezVous(models.Model):
     patient_demandeur = models.ForeignKey(Patient, on_delete=models.CASCADE)
     medecin_concerne = models.ForeignKey(Medecin, on_delete=models.CASCADE)
-    creneau_reserve = models.OneToOneField(Creneau, on_delete=models.CASCADE)
+    date_rdv = models.DateField()
+    heure_rdv = models.TimeField()
+
     motif_consultation = models.CharField(max_length=255)
     statut_actuel_rdv = models.CharField(max_length=50, default='en_attente')
 
+    class Meta:
+# Empêche d'avoir deux RDV à la même heure pour le même médecin
+        unique_together = ('medecin_concerne', 'date_rdv', 'heure_rdv')
+
     def __str__(self):
-        return f"RDV: {self.patient_demandeur.compte_utilisateur.last_name}"
+        return f"RDV: {self.patient_demandeur.compte_utilisateur.last_name} - {self.date_rdv} à {self.heure_rdv}"
+
 
 # ==========================================================
 # MODULE : COMMANDES & PAIEMENTS

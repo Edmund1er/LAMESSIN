@@ -10,17 +10,17 @@ class RendezVousPage extends StatefulWidget {
 }
 
 class _RendezVousPageState extends State<RendezVousPage> {
-  // --- Variables (Conservées de l'original) ---
-  int? _idMedecinSelectionne;
-  int? _idCreneauSelectionne;
+  dynamic _medecinSelectionne;
+  String? _heureSelectionnee;
   DateTime? _dateChoisie;
+  String _specialiteFiltre = "Toutes"; 
   final _motif = TextEditingController();
 
   List<dynamic> _medecinsDisponibles = [];
-  List<dynamic> _creneauxDisponibles = []; // Cette liste sera alimentée dynamiquement
+  List<dynamic> _creneauxDisponibles = []; 
   
-  bool _estEnTrainDeCharger = false; // Pour le chargement initial ou la soumission
-  bool _chargementCreneaux = false; // Pour le chargement spécifique des créneaux
+  bool _estEnTrainDeCharger = false;
+  bool _chargementCreneaux = false; 
 
   @override
   void initState() {
@@ -34,9 +34,9 @@ class _RendezVousPageState extends State<RendezVousPage> {
     super.dispose();
   }
 
-  // --- Méthodes API ---
+// --- Méthodes API ---
 
-  // 1. Charger la liste des médecins
+//  Charger la liste des médecins
   Future<void> _chargerMedecins() async {
     setState(() => _estEnTrainDeCharger = true);
     try {
@@ -49,285 +49,223 @@ class _RendezVousPageState extends State<RendezVousPage> {
     }
   }
 
-  // 2. Charger les créneaux quand une date est choisie (DYNAMIQUE)
-  // NOTE: Pour que cela soit totalement connecté à ta DB, tu dois créer 
-  // une endpoint dans ton ApiService qui récupère les créneaux libres 
-  // pour ce médecin à cette date.
-  Future<void> _chargerCreneauxDisponibles() async {
-    if (_idMedecinSelectionne == null || _dateChoisie == null) return;
+// Charger les créneaux quand une date est choisie 
 
-    setState(() => _chargementCreneaux = true);
-    _creneauxDisponibles.clear(); // Réinitialiser
-    _idCreneauSelectionne = null; // Désélectionner
+Future<void> _chargerCreneauxDisponibles() async {
+  if (_medecinSelectionne == null || _dateChoisie == null) return;
 
-    try {
-      // --- APPEL API RÉEL (À DÉCOMMENTER QUAND TON BACKEND EST PRÊT) ---
-      /*
-      String dateStr = DateFormat('yyyy-MM-dd').format(_dateChoisie!);
-      List<dynamic> data = await ApiService.getCreneaux(_idMedecinSelectionne!, dateStr);
-      setState(() => _creneauxDisponibles = data);
-      */
+  setState(() => _chargementCreneaux = true);
 
-      // --- SIMULATION POUR DÉMO (Supprimer ce bloc quand l'API est prête) ---
-      // Cela simule ce que le backend renverrait (Liste d'objets avec id et heure)
-      await Future.delayed(const Duration(milliseconds: 500));
-      setState(() {
-        _creneauxDisponibles = [
-          {"id": 1, "heure": "08:30"},
-          {"id": 2, "heure": "09:00"},
-          {"id": 3, "heure": "10:00"},
-          {"id": 4, "heure": "14:00"},
-          {"id": 5, "heure": "15:30"},
-        ];
-      });
-      // ---------------------------------------------------------------
+  try {
+    String dateStr = DateFormat('yyyy-MM-dd').format(_dateChoisie!);
+// Extraction correcte de l'ID du médecin pour l'API
+    int idMed = _medecinSelectionne['compte_utilisateur']['id']; 
+    
+    print("--- DEBUG RDV ---");
+    print("ID Médecin envoyé: $idMed");
+    print("Date envoyée: $dateStr");
 
-    } catch (e) {
-      print("Erreur chargement créneaux: $e");
-    } finally {
-      setState(() => _chargementCreneaux = false);
-    }
+    List<dynamic> data = await ApiService.getCreneaux(idMed, dateStr);
+    
+    print("Réponse serveur (Créneaux): $data"); 
+    
+    setState(() {
+      _creneauxDisponibles = data;
+// Reset de la sélection si on change de date
+      _heureSelectionnee = null; 
+    });
+  } catch (e) {
+    print("Erreur : $e");
+    _afficherMessage("Erreur lors du chargement des créneaux.", Colors.red);
+  } finally {
+    setState(() => _chargementCreneaux = false);
+  }
+}
+      
+  
+
+//  Validation et Envoi
+void _validerRendezVous() async {
+ if (_medecinSelectionne == null || _dateChoisie == null || _heureSelectionnee == null) {
+    _afficherMessage("Veuillez remplir tous les champs.", Colors.orange);
+    return;
+  }
+  if (_motif.text.trim().isEmpty) {
+    _afficherMessage("Merci de préciser le motif.", Colors.orange);
+    return;
   }
 
-  // 3. Validation et Envoi
-  void _validerRendezVous() async {
-    // Contrôles
-    if (_idMedecinSelectionne == null) {
-      _afficherMessage("Veuillez choisir un médecin.", Colors.orange);
-      return;
-    }
-    if (_dateChoisie == null) {
-      _afficherMessage("Veuillez choisir une date.", Colors.orange);
-      return;
-    }
-    if (_idCreneauSelectionne == null) {
-      _afficherMessage("Veuillez choisir un horaire.", Colors.orange);
-      return;
-    }
-    if (_motif.text.trim().isEmpty) {
-      _afficherMessage("Merci de préciser le motif.", Colors.orange);
-      return;
-    }
+  setState(() => _estEnTrainDeCharger = true);
 
-    // Envoi
-    setState(() => _estEnTrainDeCharger = true);
+// On prépare les données pour le Serializer Django
+Map<String, dynamic> rdv = {
+    "medecin_concerne": _medecinSelectionne['compte_utilisateur']['id'], 
+    "date_rdv": DateFormat('yyyy-MM-dd').format(_dateChoisie!), 
+    "heure_rdv": _heureSelectionnee,                           
+    "motif_consultation": _motif.text.trim(),
+    "statut_actuel_rdv": "en_attente",
+  };
 
-    Map<String, dynamic> rdv = {
-      "patient_demandeur": 1, // ID du patient connecté
-      "medecin_concerne": _idMedecinSelectionne,
-      "creneau_reserve": _idCreneauSelectionne, // On envoie l'ID du créneau (comme l'original)
-      "motif_consultation": _motif.text.trim(),
-      "statut_actuel_rdv": "en_attente",
-    };
 
-    bool succes = await ApiService.creerRendezVous(rdv);
+  print("Données envoyées à l'API : $rdv");
+  bool succes = await ApiService.creerRendezVous(rdv);
 
-    if (!mounted) return;
-    setState(() => _estEnTrainDeCharger = false);
+  if (!mounted) return;
+  setState(() => _estEnTrainDeCharger = false);
 
-    if (succes) {
-      _afficherMessage("Rendez-vous enregistré avec succès !", Colors.green);
-      Navigator.pop(context); // Retour arrière
-    } else {
-      _afficherMessage("Erreur lors de l'enregistrement.", Colors.red);
-    }
+  if (succes) {
+    _afficherMessage("Rendez-vous enregistré avec succès !", Colors.green);
+    Navigator.pop(context); 
+  } else {
+    _afficherMessage("Erreur lors de l'enregistrement.", Colors.red);
   }
+}
+//le filtrage pour la recherche de medecin 
 
-  void _afficherMessage(String msg, Color couleur) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: couleur),
-    );
-  }
+// Liste des spécialités uniques extraites de tes médecins
+List<String> get _categories {
+  final specs = _medecinsDisponibles
+      .map((m) => m['specialite_medicale'] as String)
+      .toSet()
+      .toList();
+  return ["Toutes", ...specs];
+}
 
-  // --- INTERFACE UTILISATEUR ---
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Prendre Rendez-vous"),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: _estEnTrainDeCharger && _medecinsDisponibles.isEmpty
-          ? const Center(child: CircularProgressIndicator(color: Colors.blue))
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionTitle("1. Choix du praticien"),
-                  _buildMedecinDropdown(),
-                  const SizedBox(height: 25),
+// Liste des médecins affichés après filtre
+List<dynamic> get _medecinsAffiches {
+  if (_specialiteFiltre == "Toutes") return _medecinsDisponibles;
+  return _medecinsDisponibles
+      .where((m) => m['specialite_medicale'] == _specialiteFiltre)
+      .toList();
+}
 
-                  _buildSectionTitle("2. Date souhaitée"),
-                  _buildDateSelector(),
-                  const SizedBox(height: 25),
 
-                  _buildSectionTitle("3. Horaire disponible"),
-                  if (_dateChoisie != null) _buildCreneauxGrid() else const Text("Sélectionnez une date pour voir les horaires."),
-                  const SizedBox(height: 30),
+  // -------------------------------------------- INTERFACE UTILISATEUR --------------------------------------------------------
 
-                  _buildSectionTitle("4. Motif de consultation"),
-                  _buildMotifField(),
-                  const SizedBox(height: 30),
 
-                  _buildSubmitButton(),
-                ],
-              ),
-            ),
-    );
-  }
-
-  // --- WIDGETS CONSTITUTIFS (UI) ---
-
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: const TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.bold,
-        color: Colors.blueGrey,
-      ),
-    );
-  }
-
-  Widget _buildMedecinDropdown() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<int>(
-          isExpanded: true,
-          hint: const Text("Sélectionner un médecin"),
-          value: _idMedecinSelectionne,
-          items: _medecinsDisponibles.map((m) {
-            return DropdownMenuItem<int>(
-              value: m['id'],
-              child: Text(
-                "Dr ${m['compte_utilisateur']['last_name']} (${m['specialite_medicale']})",
-                overflow: TextOverflow.ellipsis,
+Widget _buildFiltreSpecialite() {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const Text("Filtrer par spécialité :", 
+        style: TextStyle(fontSize: 14, color: Colors.blueGrey, fontWeight: FontWeight.w600)),
+      const SizedBox(height: 8),
+      SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: _categories.map((spec) {
+            bool estSelectionne = _specialiteFiltre == spec;
+            return Padding(
+              padding: const EdgeInsets.only(right: 8.0),
+              child: ChoiceChip(
+                label: Text(spec),
+                selected: estSelectionne,
+                selectedColor: Colors.blueAccent,
+                backgroundColor: Colors.white,
+                labelStyle: TextStyle(
+                  color: estSelectionne ? Colors.white : Colors.blueAccent,
+                  fontWeight: estSelectionne ? FontWeight.bold : FontWeight.normal,
+                ),
+                onSelected: (bool selected) {
+                  setState(() {
+                    _specialiteFiltre = spec;
+// On reset le médecin car la liste change
+                    _medecinSelectionne = null; 
+                    _dateChoisie = null;
+                    _creneauxDisponibles = [];
+                  });
+                },
               ),
             );
           }).toList(),
-          onChanged: (id) {
-            setState(() {
-              _idMedecinSelectionne = id;
-              // Si on change de médecin, on recharge les créneaux si une date est déjà là
-              if (_dateChoisie != null) _chargerCreneauxDisponibles();
-            });
-          },
         ),
       ),
-    );
-  }
+    ],
+  );
+}
 
-  Widget _buildDateSelector() {
-    return InkWell(
-      onTap: () async {
-        DateTime? picked = await showDatePicker(
-          context: context,
-          initialDate: DateTime.now(),
-          firstDate: DateTime.now(),
-          lastDate: DateTime(2026),
-          locale: const Locale('fr', 'FR'),
-        );
-        if (picked != null) {
-          setState(() {
-            _dateChoisie = picked;
-          });
-          // Déclencher le chargement dynamique des créneaux
-          _chargerCreneauxDisponibles();
-        }
-      },
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.blue.shade50,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.blue.shade200),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.calendar_today, color: Colors.blue),
-            const SizedBox(width: 15),
-            Expanded(
-              child: Text(
-                _dateChoisie == null
-                    ? "Cliquez pour choisir une date"
-                    : DateFormat('dd MMMM yyyy', 'fr_FR').format(_dateChoisie!),
-                style: TextStyle(
-                  fontSize: 16,
-                  color: _dateChoisie == null ? Colors.grey.shade600 : Colors.black87,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
-  Widget _buildCreneauxGrid() {
-    if (_chargementCreneaux) {
-      return const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()));
-    }
-
-    if (_creneauxDisponibles.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 10.0),
-        child: Text("Aucun créneau disponible pour cette date.", style: TextStyle(color: Colors.red)),
-      );
-    }
-
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children: _creneauxDisponibles.map((creneau) {
-        // On s'attend à ce que l'API renvoie {"id": ..., "heure": ...}
-        int id = creneau['id'];
-        String heure = creneau['heure'];
-        bool isSelected = _idCreneauSelectionne == id;
-
-        return ChoiceChip(
-          label: Text(heure),
-          selected: isSelected,
-          onSelected: (bool selected) {
-            setState(() => _idCreneauSelectionne = selected ? id : null);
-          },
-          selectedColor: Colors.blue,
-          labelStyle: TextStyle(
-            color: isSelected ? Colors.white : Colors.black87,
-            fontWeight: FontWeight.w600,
-          ),
-          backgroundColor: Colors.grey.shade200,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-            side: BorderSide(color: isSelected ? Colors.blue : Colors.transparent, width: 1),
-          ),
+Widget _buildMedecinDropdown() {
+  return DropdownButtonHideUnderline(
+    child: DropdownButton<dynamic>(
+      // On utilise la liste filtrée ici
+      value: _medecinsAffiches.contains(_medecinSelectionne) ? _medecinSelectionne : null,
+      hint: const Text("Sélectionnez un médecin"),
+      isExpanded: true,
+      items: _medecinsAffiches.map((dynamic med) {
+        final infoPerso = med['compte_utilisateur']; 
+        String nom = infoPerso['last_name'] ?? 'Médecin';
+        String spec = med['specialite_medicale'] ?? 'Généraliste';
+        
+        return DropdownMenuItem<dynamic>(
+          value: med,
+          child: Text("Dr $nom ($spec)"),
         );
       }).toList(),
-    );
-  }
+      onChanged: (newValue) {
+        setState(() {
+          _medecinSelectionne = newValue;
+          _dateChoisie = null;
+          _creneauxDisponibles = [];
+        });
+      },
+    ),
+  );
+}
+
+
+  Widget _buildDateSelector() {
+  return ListTile(
+    leading: const Icon(Icons.event, color: Colors.blueAccent),
+    title: Text(
+      _dateChoisie == null 
+        ? "Choisir une date" 
+        : DateFormat('dd MMMM yyyy', 'fr_FR').format(_dateChoisie!),
+    ),
+    trailing: const Icon(Icons.arrow_forward_ios, size: 14),
+    onTap: () async {
+      print("Clic sur le calendrier"); // Pour vérifier dans la console
+      DateTime? picked = await showDatePicker(
+        context: context,
+        initialDate: DateTime.now(),
+        firstDate: DateTime.now(),
+        lastDate: DateTime(2027),
+        locale: const Locale('fr', 'FR'),
+      );
+      if (picked != null) {
+        setState(() => _dateChoisie = picked);
+        _chargerCreneauxDisponibles();
+      }
+    },
+  );
+}
+  
+Widget _buildCreneauxGrid() {
+  if (_chargementCreneaux) return const Center(child: CircularProgressIndicator());
+  if (_creneauxDisponibles.isEmpty) return const Text("Aucun créneau ce jour.");
+
+  return Wrap(
+    spacing: 8,
+    children: _creneauxDisponibles.map((c) {
+      // 'id' dans ton nouveau Django est maintenant l'heure (ex: "08:30")
+      bool selected = _heureSelectionnee == c['id']; 
+      return ChoiceChip(
+        label: Text(c['heure']),
+        selected: selected,
+        selectedColor: Colors.blueAccent,
+        onSelected: (s) => setState(() => _heureSelectionnee = s ? c['id'] : null),
+      );
+    }).toList(),
+  );
+}
 
   Widget _buildMotifField() {
     return TextField(
       controller: _motif,
-      maxLines: 3,
-      decoration: InputDecoration(
-        hintText: "Décrivez brièvement le motif...",
-        filled: true,
-        fillColor: Colors.grey.shade50,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide.none,
-        ),
-        contentPadding: const EdgeInsets.all(15),
+      maxLines: 2,
+      decoration: const InputDecoration(
+        hintText: "Ex: Fièvre, consultation annuelle...",
+        border: InputBorder.none,
       ),
     );
   }
@@ -335,18 +273,98 @@ class _RendezVousPageState extends State<RendezVousPage> {
   Widget _buildSubmitButton() {
     return SizedBox(
       width: double.infinity,
-      height: 55,
+      height: 50,
       child: ElevatedButton(
         onPressed: _estEnTrainDeCharger ? null : _validerRendezVous,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.blue,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          elevation: 2,
+          backgroundColor: Colors.blueAccent,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
-        child: _estEnTrainDeCharger
-            ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
-            : const Text("Confirmer le rendez-vous", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+        child: _estEnTrainDeCharger 
+          ? const CircularProgressIndicator(color: Colors.white) 
+          : const Text("Confirmer le rendez-vous", style: TextStyle(color: Colors.white, fontSize: 16)),
       ),
+    );
+  }
+
+  void _afficherMessage(String msg, Color couleur) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: couleur));
+  }
+
+  // --- LE BUILD (DÉJÀ ÉCRIT PLUS HAUT) ---
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.blueGrey[50],
+      appBar: AppBar(
+        title: const Text("Prendre un Rendez-vous", style: TextStyle(fontWeight: FontWeight.w700)),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.blueAccent,
+        elevation: 0,
+        centerTitle: true,
+      ),
+      body: 
+      // Dans ton Column principal (body)
+      _estEnTrainDeCharger && _medecinsDisponibles.isEmpty
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                      _buildSectionHeader("1", "Rechercher un Praticien"),
+                      _buildFiltreSpecialite(),
+                      const SizedBox(height: 12),
+                      _buildGlassCard(child: _buildMedecinDropdown()),
+                      const SizedBox(height: 20),
+                      _buildSectionHeader("2", "Date de Consultation"),
+                      _buildGlassCard(child: _buildDateSelector()),
+                      const SizedBox(height: 20),
+                      _buildSectionHeader("3", "Horaires Disponibles"),
+                      _buildGlassCard(
+                    child: _dateChoisie != null 
+                      ? _buildCreneauxGrid() 
+                      : const Text("Sélectionnez d'abord une date", style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic)),
+                  ),
+                  const SizedBox(height: 20),
+                  _buildSectionHeader("4", "Motif de Consultation"),
+                  _buildGlassCard(child: _buildMotifField()),
+                  const SizedBox(height: 35),
+                  _buildSubmitButton(),
+                  const SizedBox(height: 30),
+                ],
+              ),
+            ),
+    );
+  }
+
+  Widget _buildSectionHeader(String step, String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 8),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 12,
+            backgroundColor: Colors.blueAccent,
+            child: Text(step, style: const TextStyle(color: Colors.white, fontSize: 12)),
+          ),
+          const SizedBox(width: 10),
+          Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGlassCard({required Widget child}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 5))],
+      ),
+      child: child,
     );
   }
 }

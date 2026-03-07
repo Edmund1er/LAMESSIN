@@ -31,10 +31,12 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-
+  flutter_localizations: 
+    sdk: flutter
   # ICI : On s'aligne bien sur le bord gauche (2 espaces après le début)
   http: ^1.1.0
-  intl: ^0.18.1
+  intl: 0.20.2
+  shared_preferences: ^2.2.2
   geolocator: ^10.1.0
   google_maps_flutter: ^2.5.0
   cupertino_icons: ^1.0.8

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'PAGES_/AUTH_/splash.dart';
 import 'PAGES_/AUTH_/login.dart';
@@ -34,12 +35,21 @@ class MyApp extends StatelessWidget {
         "/register": (context) => const Register(),
         "/home_page": (context) => const HomePage(),
         "/page_utilisateur": (context) => const page_utilisateur(),
-        "/recherches_services_medicaux": (context) =>
-            const recherches_services_medicaux(),
+        "/recherches_services_medicaux": (context) => const recherches_services_medicaux(),
         "/rendez_vous_page": (context) => const RendezVousPage(),
         "services": (context) => const Services(),
         "/assistant": (context) => const Assistant(),
       },
+    
+    localizationsDelegates: const [
+    GlobalMaterialLocalizations.delegate,
+    GlobalWidgetsLocalizations.delegate,
+    GlobalCupertinoLocalizations.delegate,
+  ],
+  supportedLocales: const [
+    Locale('fr', 'FR'),
+  ],
+  locale: const Locale('fr', 'FR'),
     );
   }
 }

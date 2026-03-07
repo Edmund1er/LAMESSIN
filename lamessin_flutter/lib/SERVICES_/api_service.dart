@@ -1,56 +1,62 @@
-//pour comvertir les données en json et l'envoie des messages avec le http
 import 'dart:convert';
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart'; // Pour le stockage réel
 
 class ApiService {
-  // Détecte automatiquement l'URL backend selon la plateforme
-  static String get baseUrl 
-    {
-      if (kIsWeb) return "http://127.0.0.1:8000/api";       // Web
-      if (Platform.isAndroid) return "http://10.0.2.2:8000/api"; // Android émulateur
-      if (Platform.isIOS) return "http://localhost:8000/api";    // iOS émulateur
-      return "http://127.0.0.1:8000/api";                      // fallback
-    }
+
+  static String get baseUrl {
+    if (kIsWeb) return "http://127.0.0.1:8000/api"; // Web
+    if (Platform.isAndroid) return "http://10.0.2.2:8000/api"; // Android émulateur
+    if (Platform.isIOS) return "http://localhost:8000/api"; // iOS émulateur
+    return "http://127.0.0.1:8000/api"; // fallback
+  }
+
+  static Future<String?> getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+
+// On récupère le jeton stocké lors du login
+  
+    return prefs.getString('access_token'); 
+  }
+
+// -------------------------------MÉTHODES D'AUTHENTIFICATION -----------------------------------
+
   static Future<bool> inscription(Map<String, dynamic> data) async {
     try {
-      // envoie réel du paquet vers Django
-
       final response = await http.post(
-        Uri.parse('${baseUrl}/inscription/'),
+        Uri.parse('$baseUrl/inscription/'),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode(data),
       );
-
-      if (response.statusCode == 201) {
-        return true;
-      } else {
-        print("Erreur Django: ${response.body}");
-        return false;
-      }
+      return response.statusCode == 201;
     } catch (e) {
       print("Erreur de connexion: $e");
       return false;
     }
   }
 
-  //la fonction pour se connecter et récupérer le jeton
   static Future<String?> login(String telephone, String password) async {
     try {
       final reponse = await http.post(
-        Uri.parse('${baseUrl}/login/'),
+        Uri.parse('$baseUrl/login/'),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({"numero_telephone": telephone, "password": password}),
       );
 
       if (reponse.statusCode == 200) {
         var data = jsonDecode(reponse.body);
+        String token = data['access'];
+        
+// On sauvegarde le token pour les prochaines requêtes
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('access_token', token);
 
-        print("Connexion réussie .");
-        return data['access'];
+        print("Connexion réussie.");
+        return token;
       } else {
-        print("Erreur de connexion : ${reponse.statusCode} - ${reponse.body}");
+        print("Erreur de connexion : ${reponse.statusCode}");
         return null;
       }
     } catch (e) {
@@ -58,79 +64,80 @@ class ApiService {
       return null;
     }
   }
-// ---------------------------------------------------------------------------
-  // MÉTHODES DE GESTION DES RENDEZ-VOUS
-  // ---------------------------------------------------------------------------
 
-  static Future<bool> creerRendezVous(Map<String, dynamic>rdvData) async {
+// ------------------------------ MÉTHODES DE GESTION DES RENDEZ-VOUS------------------------------------------
 
-//construisons  l'url 
-    final url = Uri.parse("${baseUrl}/rendezvous/");
+  static Future<bool> creerRendezVous(Map<String, dynamic> rdvData) async {
+    final url = Uri.parse("$baseUrl/rendezvous/");
+    
+//  On récupère le vrai token stocké
+    String? token = await getToken(); 
 
-    try
-      {
-// on dit au serveur qu'on envoie du json eserialisation du dictionnaire la map quoi en chaine de caractere
-        final reponse  = await http.post(url,
-        headers : {"content-Type" : "application/json"},
-        body : jsonEncode(rdvData),
-        );
-// pour confirmer que django a inserer les données recues
-        if(reponse.statusCode == 201)
-          {
-            print("Api service : succes de creation");
-            return true ;
-          }
-        else
-//si on  a une erreur on affiche l'erreur rencotrer dans django
-        {
-            print("api service erreur backend : ${reponse.body}");
-            return false ;
-        }
+    try {
+// on envoie du JSON plus le Token de sécurité
+      final reponse = await http.post(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token", 
+        },
+        body: jsonEncode(rdvData), 
+      );
 
+      if (reponse.statusCode == 201) {
+        print("Api service : succès de création");
+        return true;
+      } else {
+        print("api service erreur backend : ${reponse.body}");
+        return false;
       }
-    catch (e)
-    {
-      print("erreur reseau (rendez-vous): $e");
+    } catch (e) {
+      print("erreur réseau (rendez-vous): $e");
       return false;
     }
   }
-// ---------------------------------------------------------------------------
-// MÉTHODES DE RÉCUPÉRATION DE DONNÉES
-// ---------------------------------------------------------------------------
- 
- static Future <List<dynamic>>getListeMedecins()async
-  {
-    final url = Uri.parse("${baseUrl}/listeMedecins/");
 
-    try
-      {
-        final reponse =  await http.get(url);
-        if (reponse.statusCode==200)
-          {
-          return jsonDecode(reponse.body);
-          }
-        else
-          {
-            print("Erreur de la recuperation de medecins");
-            return [];
-          }
-      }
-    catch (e)
-      {
-        print("erreur d'affichage medecins : $e ");
+  // --- MÉTHODES DE RÉCUPÉRATION DE DONNÉES ---
+
+  static Future<List<dynamic>> getListeMedecins() async {
+    final url = Uri.parse("$baseUrl/listeMedecins/");
+    String? token = await getToken();
+
+    try {
+      final reponse = await http.get(
+        url,
+        headers: {"Authorization": "Bearer $token"}, 
+      );
+      if (reponse.statusCode == 200) {
+        return jsonDecode(reponse.body);
+      } else {
+        print("Erreur de la récupération de médecins");
         return [];
       }
+    } catch (e) {
+      print("erreur d'affichage médecins : $e ");
+      return [];
+    }
   }
 
-// ---------------------------------------------------------------------------
-// creneau  
-// ---------------------------------------------------------------------------
-static Future<List<dynamic>> getCreneaux(int medecinId, String date) async {
-  final url = Uri.parse("${baseUrl}/creneaux-disponibles/?medecin=$medecinId&date=$date");
-  final response = await http.get(url);
-  if (response.statusCode == 200) {
-    return jsonDecode(response.body);
+  static Future<List<dynamic>> getCreneaux(int medecinId, String date) async {
+    final url = Uri.parse("$baseUrl/creneauxDisponible/?medecin=$medecinId&date=$date");
+    String? token = await getToken();
+
+    try {
+      final reponse = await http.get(
+        url,
+        headers: {"Authorization": "Bearer $token"},
+      );
+      if (reponse.statusCode == 200) {
+        return jsonDecode(reponse.body);
+      } else {
+        print("Erreur récupération créneaux: ${reponse.body}");
+        return [];
+      }
+    } catch (e) {
+      print("Erreur réseau: $e");
+      return [];
+    }
   }
-  return [];
-}
 }

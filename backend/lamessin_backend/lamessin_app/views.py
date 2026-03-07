@@ -1,6 +1,6 @@
-# =========================
+# ======================================================================================================================================================
 # IMPORTATIONS DJANGO REST FRAMEWORK (AUTHENTIFICATION)
-# =========================
+# ======================================================================================================================================================
 
 # pour créer des vues  Inscription, Profil
 from rest_framework.views import APIView
@@ -20,9 +20,16 @@ from rest_framework.permissions import AllowAny
 #pour gérer la connexion
 from rest_framework_simplejwt.views import TokenObtainPairView
 
-# =========================
+
+from django.utils.dateparse import parse_date
+
+from datetime import datetime, timedelta
+
+from rest_framework import generics
+
+# ===============================================================================================================================================================================
 # IMPORTATION DE NOS MODÈLES ET SERIALIZERS
-# =========================
+# ===============================================================================================================================================================================
 
 from .models import *
 
@@ -78,27 +85,99 @@ class UserProfil(APIView):
 
             return Response(data)
       
-# =========================
+# ===============================================================================================================================================================================
 # VUES POUR LES RENDEZ-VOUS
-# =========================
+# ===============================================================================================================================================================================
 
+#------------------------------------------------------------liste des medecins-----------------------------------------------------------
 class LiteMedecins(APIView):
       permission_classes = [IsAuthenticated]
 
       def get(self, request):
             Medecins  = Medecin.objects.all()
-            serializer = MedecinSerializer(medecins, many=True)
+            serializer = MedecinSerializer(Medecins, many=True)
             return Response(serializer.data, status= status.HTTP_200_OK)
-      
+
+#-------------------------------------------------creer render vous---------------------------------------------------------------------------
 class CreezRendezVous(APIView):
-      
       permission_classes = [IsAuthenticated]
-      
+
       def post(self, request):
-            serializer = RendezVousCreateSerializer(data = request.data)
+            utilisateur = request.user
+
+#verifier que c'est un patient
+            try:
+                  patient = Patient.objects.get(compte_utilisateur=utilisateur)
+            except Patient.DoesNotExist:
+                  return Response({"error": "Seuls les patients peuvent prendre RDV"}, status=403)
+
+# Préparation des données
+            data = request.data.copy()
+            data['patient_demandeur'] = patient.pk
+
+            serializer = RendezVousCreateSerializer(data=data)
 
             if serializer.is_valid():
                   serializer.save()
-                  return Response({"success" : True,"message": "Rendez_vous enregistré"},status=status.HTTP_201_CREATED)
-            
-            return Response(serializer.errors, status =status.HTTP_400_BAD_REQUEST)
+                  return Response({
+                        "success": True,
+                        "message": "Rendez-vous enregistré avec succès"
+                  }, status=status.HTTP_201_CREATED)
+
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+#----------------------------------------------------plage d'horaire rendezvous-------------------------------------------------------------
+class CreneauxDispo(APIView):
+      permission_classes = [IsAuthenticated]
+
+      def get(self, request):
+            medecin_id = request.query_params.get('medecin')
+            date_str = request.query_params.get('date')
+
+            if not medecin_id or not date_str:
+                  return Response({"error": "Paramètres requis."}, status=400)
+
+            date_obj = parse_date(date_str)
+
+# On récupère les plages de travail du médecin pour ce jour
+            plages = PlageHoraire.objects.filter(medecin_id=medecin_id, date=date_obj)
+
+#  On récupère les RDV déjà pris pour ne pas les proposer
+            rdvs_existants = RendezVous.objects.filter(
+                  medecin_concerne_id=medecin_id,
+                  date_rdv=date_obj
+            ).values_list('heure_rdv', flat=True)
+
+            creneaux_virtuels = []
+
+            for plage in plages:
+#transformer en datetime pour faire des calculs
+                  debut = datetime.combine(plage.date, plage.heure_debut)
+                  fin = datetime.combine(plage.date, plage.heure_fin)
+                  pas = timedelta(minutes=plage.duree_consultation)
+
+                  temps_actuel = debut
+                  while temps_actuel + pas <= fin:
+                        heure_test = temps_actuel.time()
+
+# si l'heure n'est pas déjà dans les RDV pris, on l'ajoute
+
+                        if heure_test not in rdvs_existants:
+                              heure_formatee = heure_test.strftime('%H:%M')
+                              creneaux_virtuels.append({
+                                    "id": heure_formatee,  # On utilise l'heure comme ID pour Flutter
+                                    "heure": heure_formatee
+                              })
+
+                        temps_actuel += pas
+
+            return Response(creneaux_virtuels)
+
+#la liste des rendez-vous
+class ListeRendezVousPatient(generics.ListAPIView):
+    serializer_class = RendezVousSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+# On récupère uniquement les RDV du patient connecté
+        return RendezVous.objects.filter(patient_demandeur__compte_utilisateur=self.request.user).order_by('date_rdv', 'heure_rdv')
