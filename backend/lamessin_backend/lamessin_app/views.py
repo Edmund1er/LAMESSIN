@@ -181,3 +181,28 @@ class ListeRendezVousPatient(generics.ListAPIView):
     def get_queryset(self):
 # On récupère uniquement les RDV du patient connecté
         return RendezVous.objects.filter(patient_demandeur__compte_utilisateur=self.request.user).order_by('date_rdv', 'heure_rdv')
+
+
+# ------------------------------------------------------ANNULER UN RENDEZ-VOUS --------------------------------------------------
+
+class AnnulerRendezVous(generics.UpdateAPIView):
+
+      queryset = RendezVous.objects.all()
+      serializer_class = RendezVousSerializer
+      permission_classes = [IsAuthenticated]
+
+      def patch(self, request, *args, **kwargs):
+            instance = self.get_object()
+
+# On vérifie que le patient qui annule est bien celui du RDV
+            if instance.patient_demandeur.compte_utilisateur != request.user:
+                  return Response({"error": "Action non autorisée"}, status=status.HTTP_403_FORBIDDEN)
+
+# On change le statut
+            instance.statut_actuel_rdv = "annulé"
+            instance.save()
+
+            return Response({
+                  "success": True,
+                  "message": "Rendez-vous annulé avec succès"
+            }, status=status.HTTP_200_OK)

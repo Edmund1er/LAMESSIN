@@ -127,6 +127,7 @@ class RendezVous(models.Model):
     class Meta:
 # Empêche d'avoir deux RDV à la même heure pour le même médecin
         unique_together = ('medecin_concerne', 'date_rdv', 'heure_rdv')
+        ordering = ['-date_rdv', '-heure_rdv']
 
     def __str__(self):
         return f"RDV: {self.patient_demandeur.compte_utilisateur.last_name} - {self.date_rdv} à {self.heure_rdv}"

@@ -65,10 +65,18 @@ class ApiService {
     }
   }
 
+// deconnexion
+
+static Future<void> logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('access_token');
+    print("Utilisateur déconnecté");
+  }
+
 // ------------------------------ MÉTHODES DE GESTION DES RENDEZ-VOUS------------------------------------------
 
   static Future<bool> creerRendezVous(Map<String, dynamic> rdvData) async {
-    final url = Uri.parse("$baseUrl/rendezvous/");
+    final url = Uri.parse("$baseUrl/rendezvous/creer/");
     
 //  On récupère le vrai token stocké
     String? token = await getToken(); 
@@ -140,4 +148,45 @@ class ApiService {
       return [];
     }
   }
+
+// Récupérer les RDV du patient connecté
+static Future<List<dynamic>> getMesRendezVous() async {
+    String? token = await getToken(); 
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/rendezvous/'), 
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token", 
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(utf8.decode(response.bodyBytes));
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+//annuler un rendez-vous
+  static Future<bool> annulerRendezVous(int id) async {
+    String? token = await getToken();
+    try {
+// On utilise PATCH car on modifie seulement le champ 'statut'
+      final response = await http.patch(
+        Uri.parse('$baseUrl/rendezvous/$id/'),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: jsonEncode({"statut_actuel_rdv": "annulé"}),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
+
 }

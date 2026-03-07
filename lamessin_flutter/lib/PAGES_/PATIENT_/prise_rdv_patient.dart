@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../SERVICES_/api_service.dart';
+import 'mes_rendez_vous_page.dart';
 
 class RendezVousPage extends StatefulWidget {
   const RendezVousPage({super.key});
@@ -112,13 +113,23 @@ Map<String, dynamic> rdv = {
 
   if (!mounted) return;
   setState(() => _estEnTrainDeCharger = false);
-
-  if (succes) {
+if (succes) {
     _afficherMessage("Rendez-vous enregistré avec succès !", Colors.green);
-    Navigator.pop(context); 
+    
+    // Attendre un tout petit peu pour que l'utilisateur voit le message vert
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (!mounted) return;
+      
+      // On remplace la page actuelle par la page "Mes Rendez-vous"
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const MesRendezVousPage()),
+      );
+    });
   } else {
     _afficherMessage("Erreur lors de l'enregistrement.", Colors.red);
   }
+ 
 }
 //le filtrage pour la recherche de medecin 
 
@@ -138,7 +149,7 @@ List<dynamic> get _medecinsAffiches {
       .where((m) => m['specialite_medicale'] == _specialiteFiltre)
       .toList();
 }
-
+  
 
   // -------------------------------------------- INTERFACE UTILISATEUR --------------------------------------------------------
 

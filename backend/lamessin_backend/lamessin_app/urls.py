@@ -1,19 +1,25 @@
-from django.urls import path, include
-
-from .import views
+from django.urls import path
+from . import views
 
 urlpatterns = [
-# Route pour la Connexion
+# --- AUTHENTIFICATION ---
     path('login/', views.Login.as_view(), name='login'),
-
     path('inscription/', views.inscription.as_view(), name='inscription'),
-
-# Route pour le Profil
     path('profil/', views.UserProfil.as_view(), name='user_profil'),
 
-# Routes pour les rdv
-    path('listeMedecins/',views.LiteMedecins.as_view(),name='liste_medecins'),
-    path('rendezvous/',views.CreezRendezVous.as_view(),name='creer_rendezvous'),
-    path('creneauxDisponible/',views.CreneauxDispo.as_view(),name='creneaux_dispo'),
+# --- MÉDECINS ET DISPONIBILITÉS ---
+    path('listeMedecins/', views.LiteMedecins.as_view(), name='liste_medecins'),
+    path('creneauxDisponible/', views.CreneauxDispo.as_view(), name='creneaux_dispo'),
 
+# --- GESTION DES RENDEZ-VOUS ---
+# la liste des RDV du patient
+    path('rendezvous/', views.ListeRendezVousPatient.as_view(), name='liste_rdv'),
+
+# la création d'un RDV
+# On ajoute 'creer/' pour éviter le conflit avec la liste
+    path('rendezvous/creer/', views.CreezRendezVous.as_view(), name='creer_rendezvous'),
+
+#annulation ou modification d'un RDV spécifique
+# l'id est passé dans l'URL pour savoir quel RDV annuler
+    path('rendezvous/<int:pk>/', views.AnnulerRendezVous.as_view(), name='annuler_rdv'),
 ]
