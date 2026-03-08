@@ -2,58 +2,47 @@ from rest_framework import serializers
 from .models import *
 from django.utils import timezone
 
-# ======================================================================================================================================================
-# SERIALIZERS UTILISATEURS
-# ======================================================================================================================================================
 
-#-----------------------------------------------serializer Utilisateur---------------------------------------------------
+# ====================================================================================================
+# SERIALIZERS UTILISATEURS
+# ====================================================================================================
 
 class UtilisateurSerializer(serializers.ModelSerializer):
-      class Meta:
-            model = Utilisateur
-            fields = ('id', 'username', 'email', 'numero_telephone', 'first_name', 'last_name',
-                      'est_un_compte_patient', 'est_un_compte_medecin', 'est_un_compte_pharmacien')
+    class Meta:
+        model = Utilisateur
+        fields = ('id', 'username', 'email', 'numero_telephone', 'first_name', 'last_name',
+                  'est_un_compte_patient', 'est_un_compte_medecin', 'est_un_compte_pharmacien')
 
-#-----------------------------------------------serializer Patient---------------------------------------------------
 
 class PatientSerializer(serializers.ModelSerializer):
-      compte_utilisateur = UtilisateurSerializer(read_only=True)
+    compte_utilisateur = UtilisateurSerializer(read_only=True)
 
-      class Meta:
-            model = Patient
-            fields = ('compte_utilisateur', 'date_naissance', 'groupe_sanguin')
+    class Meta:
+        model = Patient
+        fields = ('compte_utilisateur', 'date_naissance', 'groupe_sanguin')
 
-#-----------------------------------------------serializer Medecin---------------------------------------------------
 
 class MedecinSerializer(serializers.ModelSerializer):
-      compte_utilisateur = UtilisateurSerializer(read_only=True)
+    compte_utilisateur = UtilisateurSerializer(read_only=True)
 
-      class Meta:
-            model = Medecin
-            fields = ('compte_utilisateur', 'specialite_medicale', 'numero_licence')
+    class Meta:
+        model = Medecin
+        fields = ('compte_utilisateur', 'specialite_medicale', 'numero_licence')
 
-#-----------------------------------------------serializer pharmaxcien---------------------------------------------------
 
 class PharmacienSerializer(serializers.ModelSerializer):
-      compte_utilisateur = UtilisateurSerializer(read_only=True)
+    compte_utilisateur = UtilisateurSerializer(read_only=True)
 
-      class Meta:
-            model = Pharmacien
-            fields = ('compte_utilisateur', 'numero_licence')
+    class Meta:
+        model = Pharmacien
+        fields = ('compte_utilisateur', 'numero_licence')
 
-#-----------------------------------------------serializer Inscription---------------------------------------------------
 
 class InscriptionSerializer(serializers.ModelSerializer):
-# Champ mot de passe
-
     password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
-
-#Selection du type de compte
-
     type_compte = serializers.ChoiceField(choices=['patient', 'medecin', 'pharmacien'], write_only=True)
 
-# Champs specifiques selon le profil
-
+    # Champs optionnels selon le profil
     specialite_medicale = serializers.CharField(required=False, write_only=True)
     numero_licence = serializers.CharField(required=False, write_only=True)
     date_naissance = serializers.DateField(required=False, write_only=True)
@@ -62,265 +51,192 @@ class InscriptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Utilisateur
         fields = ('username', 'numero_telephone', 'email', 'password', 'first_name', 'last_name',
-            'type_compte', 'specialite_medicale', 'numero_licence', 'date_naissance', 'groupe_sanguin')
-
-# fonction de validation pour s'assurer que les champs requis selon le rôle sont remplis
+                  'type_compte', 'specialite_medicale', 'numero_licence', 'date_naissance', 'groupe_sanguin')
 
     def validate(self, data):
         type_compte = data.get('type_compte')
         errors = {}
-
         if type_compte == 'medecin':
-            if not data.get('specialite_medicale'):
-                errors['specialite_medicale'] = "Ce champ est requis pour un médecin."
-            if not data.get('numero_licence'):
-                errors['numero_licence'] = "Ce champ est requis pour un médecin."
+            if not data.get('specialite_medicale'): errors['specialite_medicale'] = "Requis pour médecin."
+            if not data.get('numero_licence'): errors['numero_licence'] = "Requis pour médecin."
+        elif type_compte == 'pharmacien' and not data.get('numero_licence'):
+            errors['numero_licence'] = "Requis pour pharmacien."
+        elif type_compte == 'patient' and not data.get('date_naissance'):
+            errors['date_naissance'] = "Date de naissance requise."
 
-        elif type_compte == 'pharmacien':
-            if not data.get('numero_licence'):
-                errors['numero_licence'] = "Ce champ est requis pour un pharmacien."
-
-        elif type_compte == 'patient':
-            if not data.get('date_naissance'):
-                errors['date_naissance'] = "La date de naissance est requise."
-
-        if errors:
-            raise serializers.ValidationError(errors)
-
+        if errors: raise serializers.ValidationError(errors)
         return data
 
     def create(self, validated_data):
-
-#On extrait les données qui ne font pas parti de Utilisateur
-
         type_compte = validated_data.pop('type_compte')
-
         spec = validated_data.pop('specialite_medicale', None)
         licence = validated_data.pop('numero_licence', None)
         naissance = validated_data.pop('date_naissance', None)
         sang = validated_data.pop('groupe_sanguin', None)
 
-#Création de l'utilisateur avec le mot de passe qui est haché automatiquement par create_user
-
-        user = Utilisateur.objects.create_user(
-            username=validated_data['username'],
-            numero_telephone=validated_data['numero_telephone'],
-            email=validated_data['email'],
-            password=validated_data['password'],
-            first_name=validated_data['first_name'],
-            last_name=validated_data['last_name'],
-        )
-
-#Création du profil spécifique selon le type
+        user = Utilisateur.objects.create_user(**validated_data)
 
         if type_compte == 'patient':
             user.est_un_compte_patient = True
-            Patient.objects.create(
-                compte_utilisateur=user,
-                date_naissance=naissance,
-                groupe_sanguin=sang
-            )
-
+            Patient.objects.create(compte_utilisateur=user, date_naissance=naissance, groupe_sanguin=sang)
         elif type_compte == 'medecin':
             user.est_un_compte_medecin = True
-            Medecin.objects.create(
-                compte_utilisateur=user,
-                specialite_medicale=spec,
-                numero_licence=licence
-            )
-
+            Medecin.objects.create(compte_utilisateur=user, specialite_medicale=spec, numero_licence=licence)
         elif type_compte == 'pharmacien':
             user.est_un_compte_pharmacien = True
-            Pharmacien.objects.create(
-                compte_utilisateur=user,
-                numero_licence=licence
-            )
+            Pharmacien.objects.create(compte_utilisateur=user, numero_licence=licence)
 
         user.save()
         return user
 
 
-# ==============================================================================================================================================
-# SERIALIZERS MÉDICAMENTS & STOCK
-# ==============================================================================================================================================
-
-#-----------------------------------------------serializer medicament---------------------------------------------------
+# ====================================================================================================
+# SERIALIZERS MÉDICAMENTS & STOCK (POUR LA RECHERCHE)
+# ====================================================================================================
 
 class MedicamentSerializer(serializers.ModelSerializer):
-      class Meta:
-            model = Medicament
-            fields = ('id', 'nom_commercial', 'description', 'posologie', 'prix_vente')
+    class Meta:
+        model = Medicament
+        fields = ('id', 'nom_commercial', 'description', 'posologie_standard', 'prix_vente')
 
-#-----------------------------------------------serializer stock---------------------------------------------------
 
 class StockSerializer(serializers.ModelSerializer):
-      produit_concerne = MedicamentSerializer(read_only=True)
-      pharmacie_detentrice = PharmacienSerializer(read_only=True)
+    produit_concerne = MedicamentSerializer(read_only=True)
 
-      class Meta:
-            model = Stock
-            fields = ('id', 'produit_concerne', 'pharmacie_detentrice', 'quantite_actuelle_en_stock', 'seuil_alerte',
-                      'date_peremption')
+    class Meta:
+        model = Stock
+        fields = ('id', 'produit_concerne', 'quantite_actuelle_en_stock', 'seuil_alerte', 'date_peremption')
 
 
-# =======================================================================================================================================================================
+# ====================================================================================================
+# SERIALIZERS SOINS, CONSULTATIONS & ORDONNANCES
+# ====================================================================================================
+
+class DetailOrdonnanceSerializer(serializers.ModelSerializer):
+    nom_medicament = serializers.ReadOnlyField(source='medicament.nom_commercial')
+
+    class Meta:
+        model = DetailOrdonnance
+        fields = ('id', 'medicament', 'nom_medicament', 'quantite_boites', 'posologie_specifique',
+                  'duree_traitement_jours')
+
+
+class OrdonnanceSerializer(serializers.ModelSerializer):
+    lignes = DetailOrdonnanceSerializer(many=True, read_only=True)
+    medecin_nom = serializers.ReadOnlyField(source='medecin_prescripteur.compte_utilisateur.last_name')
+
+    class Meta:
+        model = Ordonnance
+        fields = ('id', 'date_prescription', 'medecin_nom', 'code_securite', 'lignes')
+
+
+class ConsultationSerializer(serializers.ModelSerializer):
+    ordonnances = OrdonnanceSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Consultation
+        fields = ('id', 'rdv', 'diagnostic', 'actes_effectues', 'notes_medecin', 'date_consultation', 'ordonnances')
+
+
+# ====================================================================================================
 # SERIALIZERS RENDEZ-VOUS
-# =======================================================================================================================================================================
+# ====================================================================================================
+
+class RendezVousSerializer(serializers.ModelSerializer):
+    patient_demandeur = PatientSerializer(read_only=True)
+    medecin_concerne = MedecinSerializer(read_only=True)
+    # On affiche si une consultation a déjà eu lieu pour ce RDV
+    a_ete_consulte = serializers.SerializerMethodField()
+
+    class Meta:
+        model = RendezVous
+        fields = ('id', 'patient_demandeur', 'medecin_concerne', 'date_rdv', 'heure_rdv', 'motif_consultation',
+                  'statut_actuel_rdv', 'a_ete_consulte')
+
+    def get_a_ete_consulte(self, obj):
+        return hasattr(obj, 'consultation')
 
 
-
-# ---------------------------------------------Serializer pour LISTER les créneaux ---------------------------------------------------
-class CreneauDynamiqueSerializer(serializers.Serializer):
-# On passera l'heure comme ID (ex: "09:00")
-    id = serializers.CharField()
-    heure = serializers.CharField()
-
-
-# -----------------------------------------------Serializer pour CREER le RDV -----------------------------------------------------------
 class RendezVousCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = RendezVous
         fields = ['patient_demandeur', 'medecin_concerne', 'date_rdv', 'heure_rdv', 'motif_consultation',
                   'statut_actuel_rdv']
 
-    def validate(self, data):
-        medecin = data['medecin_concerne']
-        date_rdv = data['date_rdv']
-        heure_rdv = data['heure_rdv']
 
-#vérifier si un RDV existe déjà à cette heure pour ce médecin
-
-        if RendezVous.objects.filter(medecin_concerne=medecin, date_rdv=date_rdv, heure_rdv=heure_rdv).exists():
-            raise serializers.ValidationError("Ce créneau horaire est déjà réservé.")
-
-#vérifier si l'heure demandée est bien dans une plage horaire du médecin
-
-        plage_valide = PlageHoraire.objects.filter(
-            medecin=medecin,
-            date=date_rdv,
-            heure_debut__lte=heure_rdv,
-            heure_fin__gt=heure_rdv
-        ).exists()
-
-        if not plage_valide:
-            raise serializers.ValidationError("Le médecin ne consulte pas à cette heure-là.")
-
-        return data
-
-#-----------------------------------------------serializer afficher Rendez vous---------------------------------------------------
-
-class RendezVousSerializer(serializers.ModelSerializer):
-    patient_demandeur = PatientSerializer(read_only=True)
-    medecin_concerne = MedecinSerializer(read_only=True)
-
-    class Meta:
-        model = RendezVous
-        fields = ('id', 'patient_demandeur', 'medecin_concerne', 'date_rdv', 'heure_rdv', 'motif_consultation', 'statut_actuel_rdv')
-
-
-# ===============================================================================================================================================================================
-# SERIALIZERS COMMANDES
-# ===============================================================================================================================================================================
-
-#-----------------------------------------------serializer ligne de commandes---------------------------------------------------
+# ====================================================================================================
+# SERIALIZERS COMMANDES & PAIEMENTS
+# ====================================================================================================
 
 class LigneCommandeSerializer(serializers.ModelSerializer):
-      class Meta:
-            model = LigneCommande
-            fields = ('id', 'medicament_ajoute', 'quantite_commandee', 'prix_unitaire')
+    nom_medicament = serializers.ReadOnlyField(source='medicament_ajoute.nom_commercial')
 
-#-----------------------------------------------serializer Commandes---------------------------------------------------
+    class Meta:
+        model = LigneCommande
+        fields = ('id', 'medicament_ajoute', 'nom_medicament', 'quantite_commandee', 'prix_unitaire')
+
 
 class CommandeSerializer(serializers.ModelSerializer):
-      lignes = LigneCommandeSerializer(many=True, read_only=True)
+    lignes = LigneCommandeSerializer(many=True, read_only=True)
+# On ajoute le champ calculé ici
+    prix_total = serializers.SerializerMethodField()
 
-      class Meta:
-            model = Commande
-            fields = ('id', 'patient_acheteur', 'date', 'statut_commande', 'methode_retrait', 'lignes')
+    class Meta:
+        model = Commande
+        fields = ('id', 'patient_acheteur', 'date', 'statut_commande', 'methode_retrait', 'lignes', 'prix_total')
 
+    def get_prix_total(self, obj):
+# On additionne (quantité * prix_unitaire) pour chaque ligne de la commande
+        total = sum(ligne.quantite_commandee * ligne.prix_unitaire for ligne in obj.lignes.all())
+        return total
 
 # ====================================================================================================
-# SERIALIZERS SUIVI & CHAT
+# SERIALIZERS SUIVI, NOTIFICATIONS & CHAT
 # ====================================================================================================
 
-#-----------------------------------------------serializer Traitement---------------------------------------------------
+class PriseMedicamentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PriseMedicament
+        fields = '__all__'
+
 
 class TraitementSerializer(serializers.ModelSerializer):
-      class Meta:
-            model = Traitement
-            fields = '__all__'
+    prises = PriseMedicamentSerializer(many=True, read_only=True)
 
-# -----------------------------------------------Serializer Notification-----------------------------------------------
+    class Meta:
+        model = Traitement
+        fields = ('id', 'nom_du_traitement', 'date_debut_traitement', 'date_fin_traitement', 'prises')
+
 
 class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification
         fields = ['id', 'message', 'heure_envoi', 'type_notification']
 
-#-----------------------------------------------serializer message---------------------------------------------------
 
 class MessageSerializer(serializers.ModelSerializer):
-      class Meta:
-            model = Message
-            fields = ('id', 'contenu_texte', 'envoye_par_utilisateur', 'heure_message')
+    class Meta:
+        model = Message
+        fields = ('id', 'contenu_texte', 'envoye_par_utilisateur', 'heure_message')
+
 
 # ====================================================================================================
-# SERIALIZERS Etablissements de santé
+# SERIALIZERS ÉTABLISSEMENTS
 # ====================================================================================================
 
-
-# -----------------------------------------------serializer Etablissement Sante-----------------------------------------
 class EtablissementSanteSerializer(serializers.ModelSerializer):
-          type_etablissement = serializers.SerializerMethodField()
-# On va chercher l'info de garde dans le modèle Pharmacie lié
-          pharmacie_est_garde = serializers.SerializerMethodField()
+    type_etablissement = serializers.SerializerMethodField()
+    pharmacie_est_garde = serializers.SerializerMethodField()
 
-          class Meta:
-              model = EtablissementSante
-              fields = [
-                  'id', 'nom', 'adresse', 'contact',
-                  'coordonnee_latitude_gps', 'coordonnee_longitude_gps',
-                  'plage_horaire_ouverture', 'type_etablissement',
-                  'pharmacie_est_garde'
-              ]
+    class Meta:
+        model = EtablissementSante
+        fields = ('id', 'nom', 'adresse', 'contact', 'coordonnee_latitude_gps', 'coordonnee_longitude_gps',
+                  'plage_horaire_ouverture', 'type_etablissement', 'pharmacie_est_garde')
 
-          def get_type_etablissement(self, obj):
-              if hasattr(obj, 'pharmacie'):
-                  return "Pharmacie"
-              if hasattr(obj, 'hopital'):
-                  return "Hôpital"
-              return "Général"
+    def get_type_etablissement(self, obj):
+        if hasattr(obj, 'pharmacie'): return "Pharmacie"
+        if hasattr(obj, 'hopital'): return "Hôpital"
+        return "Général"
 
-          def get_pharmacie_est_garde(self, obj):
-# Si c'est une pharmacie, on renvoie son statut de garde, sinon False
-              if hasattr(obj, 'pharmacie'):
-                  return obj.pharmacie.pharmacie_est_garde
-              return False
-
-
-# -----------------------------------------------Serializer  Pharmacie-----------------------------------------------
-class PharmacieSerializer(EtablissementSanteSerializer):
-    class Meta(EtablissementSanteSerializer.Meta):
-        model = Pharmacie
-        fields = EtablissementSanteSerializer.Meta.fields + ['pharmacie_est_garde']
-
-# -----------------------------------------------Serializer Hôpital-----------------------------------------------
-class HopitalSerializer(EtablissementSanteSerializer):
-    class Meta(EtablissementSanteSerializer.Meta):
-        model = Hopital
-        fields = EtablissementSanteSerializer.Meta.fields + ['type_urgences', 'liste_services']
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    def get_pharmacie_est_garde(self, obj):
+        return obj.pharmacie.pharmacie_est_garde if hasattr(obj, 'pharmacie') else False

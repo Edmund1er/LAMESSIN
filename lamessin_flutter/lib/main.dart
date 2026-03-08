@@ -9,9 +9,10 @@ import 'PAGES_/home_page.dart';
 import 'PAGES_/PATIENT_/patient_dashbord.dart';
 import 'PAGES_/PATIENT_/recherches_services_medicaux.dart';
 import 'PAGES_/PATIENT_/prise_rdv_patient.dart';
-import "PAGES_/PATIENT_/services.dart";
+import 'PAGES_/PATIENT_/mes_commandes.dart';
 import "PAGES_/PATIENT_/assistant.dart";
 import 'PAGES_/PATIENT_/suivi_traitements.dart';
+import 'PAGES_/PATIENT_/edit_profil_page.dart';
 import 'PAGES_/PATIENT_/mon_profil.dart';
 import "PAGES_/PATIENT_/mes_rendez_vous_page.dart"; 
 
@@ -47,24 +48,26 @@ class MyApp extends StatelessWidget {
 
       initialRoute: "/splash",
 
-      routes: {
-        // authentification, profils et comptes  
+routes: {
+        // Authentification, profils et comptes   
         "/splash": (context) => const Splash(),
         "/login": (context) => const Login(),
         "/register": (context) => const Register(),
         "/home_page": (context) => const HomePage(),
         "/profil_patient": (context) => const ProfilPatientPage(),
+        "/edit_profil": (context) => const EditProfilPage(profilActuel: {}),
 
         // Dashboard et Services patient
-        "/page_utilisateur": (context) => const PageUtilisateur (),
-
+        "/page_utilisateur": (context) => const PageUtilisateur(),
         "/recherches_services_medicaux": (context) => const RechercheServicesPage(),
-        "/services": (context) => const Services(),
         "/assistant": (context) => const Assistant(),
         '/suivi_traitements': (context) => const SuiviTraitementsPage(),
+        
+        // AJOUT DE LA ROUTE COMMANDES
+        "/mes_commandes": (context) => const MesCommandesPage(), 
 
         // Gestion des Rendez-vous patient
-        "/rendez_vous_page": (context) => const RendezVousPage(), 
+        "/rendez_vous_page": (context) => const RendezVousPage(), // Vérifie bien le nom de la classe
         "/mes_rendez_vous_page": (context) => const MesRendezVousPage(), 
       },
     );
