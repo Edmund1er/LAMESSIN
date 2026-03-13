@@ -33,10 +33,14 @@ dependencies:
     sdk: flutter
   flutter_localizations: 
     sdk: flutter
-  # ICI : On s'aligne bien sur le bord gauche (2 espaces après le début)
   http: ^1.1.0
-  intl: 0.20.2
+  intl: ^0.20.2
   shared_preferences: ^2.2.2
+
+  firebase_core: ^3.0.0
+  firebase_messaging: ^15.0.0
+  flutter_local_notifications: ^21.0.0
+ 
   geolocator: ^10.1.0
   google_maps_flutter: ^2.5.0
   url_launcher: ^6.1.0

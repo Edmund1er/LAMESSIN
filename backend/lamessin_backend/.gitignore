@@ -1,1 +1,9 @@
 lamessin_backend/credentials.py
+
+ # Firebase secrets
+
+firebase-auth.json
+
+android/app/google-services.json
+# pour gemini
+api.env

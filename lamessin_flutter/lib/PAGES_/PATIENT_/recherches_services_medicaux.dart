@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:url_launcher/url_launcher.dart'; 
+import 'package:url_launcher/url_launcher.dart';
 import '../../SERVICES_/api_service.dart';
 import '../../WIDGETS_/menu_navigation.dart';
+import 'panier_page.dart';
 
 class RechercheServicesPage extends StatefulWidget {
   const RechercheServicesPage({super.key});
@@ -12,156 +13,236 @@ class RechercheServicesPage extends StatefulWidget {
 }
 
 class _RechercheServicesPageState extends State<RechercheServicesPage> {
+  
   List<dynamic> etablissements = [];
   bool chargementEtablissements = true;
-  String filtreType = "Tous"; 
+  String filtreType = "Tous";
 
   List<dynamic> resultatsMedicaments = [];
   bool rechercheEnCours = false;
   final TextEditingController _searchController = TextEditingController();
+  Position? _currentPosition;
+
+  List<PanierItem> _panier = [];
 
   @override
   void initState() {
     super.initState();
-    _chargerEtTrierParDistance();
+    _initialiserLocalisationEtDonnees();
   }
 
-  // --- LOGIQUE COMMANDE & PAIEMENT DIRECT (CORRIGÉ) ---
-  void _afficherModalCommande(dynamic medoc) {
+  // --- INITIALISATION SÉCURISÉE ---
+  Future<void> _initialiserLocalisationEtDonnees() async {
+    try {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      
+      _currentPosition = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.low,
+          timeLimit: const Duration(seconds: 3));
+    } catch (e) {
+      debugPrint("Localisation indisponible (normal sur Edge/Web) : $e");
+    } finally {
+      await _chargerEtTrierEtablissements();
+    }
+  }
+
+  // --- GOOGLE MAPS ---
+  Future<void> _ouvrirItineraire(double lat, double lng) async {
+    final String url = "https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=driving";
+    final Uri uri = Uri.parse(url);
+
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        await launchUrl(uri, mode: LaunchMode.platformDefault);
+      }
+    } catch (e) {
+      _afficherSnackBar("Erreur lors de l'ouverture de la carte", Colors.red);
+    }
+  }
+
+  // --- RECHERCHE MÉDICAMENTS ---
+  void _rechercherMedicament(String query) async {
+    if (query.length < 2) {
+      setState(() => resultatsMedicaments = []);
+      return;
+    }
+    setState(() => rechercheEnCours = true);
+    
+    try {
+      final resultats = await ApiService.rechercherMedicaments(query);
+
+      for (var medoc in resultats) {
+        List<dynamic> stocks = medoc['stocks_disponibles'] ?? [];
+        for (var s in stocks) {
+          if (_currentPosition != null && s['latitude'] != null && s['longitude'] != null) {
+            double dist = Geolocator.distanceBetween(
+                _currentPosition!.latitude,
+                _currentPosition!.longitude,
+                double.tryParse(s['latitude'].toString()) ?? 0.0,
+                double.tryParse(s['longitude'].toString()) ?? 0.0);
+            s['distance_km'] = dist / 1000;
+          } else {
+            s['distance_km'] = null;
+          }
+        }
+        stocks.sort((a, b) => (a['distance_km'] ?? 999.0).compareTo(b['distance_km'] ?? 999.0));
+      }
+
+      setState(() {
+        resultatsMedicaments = resultats;
+        rechercheEnCours = false;
+      });
+    } catch (e) {
+      debugPrint("Erreur recherche : $e");
+      setState(() => rechercheEnCours = false);
+    }
+  }
+
+  // --- CHARGEMENT ÉTABLISSEMENTS ---
+  Future<void> _chargerEtTrierEtablissements() async {
+    setState(() => chargementEtablissements = true);
+    try {
+      List<dynamic> data = await ApiService.getEtablissements();
+      
+      for (var e in data) {
+        if (_currentPosition != null && e['coordonnee_latitude_gps'] != null) {
+          try {
+            double dist = Geolocator.distanceBetween(
+                _currentPosition!.latitude,
+                _currentPosition!.longitude,
+                double.parse(e['coordonnee_latitude_gps'].toString()),
+                double.parse(e['coordonnee_longitude_gps'].toString()));
+            e['distance_km'] = dist / 1000;
+          } catch (err) { e['distance_km'] = null; }
+        } else {
+          e['distance_km'] = null;
+        }
+      }
+      data.sort((a, b) => (a['distance_km'] ?? 999.0).compareTo(b['distance_km'] ?? 999.0));
+
+      setState(() {
+        etablissements = data;
+        chargementEtablissements = false;
+      });
+    } catch (e) {
+      debugPrint("Erreur chargement : $e");
+      setState(() => chargementEtablissements = false);
+    }
+  }
+
+  // --- MODAL COMMANDE ---
+  void _afficherModalCommande(dynamic medoc, int pharmacieId) {
     int quantite = 1;
+    double prixUnitaire = double.tryParse(medoc['prix_vente']?.toString() ?? '0') ?? 0.0;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-                left: 20, right: 20, top: 20
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom + 20, left: 20, right: 20, top: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(medoc['nom_commercial'] ?? "Médicament", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 10),
+              Text("Prix : ${prixUnitaire.toStringAsFixed(0)} FCFA"),
+              const Divider(),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(medoc['nom_commercial'], style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 10),
-                  Text("Prix unitaire: ${medoc['prix_vente']} FCFA", style: const TextStyle(color: Colors.grey)),
-                  const Divider(),
-                  const Text("Quantité souhaitée :"),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
-                        onPressed: () => setModalState(() => quantite > 1 ? quantite-- : null),
-                      ),
-                      Text("$quantite", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                      IconButton(
-                        icon: const Icon(Icons.add_circle_outline, color: Colors.green),
-                        onPressed: () => setModalState(() => quantite++),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        padding: const EdgeInsets.symmetric(vertical: 15),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))
-                      ),
-                      onPressed: () => _validerAchat(medoc['id'], quantite),
-                      child: Text("Payer maintenant (${medoc['prix_vente'] * quantite} FCFA)", 
-                                  style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                    ),
-                  ),
+                  IconButton(icon: const Icon(Icons.remove_circle_outline, color: Colors.red), 
+                             onPressed: () => setModalState(() => quantite > 1 ? quantite-- : null)),
+                  Text("$quantite", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                  IconButton(icon: const Icon(Icons.add_circle_outline, color: Colors.green), 
+                             onPressed: () => setModalState(() => quantite++)),
                 ],
               ),
-            );
-          }
-        );
-      },
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(context), child: const Text("Annuler"))),
+                  const SizedBox(width: 10),
+                  Expanded(child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+                    onPressed: () {
+                      _ajouterAuPanier(medoc, quantite, pharmacieId);
+                      Navigator.pop(context);
+                    },
+                    child: Text("Ajouter (${(prixUnitaire * quantite).toStringAsFixed(0)} FCFA)", style: const TextStyle(color: Colors.white)),
+                  )),
+                ],
+              )
+            ],
+          ),
+        ),
+      ),
     );
   }
 
-  Future<void> _validerAchat(int idMedoc, int qte) async {
-    Navigator.pop(context); // Fermer le modal
-    setState(() => rechercheEnCours = true);
-
-    // On utilise la fonction qui crée la commande ET récupère le lien FedaPay
-    final resultat = await ApiService.creerCommandeEtPayer(idMedoc, qte);
-
-    if (resultat != null && resultat['payment_url'] != null) {
-      final Uri uri = Uri.parse(resultat['payment_url']);
+void _ajouterAuPanier(dynamic medoc, int qte, int pharmacieId) {
+    debugPrint("Tentative d'ajout : Medoc ${medoc['id']} de la Pharmacie $pharmacieId");
+    
+    setState(() {
+      double prixVrai = double.tryParse(medoc['prix_vente']?.toString() ?? '0') ?? 0.0;
       
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-        
-        // Redirection vers la liste des commandes pour voir le statut
-        if (mounted) {
-          Navigator.pushReplacementNamed(context, '/mes_commandes');
-        }
+      // Recherche si le produit existe déjà pour CETTE pharmacie précise
+      int index = _panier.indexWhere((item) => 
+        item.idMedoc == medoc['id'] && item.idPharmacie == pharmacieId);
+
+      if (index != -1) {
+        _panier[index].quantite += qte;
+        debugPrint("Quantité mise à jour : ${_panier[index].quantite}");
       } else {
-        _afficherSnackBar("Impossible d'ouvrir le lien de paiement", Colors.red);
+        _panier.add(PanierItem(
+          idMedoc: medoc['id'],
+          idPharmacie: pharmacieId,
+          nom: medoc['nom_commercial'] ?? "Médicament",
+          prix: prixVrai,
+          quantite: qte,
+        ));
+        debugPrint("Nouvel article ajouté au panier. Taille du panier : ${_panier.length}");
       }
-    } else {
-      _afficherSnackBar("Erreur lors de l'initialisation du paiement", Colors.red);
-    }
-    setState(() => rechercheEnCours = false);
+    });
+    
+    _afficherSnackBar("${medoc['nom_commercial']} ajouté au panier", Colors.green);
   }
 
   void _afficherSnackBar(String msg, Color couleur) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: couleur));
   }
 
-  // --- LOGIQUE GÉOLOCALISATION & RECHERCHE ---
-  Future<void> _chargerEtTrierParDistance() async {
-    try {
-      Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-      List<dynamic> data = await ApiService.getEtablissements();
-      for (var e in data) {
-        double distance = Geolocator.distanceBetween(
-          position.latitude, position.longitude, 
-          double.parse(e['coordonnee_latitude_gps'].toString()), 
-          double.parse(e['coordonnee_longitude_gps'].toString())
-        );
-        e['distance_km'] = distance / 1000;
-      }
-      data.sort((a, b) => a['distance_km'].compareTo(b['distance_km']));
-      setState(() { etablissements = data; chargementEtablissements = false; });
-    } catch (e) {
-      setState(() => chargementEtablissements = false);
-    }
-  }
-
-  Future<void> _ouvrirItineraire(double lat, double lng) async {
-    final url = "google.navigation:q=$lat,$lng&mode=d";
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) { await launchUrl(uri); }
-  }
-
-  void _rechercherMedicament(String query) async {
-    if (query.isEmpty) { setState(() => resultatsMedicaments = []); return; }
-    setState(() => rechercheEnCours = true);
-    final resultats = await ApiService.rechercherMedicaments(query);
-    setState(() { resultatsMedicaments = resultats; rechercheEnCours = false; });
-  }
-
   @override
   Widget build(BuildContext context) {
-    List<dynamic> listeFiltree = filtreType == "Tous" 
-        ? etablissements 
-        : etablissements.where((e) => e['type_etablissement'] == filtreType).toList();
+    List<dynamic> listeFiltree = filtreType == "Tous"
+        ? etablissements
+        : etablissements.where((e) {
+            String typeData = e['type_etablissement'].toString().toLowerCase().replaceAll('ô', 'o');
+            String typeBouton = filtreType.toLowerCase().replaceAll('ô', 'o');
+            return typeData == typeBouton;
+          }).toList();
 
     return Scaffold(
       drawer: const MenuNavigation(),
       appBar: AppBar(
-        title: const Text("Services Médicaux"), 
+        title: const Text("LAMESSIN - Services"),
         backgroundColor: const Color(0xFF0056b3),
         foregroundColor: Colors.white,
       ),
+      floatingActionButton: _panier.isNotEmpty
+          ? FloatingActionButton.extended(
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => PanierPage(items: _panier))).then((_) => setState(() {})),
+              label: Text("Panier (${_panier.length})"),
+              icon: const Icon(Icons.shopping_cart),
+              backgroundColor: Colors.green,
+            )
+          : null,
       body: Column(
         children: [
           Container(
@@ -180,9 +261,7 @@ class _RechercheServicesPageState extends State<RechercheServicesPage> {
             ),
           ),
           Expanded(
-            child: _searchController.text.isNotEmpty 
-              ? _buildResultatsMedicaments() 
-              : _buildListeEtablissements(listeFiltree),
+            child: _searchController.text.isNotEmpty ? _buildResultatsMedicaments() : _buildListeEtablissements(listeFiltree),
           ),
         ],
       ),
@@ -197,14 +276,45 @@ class _RechercheServicesPageState extends State<RechercheServicesPage> {
       itemCount: resultatsMedicaments.length,
       itemBuilder: (context, index) {
         final medoc = resultatsMedicaments[index];
+        final stocks = medoc['stocks_disponibles'] as List<dynamic>? ?? [];
         return Card(
           margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          child: ListTile(
-            leading: const Icon(Icons.medication, color: Colors.blue),
-            title: Text(medoc['nom_commercial'], style: const TextStyle(fontWeight: FontWeight.bold)),
+          child: ExpansionTile(
+            leading: Icon(Icons.medication, color: stocks.isNotEmpty ? Colors.blue : Colors.red),
+            title: Text(medoc['nom_commercial'] ?? "Inconnu", style: const TextStyle(fontWeight: FontWeight.bold)),
             subtitle: Text("${medoc['prix_vente']} FCFA"),
-            trailing: const Icon(Icons.add_shopping_cart, color: Colors.green),
-            onTap: () => _afficherModalCommande(medoc),
+            children: stocks.map((s) {
+              double? dist = s['distance_km'];
+              return ListTile(
+                leading: const Icon(Icons.location_on, color: Colors.green),
+                title: Text(s['nom_pharmacie'] ?? "Pharmacie"),
+                subtitle: Text("${dist?.toStringAsFixed(1) ?? '?'} km"),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      
+                      icon: const Icon(Icons.directions, color: Colors.blue),
+                      onPressed: () => _ouvrirItineraire(
+                        double.parse(s['latitude'].toString()), 
+                        double.parse(s['longitude'].toString())
+                      ),
+                    ),
+                    IconButton(
+                          icon: const Icon(Icons.add_shopping_cart, color: Colors.green), 
+                          onPressed: () {
+                            if (s['id_pharmacie'] != null) {
+                              _afficherModalCommande(medoc, s['id_pharmacie']);
+                            } else {
+                              debugPrint("ERREUR : id_pharmacie est nul dans les données JSON !");
+                              _afficherSnackBar("Erreur de données pharmacie", Colors.red);
+                            }
+                          },
+                        ),
+                                          ],
+                ),
+              );
+            }).toList(),
           ),
         );
       },
@@ -212,48 +322,48 @@ class _RechercheServicesPageState extends State<RechercheServicesPage> {
   }
 
   Widget _buildListeEtablissements(List<dynamic> listeFiltree) {
+    if (chargementEtablissements) return const Center(child: CircularProgressIndicator());
+    if (listeFiltree.isEmpty) return const Center(child: Text("Connectez-vous pour voir les établissements."));
+
     return Column(
       children: [
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 5),
+          padding: const EdgeInsets.all(8),
           child: Row(
-            children: ["Tous", "Pharmacie", "Hôpital"].map((type) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 5),
-                child: ChoiceChip(
-                  label: Text(type),
-                  selected: filtreType == type,
-                  onSelected: (val) => setState(() => filtreType = type),
-                  selectedColor: const Color(0xFF0056b3),
-                  labelStyle: TextStyle(color: filtreType == type ? Colors.white : Colors.black),
-                ),
-              );
-            }).toList(),
+            children: ["Tous", "Pharmacie", "Hôpital"].map((type) => Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: ChoiceChip(
+                label: Text(type),
+                selected: filtreType == type,
+                onSelected: (val) => setState(() => filtreType = type),
+              ),
+            )).toList(),
           ),
         ),
         Expanded(
-          child: chargementEtablissements
-            ? const Center(child: CircularProgressIndicator())
-            : ListView.builder(
-                itemCount: listeFiltree.length,
-                itemBuilder: (context, index) {
-                  final e = listeFiltree[index];
-                  bool isPharma = e['type_etablissement'] == "Pharmacie";
-                  return Card(
-                    margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    child: ListTile(
-                      leading: Icon(isPharma ? Icons.local_pharmacy : Icons.local_hospital, color: isPharma ? Colors.green : Colors.red),
-                      title: Text(e['nom'], style: const TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Text("${e['adresse']}\n${e['distance_km'].toStringAsFixed(1)} km"),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.directions, color: Color(0xFF0056b3)), 
-                        onPressed: () => _ouvrirItineraire(double.parse(e['coordonnee_latitude_gps'].toString()), double.parse(e['coordonnee_longitude_gps'].toString()))
-                      ),
-                    ),
-                  );
-                },
-              ),
+          child: ListView.builder(
+            itemCount: listeFiltree.length,
+            itemBuilder: (context, index) {
+              final e = listeFiltree[index];
+              return Card(
+                margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                child: ListTile(
+                  leading: Icon(e['type_etablissement'] == "Pharmacie" ? Icons.local_pharmacy : Icons.local_hospital, 
+                                color: e['type_etablissement'] == "Pharmacie" ? Colors.blue : Colors.red),
+                  title: Text(e['nom'] ?? "Nom inconnu", style: const TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: Text("${e['distance_km']?.toStringAsFixed(1) ?? '...'} km - ${e['plage_horaire_ouverture'] ?? '24h/24'}"),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.directions, color: Colors.green), 
+                    onPressed: () => _ouvrirItineraire(
+                      double.parse(e['coordonnee_latitude_gps'].toString()), 
+                      double.parse(e['coordonnee_longitude_gps'].toString())
+                    )
+                  ),
+                ),
+              );
+            },
+          ),
         ),
       ],
     );

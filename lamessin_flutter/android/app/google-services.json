@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "888701279600",
+    "project_id": "lamessin-ab826",
+    "storage_bucket": "lamessin-ab826.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:888701279600:android:3cdd161da17b0dc8e443b5",
+        "android_client_info": {
+          "package_name": "com.example.lamessin_flutter"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCk_ryKaEkuqQaQpp-nLqVpEMaSCis-h_A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

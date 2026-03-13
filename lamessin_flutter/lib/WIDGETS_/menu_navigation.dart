@@ -31,7 +31,7 @@ class _MenuNavigationState extends State<MenuNavigation> {
 
   @override
   Widget build(BuildContext context) {
-    // Extraction des données dynamiques
+// Extraction des données dynamiques
     final String nomUser = _profil?['compte_utilisateur']?['last_name'] ?? "Utilisateur";
     final String prenomUser = _profil?['compte_utilisateur']?['first_name'] ?? "";
     final String roleUser = _profil?['type_utilisateur'] ?? "...";
@@ -39,7 +39,7 @@ class _MenuNavigationState extends State<MenuNavigation> {
     return Drawer(
       child: Column(
         children: [
-          // EN-TÊTE DYNAMIQUE
+// EN-TÊTE DYNAMIQUE
           UserAccountsDrawerHeader(
             decoration: const BoxDecoration(
               color: Color.fromARGB(255, 78, 192, 17),
@@ -57,27 +57,26 @@ class _MenuNavigationState extends State<MenuNavigation> {
             ),
           ),
 
-          // LISTE DES ACTIONS (LIÉES AUX ROUTES DYNAMIQUE)
+// LISTE DES ACTIONS 
           Expanded(
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
-                      _elementMenu(context, Icons.dashboard_rounded, "Tableau de bord", "/page_utilisateur"),
-                      _elementMenu(context, Icons.add_task_rounded, "Prendre Rendez-vous", "/rendez_vous_page"),
-                      _elementMenu(context, Icons.event_note_rounded, "Mes Rendez-vous", "/mes_rendez_vous_page"),
-                      _elementMenu(context, Icons.medication_rounded, "Suivi Traitements", "/suivi_traitements"),
-                      _elementMenu(context, Icons.local_hospital_rounded, "Établissements", "/recherches_services_medicaux"),
-                      
-                      // AJOUT DU MENU COMMANDES ICI
-                      _elementMenu(context, Icons.shopping_bag_rounded, "Mes Commandes", "/mes_commandes"),
-                      
-                      const Divider(),
-                      _elementMenu(context, Icons.account_circle_rounded, "Mon Profil", "/profil_patient"),
-                    ],
+                            _elementMenu(context, Icons.dashboard_rounded, "Tableau de bord", "/page_utilisateur"),
+                            _elementMenu(context, Icons.add_task_rounded, "Prendre Rendez-vous", "/rendez_vous_page"),
+                            _elementMenu(context, Icons.event_note_rounded, "Mes Rendez-vous", "/mes_rendez_vous_page"),
+                            _elementMenu(context, Icons.medication_rounded, "Suivi Traitements", "/suivi_traitements"),
+                            _elementMenu(context, Icons.local_hospital_rounded, "Établissements", "/recherches_services_medicaux"),
+                            _elementMenu(context, Icons.assistant_rounded, "Assistant IA", "/assistant"), // Route correcte
+                            _elementMenu(context, Icons.history_rounded, "Historique Chat", "/historique_chatbot"), // CORRIGÉ ICI
+                            _elementMenu(context, Icons.shopping_bag_rounded, "Mes Commandes", "/mes_commandes"),
+                            const Divider(),
+                            _elementMenu(context, Icons.account_circle_rounded, "Mon Profil", "/profil_patient"),
+                        ],
             ),
           ),
 
-          // DÉCONNEXION RÉELLE
+// DÉCONNEXION RÉELLE
           const Divider(),
           ListTile(
             leading: const Icon(Icons.power_settings_new_rounded, color: Colors.red),
@@ -100,8 +99,7 @@ class _MenuNavigationState extends State<MenuNavigation> {
       leading: Icon(icone, color: Colors.blueAccent),
       title: Text(titre, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
       onTap: () {
-        Navigator.pop(context); // Ferme le menu
-        // On évite de recharger la page si on y est déjà
+        Navigator.pop(context);
         if (ModalRoute.of(context)?.settings.name != route) {
           Navigator.pushNamed(context, route);
         }

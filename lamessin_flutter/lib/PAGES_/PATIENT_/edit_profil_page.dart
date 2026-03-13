@@ -36,7 +36,7 @@ class _EditProfilPageState extends State<EditProfilPage> {
   }
 
   void _sauvegarder() async {
-    // Validation basique
+// Validation
     if (_prenomController.text.isEmpty || _nomController.text.isEmpty || _telController.text.isEmpty) {
       _afficherMessage("Veuillez remplir tous les champs obligatoires", Colors.red);
       return;
@@ -44,7 +44,7 @@ class _EditProfilPageState extends State<EditProfilPage> {
 
     setState(() => _enChargement = true);
     
-    // NOTE : Le groupe sanguin n'est PAS inclus ici
+// Le groupe sanguin n'est PAS inclus ici
     Map<String, dynamic> data = {
       "first_name": _prenomController.text,
       "last_name": _nomController.text,
@@ -77,7 +77,7 @@ class _EditProfilPageState extends State<EditProfilPage> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // --- HEADER DECORATIF DEGRADÉ ---
+// --- HEADER DECORATIF DEGRADÉ ---
             Container(
               height: 10,
               width: double.infinity,
@@ -96,7 +96,7 @@ class _EditProfilPageState extends State<EditProfilPage> {
                   const Text("Vos coordonnées", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
                   const SizedBox(height: 30),
 
-                  // --- FORMULAIRE STYLISÉ ---
+// --- FORMULAIRE STYLISÉ ---
                   _buildPremiumField(_prenomController, "Prénom", Icons.person_outline_rounded),
                   const SizedBox(height: 15),
                   _buildPremiumField(_nomController, "Nom", Icons.person_outline_rounded),
@@ -105,7 +105,7 @@ class _EditProfilPageState extends State<EditProfilPage> {
 
                   const SizedBox(height: 45),
 
-                  // --- BOUTON ENREGISTRER (Premium Green) ---
+// --- BOUTON ENREGISTRER  ---
                   SizedBox(
                     width: double.infinity,
                     height: 55,
@@ -131,7 +131,8 @@ class _EditProfilPageState extends State<EditProfilPage> {
     );
   }
 
-  // Widget pour des champs de saisie Premium avec ombre
+// Widget pour des champs de saisie 
+
   Widget _buildPremiumField(TextEditingController controller, String label, IconData icon, {TextInputType keyboard = TextInputType.text}) {
     return Container(
       decoration: BoxDecoration(

@@ -30,49 +30,66 @@ class _SuiviTraitementsPageState extends State<SuiviTraitementsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F5F9),
+      backgroundColor: const Color(0xFFF8FAFC),
       drawer: const MenuNavigation(),
       appBar: AppBar(
-        title: const Text("Mon Dossier Médical"),
+        title: const Text("Mon Dossier Médical", style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.teal[700],
         foregroundColor: Colors.white,
+        centerTitle: true,
         elevation: 0,
       ),
       body: _chargement
-          ? const Center(child: CircularProgressIndicator())
-          : _traitements.isEmpty
-              ? _buildEmptyState()
-              : ListView.builder(
-                  padding: const EdgeInsets.all(12),
-                  itemCount: _traitements.length,
-                  itemBuilder: (context, index) {
-                    final t = _traitements[index];
-                    bool estUnSoin = t.containsKey('diagnostic');
-                    return estUnSoin ? _buildSoinCard(t) : _buildTraitementCard(t);
-                  },
-                ),
+          ? const Center(child: CircularProgressIndicator(color: Colors.teal))
+          : RefreshIndicator(
+              onRefresh: _chargerTraitements,
+              child: _traitements.isEmpty 
+                ? _buildEmptyState() 
+                : _buildContent(),
+            ),
+    );
+  }
+
+  Widget _buildContent() {
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      itemCount: _traitements.length,
+      itemBuilder: (context, index) {
+        final t = _traitements[index];
+        bool estUnSoin = t.containsKey('diagnostic');
+        return estUnSoin ? _buildSoinCard(t) : _buildTraitementCard(t);
+      },
     );
   }
 
   Widget _buildSoinCard(dynamic s) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+      ),
       child: ExpansionTile(
-        leading: CircleAvatar(
-          backgroundColor: Colors.teal[50],
-          child: const Icon(Icons.health_and_safety, color: Colors.teal),
+        shape: const RoundedRectangleBorder(side: BorderSide.none),
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(color: Colors.blue[50], shape: BoxShape.circle),
+          child: const Icon(Icons.description_rounded, color: Colors.blue),
         ),
-        title: Text(s['diagnostic'] ?? "Consultation", style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text("Le ${s['date_consultation']}"),
+        title: Text(s['diagnostic'] ?? "Consultation", style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
+        subtitle: Text("Consultation du ${s['date_consultation']}", style: TextStyle(color: Colors.grey[600])),
         children: [
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text("Notes :", style: TextStyle(fontWeight: FontWeight.bold)),
-                Text(s['notes_medecin'] ?? "R.A.S"),
+                const Divider(),
+                _infoRow(Icons.medical_services, "Actes", s['actes_effectues'] ?? "Examen clinique"),
+                const SizedBox(height: 8),
+                const Text("Notes du médecin :", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                Text(s['notes_medecin'] ?? "Pas de notes particulières.", style: TextStyle(color: Colors.grey[700])),
               ],
             ),
           )
@@ -81,65 +98,92 @@ class _SuiviTraitementsPageState extends State<SuiviTraitementsPage> {
     );
   }
 
- Widget _buildTraitementCard(dynamic t) {
-  // Logique pour savoir si le traitement est fini
-  bool estFini = false;
-  if (t['date_fin_traitement'] != null) {
-    DateTime fin = DateTime.parse(t['date_fin_traitement']);
-    estFini = fin.isBefore(DateTime.now());
-  }
-
-  return Card(
-    margin: const EdgeInsets.only(bottom: 12),
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-    child: Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(t['nom_du_traitement'] ?? "Médicament", 
-                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-              // PETIT BADGE DE STATUT
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: estFini ? Colors.grey[200] : Colors.green[100],
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  estFini ? "Terminé" : "En cours",
-                  style: TextStyle(color: estFini ? Colors.grey : Colors.green, fontSize: 10, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          _infoRow(Icons.access_time, "Fréquence", t['posologie_traitement'] ?? "Voir notice"),
-          _infoRow(Icons.event_note, "Fin prévue", t['date_fin_traitement'] ?? "Non définie"),
-        ],
+  Widget _buildTraitementCard(dynamic t) {
+    List<dynamic> prises = t['prises'] ?? [];
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(colors: [Colors.white, Color(0xFFF0FDF4)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.green[100]!),
+        boxShadow: [BoxShadow(color: Colors.green.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
       ),
-    ),
-  );
-}
-  // CORRECTION ICI : Suppression du 'const' qui causait l'erreur
-  Widget _infoRow(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
+      child: ExpansionTile(
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(color: Colors.green[50], shape: BoxShape.circle),
+          child: const Icon(Icons.medication_liquid, color: Colors.green),
+        ),
+        title: Text(t['nom_du_traitement'] ?? "Traitement", style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Text("Jusqu'au ${t['date_fin_traitement']}", style: TextStyle(color: Colors.green[700], fontSize: 12)),
         children: [
-          Icon(icon, size: 16, color: Colors.blueGrey), // Correction de slateGrey
-          const SizedBox(width: 8),
-          Text("$label: ", style: const TextStyle(fontWeight: FontWeight.bold)),
-          Text(value),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text("Suivi des prises", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal)),
+                const SizedBox(height: 10),
+                ...prises.map((p) => _buildPriseRow(p)).toList(),
+              ],
+            ),
+          )
         ],
       ),
     );
   }
 
+  Widget _buildPriseRow(dynamic p) {
+    bool done = p['prise_effectuee'];
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: InkWell(
+        onTap: done ? null : () async {
+          bool ok = await ApiService.validerPriseMedicament(p['id']);
+          if (ok) _chargerTraitements();
+        },
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: done ? Colors.green[50] : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: done ? Colors.green[200]! : Colors.grey[200]!),
+          ),
+          child: Row(
+            children: [
+              Icon(done ? Icons.check_circle : Icons.circle_outlined, color: done ? Colors.green : Colors.grey),
+              const SizedBox(width: 12),
+              Text("Prise de ${p['heure_prise_prevue']}", style: TextStyle(decoration: done ? TextDecoration.lineThrough : null)),
+              const Spacer(),
+              if (!done) const Text("Cocher", style: TextStyle(color: Colors.teal, fontSize: 12, fontWeight: FontWeight.bold)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _infoRow(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: Colors.blueGrey),
+        const SizedBox(width: 8),
+        Text("$label: ", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+        Expanded(child: Text(value, style: const TextStyle(fontSize: 13))),
+      ],
+    );
+  }
+
   Widget _buildEmptyState() {
-    return const Center(child: Text("Historique vide."));
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.folder_open, size: 80, color: Colors.grey[300]),
+          const SizedBox(height: 16),
+          const Text("Aucune donnée médicale", style: TextStyle(color: Colors.grey, fontSize: 16)),
+        ],
+      ),
+    );
   }
 }

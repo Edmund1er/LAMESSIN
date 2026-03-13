@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../SERVICES_/api_service.dart';
-// AJOUT DU MENU
 import '../../WIDGETS_/menu_navigation.dart';
 
 class MesRendezVousPage extends StatefulWidget {
@@ -61,10 +60,8 @@ class _MesRendezVousPageState extends State<MesRendezVousPage> {
       length: 2,
       child: Scaffold(
         backgroundColor: Colors.blueGrey[50],
-        // MENU AJOUTÉ
         drawer: const MenuNavigation(),
         appBar: AppBar(
-          // RETRAIT DU BOUTON MAISON (Géré par le menu)
           title: const Text("Mes Rendez-vous", style: TextStyle(fontWeight: FontWeight.bold)),
           centerTitle: true,
           backgroundColor: Colors.white,

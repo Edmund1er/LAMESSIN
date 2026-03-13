@@ -11,8 +11,14 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from pathlib import Path
-from . import credentials
+from . import credentials as db_creds
 from datetime import timedelta
+from . import credentials as db_creds
+
+# Import pour Firebase
+import firebase_admin
+from firebase_admin import credentials as fb_creds
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -33,9 +39,10 @@ ALLOWED_HOSTS = ['*']
 # Application definition
 
 INSTALLED_APPS = [
+
+    'corsheaders',
     'rest_framework',
     'rest_framework_simplejwt',
-    'corsheaders',
     'lamessin_app',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -48,8 +55,8 @@ INSTALLED_APPS = [
 
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -84,11 +91,11 @@ WSGI_APPLICATION = 'lamessin_backend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': credentials.DB_NAME,
-        'USER': credentials.DB_USER,
-        'PASSWORD': credentials.DB_PASSWORD,
-        'HOST': credentials.DB_HOST,
-        'PORT': credentials.DB_PORT,
+        'NAME': db_creds.DB_NAME,
+        'USER': db_creds.DB_USER,
+        'PASSWORD': db_creds.DB_PASSWORD,
+        'HOST': db_creds.DB_HOST,
+        'PORT': db_creds.DB_PORT,
     }
 }
 
@@ -148,4 +155,35 @@ CORS_ALLOW_ALL_ORIGINS = True
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+}
+# Initialisation de Firebase Admin
+
+FIREBASE_KEY_PATH = os.path.join(BASE_DIR, 'firebase-auth.json')
+
+if os.path.exists(FIREBASE_KEY_PATH):
+    # On utilise l'alias fb_creds ici
+    certification_obj = fb_creds.Certificate(FIREBASE_KEY_PATH)
+    firebase_admin.initialize_app(certification_obj)
+    print("Firebase Admin SDK initialisé avec succès !")
+else:
+    print("Attention : firebase-auth.json introuvable. Les notifications ne fonctionneront pas.")
+
+
+# Autorise Flutter Web à lire les API
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = [
+    "accept",
+    "authorization",
+    "content-type",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+    "ngrok-skip-browser-warning",
+]
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
 }

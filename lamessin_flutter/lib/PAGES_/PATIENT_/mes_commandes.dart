@@ -59,7 +59,8 @@ class _MesCommandesPageState extends State<MesCommandesPage> with WidgetsBinding
     if (resultat != null && resultat['payment_url'] != null) {
       final Uri uri = Uri.parse(resultat['payment_url']);
       
-      // On utilise le mode externalApplication pour forcer l'ouverture du navigateur
+// On utilise le mode externalApplication pour forcer l'ouverture du navigateur
+
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       } else {
@@ -119,8 +120,6 @@ class _MesCommandesPageState extends State<MesCommandesPage> with WidgetsBinding
     bool estPaye = statut == 'paye' || statut == 'confirme';
     Color statusColor = estPaye ? Colors.green : Colors.orange;
 
-    // ATTENTION: Si ton backend ne renvoie pas 'prix_total' directement dans l'objet Commande,
-    // assure-toi que ton Serializer Django le calcule (via un SerializerMethodField par exemple)
     String prixAffiche = c['prix_total']?.toString() ?? "À calculer";
 
     return Card(

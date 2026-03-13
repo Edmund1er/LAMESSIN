@@ -89,25 +89,6 @@ class InscriptionSerializer(serializers.ModelSerializer):
         user.save()
         return user
 
-
-# ====================================================================================================
-# SERIALIZERS MÉDICAMENTS & STOCK (POUR LA RECHERCHE)
-# ====================================================================================================
-
-class MedicamentSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Medicament
-        fields = ('id', 'nom_commercial', 'description', 'posologie_standard', 'prix_vente')
-
-
-class StockSerializer(serializers.ModelSerializer):
-    produit_concerne = MedicamentSerializer(read_only=True)
-
-    class Meta:
-        model = Stock
-        fields = ('id', 'produit_concerne', 'quantite_actuelle_en_stock', 'seuil_alerte', 'date_peremption')
-
-
 # ====================================================================================================
 # SERIALIZERS SOINS, CONSULTATIONS & ORDONNANCES
 # ====================================================================================================
@@ -145,7 +126,7 @@ class ConsultationSerializer(serializers.ModelSerializer):
 class RendezVousSerializer(serializers.ModelSerializer):
     patient_demandeur = PatientSerializer(read_only=True)
     medecin_concerne = MedecinSerializer(read_only=True)
-    # On affiche si une consultation a déjà eu lieu pour ce RDV
+# On affiche si une consultation a déjà eu lieu pour ce RDV
     a_ete_consulte = serializers.SerializerMethodField()
 
     class Meta:
@@ -170,23 +151,22 @@ class RendezVousCreateSerializer(serializers.ModelSerializer):
 
 class LigneCommandeSerializer(serializers.ModelSerializer):
     nom_medicament = serializers.ReadOnlyField(source='medicament_ajoute.nom_commercial')
+    pharmacie_nom = serializers.ReadOnlyField(source='pharmacie_vendeuse.nom')
 
     class Meta:
         model = LigneCommande
-        fields = ('id', 'medicament_ajoute', 'nom_medicament', 'quantite_commandee', 'prix_unitaire')
-
+        # Utilise exactement les noms de ton modèle
+        fields = ('id', 'medicament_ajoute', 'nom_medicament', 'quantite_commandee', 'prix_unitaire', 'pharmacie_nom')
 
 class CommandeSerializer(serializers.ModelSerializer):
-    lignes = LigneCommandeSerializer(many=True, read_only=True)
-# On ajoute le champ calculé ici
-    prix_total = serializers.SerializerMethodField()
+    # Utilise source='lignecommande_set' si tu n'as pas mis de related_name='lignes' dans ton modèle
+    lignes = LigneCommandeSerializer(source='lignecommande_set', many=True, read_only=True)
+    prix_total = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
 
     class Meta:
         model = Commande
-        fields = ('id', 'patient_acheteur', 'date', 'statut_commande', 'methode_retrait', 'lignes', 'prix_total')
-
+        fields = ('id', 'patient_acheteur', 'date_commande', 'statut_commande', 'methode_retrait', 'lignes', 'prix_total')
     def get_prix_total(self, obj):
-# On additionne (quantité * prix_unitaire) pour chaque ligne de la commande
         total = sum(ligne.quantite_commandee * ligne.prix_unitaire for ligne in obj.lignes.all())
         return total
 
@@ -223,7 +203,6 @@ class MessageSerializer(serializers.ModelSerializer):
 # ====================================================================================================
 # SERIALIZERS ÉTABLISSEMENTS
 # ====================================================================================================
-
 class EtablissementSanteSerializer(serializers.ModelSerializer):
     type_etablissement = serializers.SerializerMethodField()
     pharmacie_est_garde = serializers.SerializerMethodField()
@@ -234,9 +213,57 @@ class EtablissementSanteSerializer(serializers.ModelSerializer):
                   'plage_horaire_ouverture', 'type_etablissement', 'pharmacie_est_garde')
 
     def get_type_etablissement(self, obj):
-        if hasattr(obj, 'pharmacie'): return "Pharmacie"
-        if hasattr(obj, 'hopital'): return "Hôpital"
-        return "Général"
+
+        if hasattr(obj, 'pharmacie'):
+            return "pharmacie"
+        if hasattr(obj, 'hopital'):
+            return "hopital"
+        return "general"
 
     def get_pharmacie_est_garde(self, obj):
         return obj.pharmacie.pharmacie_est_garde if hasattr(obj, 'pharmacie') else False
+
+# ====================================================================================================
+# SERIALIZERS MÉDICAMENTS & STOCK
+# ====================================================================================================
+
+class MedicamentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Medicament
+        fields = ('id', 'nom_commercial', 'description', 'posologie_standard', 'prix_vente')
+
+
+class StockSerializer(serializers.ModelSerializer):
+    produit_concerne = MedicamentSerializer(read_only=True)
+
+    class Meta:
+        model = Stock
+        fields = ('id', 'produit_concerne', 'quantite_actuelle_en_stock', 'seuil_alerte', 'date_peremption')
+
+
+class StockPharmacieSerializer(serializers.ModelSerializer):
+
+    id_pharmacie = serializers.ReadOnlyField(source='pharmacie_detentrice.id')
+
+    nom_pharmacie = serializers.ReadOnlyField(source='pharmacie_detentrice.nom')
+    adresse_pharmacie = serializers.ReadOnlyField(source='pharmacie_detentrice.adresse')
+    latitude = serializers.ReadOnlyField(source='pharmacie_detentrice.coordonnee_latitude_gps')
+    longitude = serializers.ReadOnlyField(source='pharmacie_detentrice.coordonnee_longitude_gps')
+
+    class Meta:
+        model = Stock
+        fields = ('id_pharmacie', 'nom_pharmacie', 'adresse_pharmacie',
+                  'quantite_actuelle_en_stock', 'date_peremption', 'latitude', 'longitude')
+
+class MedicamentsSerializer(serializers.ModelSerializer):
+    stocks_disponibles = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Medicament
+        fields = ('id', 'nom_commercial', 'description', 'posologie_standard', 'prix_vente', 'stocks_disponibles')
+
+    def get_stocks_disponibles(self, obj):
+        stocks = Stock.objects.filter(produit_concerne=obj, quantite_actuelle_en_stock__gt=0)
+        return StockPharmacieSerializer(stocks, many=True).data
+
+#--------------------------------------------------------------------------------------------------------------------

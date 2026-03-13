@@ -1,22 +1,25 @@
 plugins {
     id("com.android.application")
+    id("com.google.gms.google-services")
     id("kotlin-android")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
-
 android {
     namespace = "com.example.lamessin_flutter"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        // En Kotlin Script (.kts), on ajoute 'is' et '='
+        isCoreLibraryDesugaringEnabled = true
+        
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+        // Obligatoire : utiliser des doubles guillemets "" et non des simples ''
+        jvmTarget = "1.8"
     }
 
     defaultConfig {
@@ -41,4 +44,8 @@ android {
 
 flutter {
     source = "../.."
+}
+dependencies {
+    // Cette ligne est le "traducteur" pour les notifications
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

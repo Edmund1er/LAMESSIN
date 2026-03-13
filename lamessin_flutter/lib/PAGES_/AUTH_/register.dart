@@ -9,7 +9,6 @@ class Register extends StatefulWidget {
 }
 
 class _RegisterState extends State<Register> {
-// --- Contrôleurs communs ---
 
   final TextEditingController _nom = TextEditingController();
   final TextEditingController _prenom = TextEditingController();
@@ -17,25 +16,25 @@ class _RegisterState extends State<Register> {
   final TextEditingController _email = TextEditingController();
   final TextEditingController _password = TextEditingController();
 
-// --- Contrôleurs spécifiques aux rôles ---
+//Contrôleurs selon les rôles
 
   final TextEditingController _specialite = TextEditingController();
   final TextEditingController _licence = TextEditingController(); 
 
-// Pour stocker A+, B-, etc.
 
   String? _groupeSanguinChoisi;
+
+// une liste ppour stocker A+, B-...
 
   final List<String> _groupes = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
   DateTime? _dateNaissance; 
 
-// Rôle par défaut
+//pour lamessin on choisi par défaut le role patient
   
   String _roleChoisi = "patient"; 
 
 // Fonction pour choisir la date de naissance
-
   Future<void> _selectionnerDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -43,6 +42,7 @@ class _RegisterState extends State<Register> {
       firstDate: DateTime(1920),
       lastDate: DateTime.now(),
     );
+
     if (picked != null) setState(() => _dateNaissance = picked);
   }
 
@@ -50,7 +50,6 @@ class _RegisterState extends State<Register> {
 
   void _lancerInscription() async {
 
-// Préparation du dictionnaire (JSON) pour l'API
 
     Map<String, dynamic> monColis = {
       "username": _telephone.text,

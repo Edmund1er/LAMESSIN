@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:firebase_core/firebase_core.dart'; 
+import 'package:flutter/foundation.dart'; 
+import 'package:firebase_messaging/firebase_messaging.dart';
 
+// Services
+import 'SERVICES_/notification_service.dart'; 
+import 'SERVICES_/api_service.dart';
+
+// Pages
 import 'PAGES_/AUTH_/splash.dart';
 import 'PAGES_/AUTH_/login.dart';
 import 'PAGES_/AUTH_/register.dart';
@@ -15,13 +23,34 @@ import 'PAGES_/PATIENT_/suivi_traitements.dart';
 import 'PAGES_/PATIENT_/edit_profil_page.dart';
 import 'PAGES_/PATIENT_/mon_profil.dart';
 import "PAGES_/PATIENT_/mes_rendez_vous_page.dart"; 
+import "PAGES_/PATIENT_/AssistantHistoriquePage.dart";
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-// Initialisation du format de date 
-
   await initializeDateFormatting('fr_FR', null);
+
+  try {
+    if (kIsWeb) {
+      // Config Web pour Edge
+      await Firebase.initializeApp(
+        options: const FirebaseOptions(
+          apiKey: "AIzaSyCmbiha3Un8XQ00R21IFi3CGPfhtIEIGXE",
+          appId: "1:888701279600:web:672541eb0f272462e443b5",
+          messagingSenderId: "888701279600",
+          projectId: "lamessin-ab826",
+          storageBucket: "lamessin-ab826.firebasestorage.app",
+        ),
+      );
+      print("Firebase Web initialisé.");
+    } else {
+      // Config Android
+      await Firebase.initializeApp();
+      await NotificationService.initialiser();
+    }
+  } catch (e) {
+    print("ALERTE Firebase : $e");
+  }
+
   runApp(const MyApp());
 }
 
@@ -32,43 +61,30 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'LAMESIN',
-      
-// Configuration de la langue 
-
+      title: 'LAMESSIN',
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [
-        Locale('fr', 'FR'),
-      ],
+      supportedLocales: const [Locale('fr', 'FR')],
       locale: const Locale('fr', 'FR'),
-
       initialRoute: "/splash",
-
-routes: {
-        // Authentification, profils et comptes   
+      routes: {
         "/splash": (context) => const Splash(),
         "/login": (context) => const Login(),
         "/register": (context) => const Register(),
         "/home_page": (context) => const HomePage(),
         "/profil_patient": (context) => const ProfilPatientPage(),
         "/edit_profil": (context) => const EditProfilPage(profilActuel: {}),
-
-        // Dashboard et Services patient
         "/page_utilisateur": (context) => const PageUtilisateur(),
         "/recherches_services_medicaux": (context) => const RechercheServicesPage(),
-        "/assistant": (context) => const Assistant(),
+        "/assistant": (context) => const AssistantPage(),
         '/suivi_traitements': (context) => const SuiviTraitementsPage(),
-        
-        // AJOUT DE LA ROUTE COMMANDES
         "/mes_commandes": (context) => const MesCommandesPage(), 
-
-        // Gestion des Rendez-vous patient
-        "/rendez_vous_page": (context) => const RendezVousPage(), // Vérifie bien le nom de la classe
-        "/mes_rendez_vous_page": (context) => const MesRendezVousPage(), 
+        "/rendez_vous_page": (context) => const RendezVousPage(),
+        "/mes_rendez_vous_page": (context) => const MesRendezVousPage(),
+        "/historique_chatbot": (context) => const AssistantHistoriquePage(),
       },
     );
   }

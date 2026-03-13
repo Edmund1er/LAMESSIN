@@ -13,6 +13,9 @@ class Utilisateur(AbstractUser):
     est_un_compte_medecin = models.BooleanField(default=False)
     est_un_compte_pharmacien = models.BooleanField(default=False)
 
+# Ce jeton permet d'identifier l'appareil mobile pour envoyer des notifications push
+    fcm_token = models.TextField(null=True, blank=True)
+
     USERNAME_FIELD = 'numero_telephone'
     REQUIRED_FIELDS = ['username', 'email', 'first_name', 'last_name']
 
@@ -63,6 +66,9 @@ class Hopital(EtablissementSante):
 
 class Pharmacie(EtablissementSante):
     pharmacie_est_garde = models.BooleanField(default=False)
+    numero_paiement = models.CharField(max_length=15, help_text="Numéro T-Money ou Flooz de la pharmacie")
+    reseau_paiement = models.CharField(max_length=10, choices=[('tmoney', 'T-Money'), ('flooz', 'Flooz')],
+                                       default='tmoney')
 
 # ====================================================================================================================
 # MODULE : PRODUITS & STOCKS (RECHERCHE OPTIMISÉE)
@@ -146,7 +152,8 @@ class Ordonnance(models.Model):
         return f"Ordonnance de {self.patient_beneficiaire.compte_utilisateur.last_name}"
 
 class DetailOrdonnance(models.Model):
-    """ Lignes précises de l'ordonnance """
+# Lignes précises de l'ordonnance
+
     ordonnance = models.ForeignKey(Ordonnance, on_delete=models.CASCADE, related_name="lignes")
     medicament = models.ForeignKey(Medicament, on_delete=models.CASCADE)
     quantite_boites = models.PositiveIntegerField(default=1)
@@ -179,10 +186,12 @@ class Commande(models.Model):
     date = models.DateTimeField(auto_now_add=True)
     statut_commande = models.CharField(max_length=50)
     methode_retrait = models.CharField(max_length=50)
+    prix_total = models.FloatField(default=0.0)
 
 class LigneCommande(models.Model):
     ma_commande = models.ForeignKey(Commande, on_delete=models.CASCADE, related_name="lignes")
     medicament_ajoute = models.ForeignKey(Medicament, on_delete=models.CASCADE)
+    pharmacie_vendeuse = models.ForeignKey(Pharmacie, on_delete=models.CASCADE)
     quantite_commandee = models.PositiveIntegerField()
     prix_unitaire = models.FloatField()
 
@@ -193,14 +202,30 @@ class Paiement(models.Model):
     identifiant_transaction_mobile = models.CharField(max_length=100, unique=True)
     confirmation_paiement = models.BooleanField(default=False)
 
+
 class Notification(models.Model):
-    destinataire = models.ForeignKey(Utilisateur, on_delete=models.CASCADE)
+    destinataire = models.ForeignKey(Utilisateur, on_delete=models.CASCADE, related_name="mes_notifications")
     message = models.TextField()
     heure_envoi = models.DateTimeField(auto_now_add=True)
+    # Ex: 'RENDEZ_VOUS', 'ORDONNANCE', 'COMMANDE'
     type_notification = models.CharField(max_length=50)
+    lu = models.BooleanField(default=False) # Optionnel: pour savoir si le patient a vu l'alerte
+
+    class Meta:
+        ordering = ['-heure_envoi']
+
+    def __str__(self):
+        return f"Notif pour {self.destinataire.last_name} - {self.type_notification}"
+
+
+from django.conf import settings
 
 class Chatbot(models.Model):
+    utilisateur = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="session_assistant",null=True )
     date_ouverture_session = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Session de {self.utilisateur}"
 
 class Message(models.Model):
     chatbot_associe = models.ForeignKey(Chatbot, on_delete=models.CASCADE, related_name="messages")

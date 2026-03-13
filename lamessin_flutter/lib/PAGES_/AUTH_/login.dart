@@ -9,66 +9,95 @@ class Login extends StatefulWidget {
 }
 
 class _LoginState extends State<Login> {
-// Les boîtes pour lire ce que l'utilisateur écrit
   final _telephone = TextEditingController();
   final _password = TextEditingController();
+  bool _chargement = false; // Pour éviter les doubles clics
 
-// La fonction qui se lance quand on clique sur le bouton
   void _clicConnexion() async {
-    // 1. On récupère le texte tapé
-    String tel = _telephone.text;
-    String pass = _password.text;
-
-//On demande au serveur Django si c'est bon
-    String? token = await ApiService.login(tel, pass);
-
-//  On vérifie le résultat
-    if (token != null) {
-//  On va à la page d'accueil du patient si ca marche
-      Navigator.pushReplacementNamed(context, "/page_utilisateur");
-    } else {
-// On affiche un petit message d'erreur en bas si il ya erreur
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Numéro ou mot de passe incorrect")),
-      );
+    if (_telephone.text.isEmpty || _password.text.isEmpty) {
+      _afficherMessage("Veuillez remplir tous les champs");
+      return;
     }
+
+    setState(() => _chargement = true);
+
+    try {
+      String tel = _telephone.text;
+      String pass = _password.text;
+
+      // Appel au serveur
+      String? token = await ApiService.login(tel, pass);
+
+      // CRUCIAL : On vérifie si l'écran est toujours affiché après l'attente
+      if (!mounted) return;
+
+      if (token != null) {
+        Navigator.pushReplacementNamed(context, "/page_utilisateur");
+      } else {
+        _afficherMessage("Numéro ou mot de passe incorrect");
+      }
+    } catch (e) {
+      if (!mounted) return;
+      _afficherMessage("Erreur de connexion au serveur");
+    } finally {
+      if (mounted) setState(() => _chargement = false);
+    }
+  }
+
+  void _afficherMessage(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg)),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Connexion LAMESSIN")),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            const SizedBox(height: 50),
-// Case pour le téléphone
-            TextField(
-              controller: _telephone,
-              decoration: const InputDecoration(labelText: "Téléphone"),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 50),
+                TextField(
+                  controller: _telephone,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: "Téléphone",
+                    prefixIcon: Icon(Icons.phone),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: _password,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: "Mot de passe",
+                    prefixIcon: Icon(Icons.lock),
+                  ),
+                ),
+                const SizedBox(height: 30),
+                _chargement
+                    ? const CircularProgressIndicator()
+                    : ElevatedButton(
+                        onPressed: _clicConnexion,
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 50),
+                        ),
+                        child: const Text("SE CONNECTER"),
+                      ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pushNamed(context, "/register");
+                  },
+                  child: const Text("Pas encore de compte ? S'inscrire"),
+                ),
+              ],
             ),
-            const SizedBox(height: 20),
-// Case pour le mot de passe
-            TextField(
-              controller: _password,
-              obscureText: true, 
-              decoration: const InputDecoration(labelText: "Mot de passe"),
-            ),
-            const SizedBox(height: 30),
-// Le bouton
-            ElevatedButton(
-              onPressed: _clicConnexion, 
-              child: const Text("SE CONNECTER"),
-            ),
-// Lien pour aller s'inscrire si on n'a pas de compte
-            TextButton(
-              onPressed: () {
-                Navigator.pushNamed(context, "/register");
-              },
-              child: const Text("Pas encore de compte ? S'inscrire"),
-            ),
-          ],
+          ),
         ),
       ),
     );
