@@ -5,6 +5,10 @@ import '../../SERVICES_/api_service.dart';
 import '../../WIDGETS_/menu_navigation.dart';
 import 'panier_page.dart';
 
+// Importation de ton modèle exact
+import '../../MODELS_/medicament_model.dart';
+import '../../MODELS_/etablissement_model.dart';
+
 class RechercheServicesPage extends StatefulWidget {
   const RechercheServicesPage({super.key});
 
@@ -13,14 +17,15 @@ class RechercheServicesPage extends StatefulWidget {
 }
 
 class _RechercheServicesPageState extends State<RechercheServicesPage> {
-  
-  List<dynamic> etablissements = [];
+  List<EtablissementSante> etablissements = []; // Typage strict : Liste d'objets EtablissementSante
   bool chargementEtablissements = true;
   String filtreType = "Tous";
 
-  List<dynamic> resultatsMedicaments = [];
+  List<Medicament> resultatsMedicaments = [];
   bool rechercheEnCours = false;
   final TextEditingController _searchController = TextEditingController();
+  
+  // Utilisation de la position pour le calcul de distance
   Position? _currentPosition;
 
   List<PanierItem> _panier = [];
@@ -31,7 +36,12 @@ class _RechercheServicesPageState extends State<RechercheServicesPage> {
     _initialiserLocalisationEtDonnees();
   }
 
-  // --- INITIALISATION SÉCURISÉE ---
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   Future<void> _initialiserLocalisationEtDonnees() async {
     try {
       LocationPermission permission = await Geolocator.checkPermission();
@@ -39,21 +49,20 @@ class _RechercheServicesPageState extends State<RechercheServicesPage> {
         permission = await Geolocator.requestPermission();
       }
       
+      // Récupération de la position
       _currentPosition = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.low,
           timeLimit: const Duration(seconds: 3));
     } catch (e) {
-      debugPrint("Localisation indisponible (normal sur Edge/Web) : $e");
+      debugPrint("Localisation indisponible : $e");
     } finally {
       await _chargerEtTrierEtablissements();
     }
   }
 
-  // --- GOOGLE MAPS ---
   Future<void> _ouvrirItineraire(double lat, double lng) async {
-    final String url = "https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=driving";
+    final String url = "https://www.google.com/maps/search/?api=1&query=$lat,$lng";
     final Uri uri = Uri.parse(url);
-
     try {
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -65,32 +74,25 @@ class _RechercheServicesPageState extends State<RechercheServicesPage> {
     }
   }
 
-  // --- RECHERCHE MÉDICAMENTS ---
   void _rechercherMedicament(String query) async {
     if (query.length < 2) {
       setState(() => resultatsMedicaments = []);
       return;
     }
     setState(() => rechercheEnCours = true);
-    
     try {
-      final resultats = await ApiService.rechercherMedicaments(query);
-
-      for (var medoc in resultats) {
-        List<dynamic> stocks = medoc['stocks_disponibles'] ?? [];
-        for (var s in stocks) {
-          if (_currentPosition != null && s['latitude'] != null && s['longitude'] != null) {
-            double dist = Geolocator.distanceBetween(
-                _currentPosition!.latitude,
-                _currentPosition!.longitude,
-                double.tryParse(s['latitude'].toString()) ?? 0.0,
-                double.tryParse(s['longitude'].toString()) ?? 0.0);
-            s['distance_km'] = dist / 1000;
-          } else {
-            s['distance_km'] = null;
-          }
+      final List<Medicament> resultats = await ApiService.rechercherMedicaments(query);
+      
+      // UTILISATION DE _currentPosition : Tri des stocks par proximité si la position est connue
+      if (_currentPosition != null) {
+        for (var medoc in resultats) {
+          // medoc.stocksDisponibles est une List<StockPharmacie>
+          medoc.stocksDisponibles.sort((a, b) {
+            double distA = Geolocator.distanceBetween(_currentPosition!.latitude, _currentPosition!.longitude, a.latitude, a.longitude);
+            double distB = Geolocator.distanceBetween(_currentPosition!.latitude, _currentPosition!.longitude, b.latitude, b.longitude);
+            return distA.compareTo(distB);
+          });
         }
-        stocks.sort((a, b) => (a['distance_km'] ?? 999.0).compareTo(b['distance_km'] ?? 999.0));
       }
 
       setState(() {
@@ -98,48 +100,37 @@ class _RechercheServicesPageState extends State<RechercheServicesPage> {
         rechercheEnCours = false;
       });
     } catch (e) {
-      debugPrint("Erreur recherche : $e");
       setState(() => rechercheEnCours = false);
     }
   }
 
-  // --- CHARGEMENT ÉTABLISSEMENTS ---
   Future<void> _chargerEtTrierEtablissements() async {
     setState(() => chargementEtablissements = true);
     try {
-      List<dynamic> data = await ApiService.getEtablissements();
+      // ApiService renvoie maintenant une liste d'objets EtablissementSante
+      List<EtablissementSante> data = await ApiService.getEtablissements();
       
-      for (var e in data) {
-        if (_currentPosition != null && e['coordonnee_latitude_gps'] != null) {
-          try {
-            double dist = Geolocator.distanceBetween(
-                _currentPosition!.latitude,
-                _currentPosition!.longitude,
-                double.parse(e['coordonnee_latitude_gps'].toString()),
-                double.parse(e['coordonnee_longitude_gps'].toString()));
-            e['distance_km'] = dist / 1000;
-          } catch (err) { e['distance_km'] = null; }
-        } else {
-          e['distance_km'] = null;
-        }
+      // UTILISATION DE _currentPosition : Tri des établissements
+      if (_currentPosition != null) {
+        data.sort((a, b) {
+          // CORRECTION ICI : On utilise les propriétés de l'objet (a.latitude), pas les clés de map
+          double distA = Geolocator.distanceBetween(_currentPosition!.latitude, _currentPosition!.longitude, a.latitude, a.longitude);
+          double distB = Geolocator.distanceBetween(_currentPosition!.latitude, _currentPosition!.longitude, b.latitude, b.longitude);
+          return distA.compareTo(distB);
+        });
       }
-      data.sort((a, b) => (a['distance_km'] ?? 999.0).compareTo(b['distance_km'] ?? 999.0));
 
       setState(() {
         etablissements = data;
         chargementEtablissements = false;
       });
     } catch (e) {
-      debugPrint("Erreur chargement : $e");
       setState(() => chargementEtablissements = false);
     }
   }
 
-  // --- MODAL COMMANDE ---
-  void _afficherModalCommande(dynamic medoc, int pharmacieId) {
+  void _afficherModalCommande(Medicament medoc, int pharmacieId) {
     int quantite = 1;
-    double prixUnitaire = double.tryParse(medoc['prix_vente']?.toString() ?? '0') ?? 0.0;
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -150,9 +141,9 @@ class _RechercheServicesPageState extends State<RechercheServicesPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(medoc['nom_commercial'] ?? "Médicament", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              Text(medoc.nomCommercial, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
               const SizedBox(height: 10),
-              Text("Prix : ${prixUnitaire.toStringAsFixed(0)} FCFA"),
+              Text("Prix : ${medoc.prixVente.toStringAsFixed(0)} FCFA"),
               const Divider(),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -165,19 +156,16 @@ class _RechercheServicesPageState extends State<RechercheServicesPage> {
                 ],
               ),
               const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(context), child: const Text("Annuler"))),
-                  const SizedBox(width: 10),
-                  Expanded(child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-                    onPressed: () {
-                      _ajouterAuPanier(medoc, quantite, pharmacieId);
-                      Navigator.pop(context);
-                    },
-                    child: Text("Ajouter (${(prixUnitaire * quantite).toStringAsFixed(0)} FCFA)", style: const TextStyle(color: Colors.white)),
-                  )),
-                ],
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+                  onPressed: () {
+                    _ajouterAuPanier(medoc, quantite, pharmacieId);
+                    Navigator.pop(context);
+                  },
+                  child: Text("Ajouter (${(medoc.prixVente * quantite).toStringAsFixed(0)} FCFA)", style: const TextStyle(color: Colors.white)),
+                ),
               )
             ],
           ),
@@ -186,32 +174,22 @@ class _RechercheServicesPageState extends State<RechercheServicesPage> {
     );
   }
 
-void _ajouterAuPanier(dynamic medoc, int qte, int pharmacieId) {
-    debugPrint("Tentative d'ajout : Medoc ${medoc['id']} de la Pharmacie $pharmacieId");
-    
+  void _ajouterAuPanier(Medicament medoc, int qte, int pharmacieId) {
     setState(() {
-      double prixVrai = double.tryParse(medoc['prix_vente']?.toString() ?? '0') ?? 0.0;
-      
-      // Recherche si le produit existe déjà pour CETTE pharmacie précise
-      int index = _panier.indexWhere((item) => 
-        item.idMedoc == medoc['id'] && item.idPharmacie == pharmacieId);
-
+      int index = _panier.indexWhere((item) => item.idMedoc == medoc.id && item.idPharmacie == pharmacieId);
       if (index != -1) {
         _panier[index].quantite += qte;
-        debugPrint("Quantité mise à jour : ${_panier[index].quantite}");
       } else {
         _panier.add(PanierItem(
-          idMedoc: medoc['id'],
+          idMedoc: medoc.id,
           idPharmacie: pharmacieId,
-          nom: medoc['nom_commercial'] ?? "Médicament",
-          prix: prixVrai,
+          nom: medoc.nomCommercial,
+          prix: medoc.prixVente,
           quantite: qte,
         ));
-        debugPrint("Nouvel article ajouté au panier. Taille du panier : ${_panier.length}");
       }
     });
-    
-    _afficherSnackBar("${medoc['nom_commercial']} ajouté au panier", Colors.green);
+    _afficherSnackBar("${medoc.nomCommercial} ajouté au panier", Colors.green);
   }
 
   void _afficherSnackBar(String msg, Color couleur) {
@@ -220,18 +198,10 @@ void _ajouterAuPanier(dynamic medoc, int qte, int pharmacieId) {
 
   @override
   Widget build(BuildContext context) {
-    List<dynamic> listeFiltree = filtreType == "Tous"
-        ? etablissements
-        : etablissements.where((e) {
-            String typeData = e['type_etablissement'].toString().toLowerCase().replaceAll('ô', 'o');
-            String typeBouton = filtreType.toLowerCase().replaceAll('ô', 'o');
-            return typeData == typeBouton;
-          }).toList();
-
     return Scaffold(
       drawer: const MenuNavigation(),
       appBar: AppBar(
-        title: const Text("LAMESSIN - Services"),
+        title: const Text("Services Médicaux"),
         backgroundColor: const Color(0xFF0056b3),
         foregroundColor: Colors.white,
       ),
@@ -261,7 +231,7 @@ void _ajouterAuPanier(dynamic medoc, int qte, int pharmacieId) {
             ),
           ),
           Expanded(
-            child: _searchController.text.isNotEmpty ? _buildResultatsMedicaments() : _buildListeEtablissements(listeFiltree),
+            child: _searchController.text.isNotEmpty ? _buildResultatsMedicaments() : _buildListeEtablissements(),
           ),
         ],
       ),
@@ -276,42 +246,36 @@ void _ajouterAuPanier(dynamic medoc, int qte, int pharmacieId) {
       itemCount: resultatsMedicaments.length,
       itemBuilder: (context, index) {
         final medoc = resultatsMedicaments[index];
-        final stocks = medoc['stocks_disponibles'] as List<dynamic>? ?? [];
         return Card(
           margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           child: ExpansionTile(
-            leading: Icon(Icons.medication, color: stocks.isNotEmpty ? Colors.blue : Colors.red),
-            title: Text(medoc['nom_commercial'] ?? "Inconnu", style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text("${medoc['prix_vente']} FCFA"),
-            children: stocks.map((s) {
-              double? dist = s['distance_km'];
+            leading: Icon(Icons.medication, color: medoc.stocksDisponibles.isNotEmpty ? Colors.blue : Colors.red),
+            title: Text(medoc.nomCommercial, style: const TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Text("${medoc.prixVente.toStringAsFixed(0)} FCFA"),
+            children: medoc.stocksDisponibles.map((s) {
+              // Calcul de la distance pour l'affichage
+              String distanceText = "";
+              if (_currentPosition != null) {
+                double dist = Geolocator.distanceBetween(_currentPosition!.latitude, _currentPosition!.longitude, s.latitude, s.longitude);
+                distanceText = " - ${(dist / 1000).toStringAsFixed(1)} km";
+              }
+
               return ListTile(
                 leading: const Icon(Icons.location_on, color: Colors.green),
-                title: Text(s['nom_pharmacie'] ?? "Pharmacie"),
-                subtitle: Text("${dist?.toStringAsFixed(1) ?? '?'} km"),
+                title: Text(s.nomPharmacie),
+                subtitle: Text("En stock: ${s.quantiteEnStock}$distanceText"),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                      
                       icon: const Icon(Icons.directions, color: Colors.blue),
-                      onPressed: () => _ouvrirItineraire(
-                        double.parse(s['latitude'].toString()), 
-                        double.parse(s['longitude'].toString())
-                      ),
+                      onPressed: () => _ouvrirItineraire(s.latitude, s.longitude),
                     ),
                     IconButton(
-                          icon: const Icon(Icons.add_shopping_cart, color: Colors.green), 
-                          onPressed: () {
-                            if (s['id_pharmacie'] != null) {
-                              _afficherModalCommande(medoc, s['id_pharmacie']);
-                            } else {
-                              debugPrint("ERREUR : id_pharmacie est nul dans les données JSON !");
-                              _afficherSnackBar("Erreur de données pharmacie", Colors.red);
-                            }
-                          },
-                        ),
-                                          ],
+                      icon: const Icon(Icons.add_shopping_cart, color: Colors.green), 
+                      onPressed: () => _afficherModalCommande(medoc, s.idPharmacie),
+                    ),
+                  ],
                 ),
               );
             }).toList(),
@@ -321,51 +285,29 @@ void _ajouterAuPanier(dynamic medoc, int qte, int pharmacieId) {
     );
   }
 
-  Widget _buildListeEtablissements(List<dynamic> listeFiltree) {
+  Widget _buildListeEtablissements() {
     if (chargementEtablissements) return const Center(child: CircularProgressIndicator());
-    if (listeFiltree.isEmpty) return const Center(child: Text("Connectez-vous pour voir les établissements."));
-
-    return Column(
-      children: [
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.all(8),
-          child: Row(
-            children: ["Tous", "Pharmacie", "Hôpital"].map((type) => Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: ChoiceChip(
-                label: Text(type),
-                selected: filtreType == type,
-                onSelected: (val) => setState(() => filtreType = type),
-              ),
-            )).toList(),
+    return ListView.builder(
+      itemCount: etablissements.length,
+      itemBuilder: (context, index) {
+        final e = etablissements[index];
+        
+        // CORRECTION ICI : On utilise les propriétés directes de l'objet e (qui est un EtablissementSante)
+        // et non plus e['coordonnee_latitude_gps']
+        
+        return Card(
+          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          child: ListTile(
+            leading: Icon(e.pharmacieEstGarde == true ? Icons.local_pharmacy : Icons.local_hospital),
+            title: Text(e.nom),
+            subtitle: Text("Adresse: ${e.adresse}"),
+            trailing: IconButton(
+              icon: const Icon(Icons.directions, color: Colors.green),
+              onPressed: () => _ouvrirItineraire(e.latitude, e.longitude),
+            ),
           ),
-        ),
-        Expanded(
-          child: ListView.builder(
-            itemCount: listeFiltree.length,
-            itemBuilder: (context, index) {
-              final e = listeFiltree[index];
-              return Card(
-                margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                child: ListTile(
-                  leading: Icon(e['type_etablissement'] == "Pharmacie" ? Icons.local_pharmacy : Icons.local_hospital, 
-                                color: e['type_etablissement'] == "Pharmacie" ? Colors.blue : Colors.red),
-                  title: Text(e['nom'] ?? "Nom inconnu", style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text("${e['distance_km']?.toStringAsFixed(1) ?? '...'} km - ${e['plage_horaire_ouverture'] ?? '24h/24'}"),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.directions, color: Colors.green), 
-                    onPressed: () => _ouvrirItineraire(
-                      double.parse(e['coordonnee_latitude_gps'].toString()), 
-                      double.parse(e['coordonnee_longitude_gps'].toString())
-                    )
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
+        );
+      },
     );
   }
 }

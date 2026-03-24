@@ -1,64 +1,94 @@
 from django.urls import path
 from . import views
-from .views import EnregistrerFCMToken, CreerCommandeMultiple, AssistantHistoriqueView, MesCommandesView
+from rest_framework_simplejwt.views import TokenRefreshView
 
 urlpatterns = [
-# --------------------------------------------------- AUTHENTIFICATION ------------------------------------------------
+# ====================================================================================================
+# AUTHENTIFICATION & SESSION (SÉCURITÉ)
+# ====================================================================================================
+# Connexion initiale (Retourne Access + Refresh)
+
+
     path('login/', views.Login.as_view(), name='token_obtain_pair'),
-    path('inscription/', views.inscription.as_view(), name='inscription'),
+
+# Rafraîchissement de session (Crucial pour le côté "Permanent" sur Flutter)
+    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+
+# Inscription avec connexion auto
+    path('inscription/', views.InscriptionView.as_view(), name='inscription'),
+
+# Déconnexion (Blacklist du refresh token)
+    path('logout/', views.LogoutView.as_view(), name='logout'),
+
+# ====================================================================================================
+# PROFIL UTILISATEUR
+# ====================================================================================================
+
     path('profil/', views.UserProfil.as_view(), name='user_profil'),
     path('updateProfil/', views.UpdateProfilView.as_view(), name='modification_profil'),
 
-# --------------------------------------------------- MÉDECINS ET DISPONIBILITÉS ---------------------------------------
+# ====================================================================================================
+# MÉDECINS, DISPONIBILITÉS & RENDEZ-VOUS
+# ====================================================================================================
+
     path('listeMedecins/', views.LiteMedecins.as_view(), name='liste_medecins'),
     path('creneauxDisponible/', views.CreneauxDispo.as_view(), name='creneaux_dispo'),
 
-# --------------------------------------------------- GESTION DES RENDEZ-VOUS ------------------------------------------
     path('rendezvous/', views.ListeRendezVousPatient.as_view(), name='liste_rdv'),
     path('rendezvous/creer/', views.CreezRendezVous.as_view(), name='creer_rendezvous'),
     path('rendezvous/<int:pk>/', views.AnnulerRendezVous.as_view(), name='annuler_rdv'),
 
-# --------------------------------------------------- SOINS ET CONSULTATIONS -------------------------------------------
+# ====================================================================================================
+# SOINS, MÉDICAMENTS & ÉTABLISSEMENTS
+# ====================================================================================================
+
     path('soins/enregistrer/', views.EnregistrerSoin.as_view(), name='enregistrer_soin'),
-
-# --------------------------------------------------- MÉDICAMENTS & STOCKS ----------------------------------------------
     path('medicaments/recherche/', views.RechercheMedicament.as_view(), name='recherche_medicament'),
-
-# --------------------------------------------------- GÉOLOCALISATION ---------------------------------------------------
     path('etablissements/', views.ListeEtablissements.as_view(), name='liste_etablissements'),
 
-# --------------------------------------------------- NOTIFICATIONS & FCM ----------------------------------------------
-    path('notifications/', views.ListeNotifications.as_view(), name='liste_notifications'),
-    path('notifications/enregistrerToken/', EnregistrerFCMToken.as_view(), name='enregistrer_token'),
+# ====================================================================================================
+# TRAITEMENTS, PRISES & ORDONNANCES (CÔTÉ PATIENT)
+# ====================================================================================================
 
-# --------------------------------------------------- TRAITEMENTS -------------------------------------------------------
     path('traitements/', views.ListeTraitementsPatient.as_view(), name='liste_traitements'),
-# --------------------------------------------------- ORDONNANCES ---------------------------------------------------
-    path('ordonnances/', views.ListeOrdonnancesPatient.as_view(), name='liste_ordonnances'),
-# --------------------------------------------------- SUIVI TRAITEMENT ----------------------------------------------
     path('traitements/<int:pk>/', views.DetailTraitement.as_view(), name='detail_traitement'),
     path('traitements/valider-prise/<int:prise_id>/', views.ValiderPriseMedicament.as_view(), name='valider_prise'),
+    path('ordonnances/', views.ListeOrdonnancesPatient.as_view(), name='liste_ordonnances'),
 
+# Upload de documents
 
-# ---------------------------------------------- COMMANDES ET PAIEMENTS (FEDAPAY) ---------------------------------------
+    path('documents/upload/', views.UploadDocumentMedicalView.as_view(), name='upload_document'),
 
-#--------------------------------------------------Création commande multiple-----------------------------------------------------
-    path('commandes/multiple/', CreerCommandeMultiple.as_view(), name='creer_commande_multiple'),
+# ====================================================================================================
+# COMMANDES & PAIEMENTS (FEDAPAY)
+# ====================================================================================================
+# Liste des commandes du patient
 
-#-------------------------------------------Webhook pour la confirmation automatique (T-Money/Flooz)--------------------------------
+    path('commandes/', views.MesCommandesView.as_view(), name='mes_commandes'),
 
-    path('fedapay/webhook/', views.fedapay_webhook, name='fedapay_webhook'),
+# Création de commande multiple + Génération automatique du lien FedaPay
 
-#-----------------------------------------------------Relance de paiement pour une commande existante-----------------------------------------------------
+   path('commandes/creerEtPayer/', views.CreerCommandeMultiple.as_view(), name='creer_paiement'),
+
+# Relance de paiement pour une commande en attente
 
     path('commandes/<int:commande_id>/genererLien/', views.GenererLienPaiement.as_view(), name='generer_lien'),
 
-# -----------------------------------------------------commande simple-----------------------------------------------------
-    path('commandes/', MesCommandesView.as_view(), name='mes_commandes'),
+# Webhook cinetpay
 
-    path('commandes/creerEtPayer/', views.CreerCommandeMultiple.as_view(), name='creer_paiement'),
+    path('cinetpay/webhook/', views.cinetpay_webhook, name='cinetpay_webhook'),
 
-# --------------------------------------------------- ASSISTANT GEMINI ----------------------------------------------
+# ====================================================================================================
+# NOTIFICATIONS & FCM (FIREBASE)
+# ====================================================================================================
+
+    path('notifications/', views.ListeNotifications.as_view(), name='liste_notifications'),
+    path('notifications/enregistrerToken/', views.EnregistrerFCMToken.as_view(), name='enregistrer_token'),
+
+# ====================================================================================================
+# ASSISTANT VIRTUEL (IA GEMINI)
+# ====================================================================================================
+
     path('assistant/chat/', views.ChatbotGeminiView.as_view(), name='assistant_gemini'),
-    path('assistant/historique/', AssistantHistoriqueView.as_view(), name='assistant_historique'),
+    path('assistant/historique/', views.AssistantHistoriqueView.as_view(), name='assistant_historique'),
 ]

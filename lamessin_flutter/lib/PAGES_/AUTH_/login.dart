@@ -11,7 +11,7 @@ class Login extends StatefulWidget {
 class _LoginState extends State<Login> {
   final _telephone = TextEditingController();
   final _password = TextEditingController();
-  bool _chargement = false; // Pour éviter les doubles clics
+  bool _chargement = false;
 
   void _clicConnexion() async {
     if (_telephone.text.isEmpty || _password.text.isEmpty) {
@@ -22,13 +22,11 @@ class _LoginState extends State<Login> {
     setState(() => _chargement = true);
 
     try {
-      String tel = _telephone.text;
+      String tel = _telephone.text.trim();
       String pass = _password.text;
-
-      // Appel au serveur
+      
       String? token = await ApiService.login(tel, pass);
 
-      // CRUCIAL : On vérifie si l'écran est toujours affiché après l'attente
       if (!mounted) return;
 
       if (token != null) {
@@ -37,7 +35,6 @@ class _LoginState extends State<Login> {
         _afficherMessage("Numéro ou mot de passe incorrect");
       }
     } catch (e) {
-      if (!mounted) return;
       _afficherMessage("Erreur de connexion au serveur");
     } finally {
       if (mounted) setState(() => _chargement = false);
@@ -45,61 +42,99 @@ class _LoginState extends State<Login> {
   }
 
   void _afficherMessage(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg)),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Connexion LAMESSIN")),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SizedBox(height: 50),
-                TextField(
-                  controller: _telephone,
-                  keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(
-                    labelText: "Téléphone",
-                    prefixIcon: Icon(Icons.phone),
-                  ),
+      backgroundColor: const Color(0xFFF0F4F8),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text(
+                "Bienvenue",
+                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF2D3E50)),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                "Connectez-vous à votre espace LAMESSIN",
+                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+              ),
+              const SizedBox(height: 40),
+              Container(
+                padding: const EdgeInsets.all(30),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.blue.withOpacity(0.08),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 20),
-                TextField(
-                  controller: _password,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: "Mot de passe",
-                    prefixIcon: Icon(Icons.lock),
-                  ),
-                ),
-                const SizedBox(height: 30),
-                _chargement
-                    ? const CircularProgressIndicator()
-                    : ElevatedButton(
-                        onPressed: _clicConnexion,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    TextField(
+                      controller: _telephone,
+                      keyboardType: TextInputType.phone,
+                      decoration: _decoration("Téléphone", Icons.phone_outlined),
+                    ),
+                    const SizedBox(height: 20),
+                    TextField(
+                      controller: _password,
+                      obscureText: true,
+                      decoration: _decoration("Mot de passe", Icons.lock_outline),
+                    ),
+                    const SizedBox(height: 25),
+                    SizedBox(
+                      height: 54,
+                      child: ElevatedButton(
+                        onPressed: _chargement ? null : _clicConnexion,
                         style: ElevatedButton.styleFrom(
-                          minimumSize: const Size(double.infinity, 50),
+                          backgroundColor: const Color(0xFF4A90E2),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                        child: const Text("SE CONNECTER"),
+                        child: _chargement
+                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : const Text("SE CONNECTER", style: TextStyle(fontWeight: FontWeight.bold)),
                       ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.pushNamed(context, "/register");
-                  },
-                  child: const Text("Pas encore de compte ? S'inscrire"),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 30),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text("Pas encore de compte ? "),
+                  GestureDetector(
+                    onTap: () => Navigator.pushNamed(context, "/register"),
+                    child: const Text("S'inscrire", style: TextStyle(color: Color(0xFF4A90E2), fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),
+    );
+  }
+
+  InputDecoration _decoration(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon, color: const Color(0xFF4A90E2)),
+      filled: true,
+      fillColor: const Color(0xFFF7F9FC),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
     );
   }
 }

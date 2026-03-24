@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import '../../SERVICES_/api_service.dart';
 import '../../WIDGETS_/menu_navigation.dart';
 
+// IMPORTATION DE TES MODÈLES UNIQUEMENT
+import '../../MODELS_/rendezvous_model.dart';
+import '../../MODELS_/utilisateur_model.dart';
+
+
 class MesRendezVousPage extends StatefulWidget {
   const MesRendezVousPage({super.key});
 
@@ -10,7 +15,8 @@ class MesRendezVousPage extends StatefulWidget {
 }
 
 class _MesRendezVousPageState extends State<MesRendezVousPage> {
-  List<dynamic> _tousMesRDV = [];
+  // Utilisation du modèle RendezVous défini dans ton fichier
+  List<RendezVous> _tousMesRDV = [];
   bool _chargement = true;
 
   @override
@@ -21,11 +27,17 @@ class _MesRendezVousPageState extends State<MesRendezVousPage> {
 
   Future<void> _recupererRendezVous() async {
     setState(() => _chargement = true);
-    final data = await ApiService.getMesRendezVous();
-    setState(() {
-      _tousMesRDV = data;
-      _chargement = false;
-    });
+    try {
+      // ApiService doit retourner une List<RendezVous> via RendezVous.fromJson
+      final List<RendezVous> data = await ApiService.getMesRendezVous();
+      setState(() {
+        _tousMesRDV = data;
+        _chargement = false;
+      });
+    } catch (e) {
+      setState(() => _chargement = false);
+      _afficherMessage("Erreur de récupération", Colors.red);
+    }
   }
 
   Future<void> _annulerRDV(int id) async {
@@ -38,19 +50,20 @@ class _MesRendezVousPageState extends State<MesRendezVousPage> {
     }
   }
 
-  List<dynamic> get _rdvFuturs {
+  List<RendezVous> get _rdvFuturs {
     DateTime now = DateTime.now();
     return _tousMesRDV.where((rdv) {
-      DateTime dateRdv = DateTime.parse(rdv['date_rdv']);
-      return dateRdv.isAfter(now.subtract(const Duration(days: 1))) && rdv['statut_actuel_rdv'] != 'annulé';
+      // Utilisation des propriétés dateRdv et statutActuelRdv de ton modèle
+      DateTime dateRdv = DateTime.parse(rdv.dateRdv);
+      return dateRdv.isAfter(now.subtract(const Duration(days: 1))) && rdv.statutActuelRdv != 'annulé';
     }).toList();
   }
 
-  List<dynamic> get _rdvPassesOuAnnules {
+  List<RendezVous> get _rdvPassesOuAnnules {
     DateTime now = DateTime.now();
     return _tousMesRDV.where((rdv) {
-      DateTime dateRdv = DateTime.parse(rdv['date_rdv']);
-      return dateRdv.isBefore(now) || rdv['statut_actuel_rdv'] == 'annulé';
+      DateTime dateRdv = DateTime.parse(rdv.dateRdv);
+      return dateRdv.isBefore(now) || rdv.statutActuelRdv == 'annulé';
     }).toList();
   }
 
@@ -95,7 +108,7 @@ class _MesRendezVousPageState extends State<MesRendezVousPage> {
     );
   }
 
-  Widget _buildListeVue(List<dynamic> liste, {required bool estAncien}) {
+  Widget _buildListeVue(List<RendezVous> liste, {required bool estAncien}) {
     if (liste.isEmpty) return _buildEmptyState(estAncien);
     return RefreshIndicator(
       onRefresh: _recupererRendezVous,
@@ -107,9 +120,12 @@ class _MesRendezVousPageState extends State<MesRendezVousPage> {
     );
   }
 
-  Widget _buildRDVCard(dynamic rdv, {bool grise = false}) {
-    final medecin = rdv['medecin_concerne']['compte_utilisateur'];
-    final specialite = rdv['medecin_concerne']['specialite_medicale'];
+  Widget _buildRDVCard(RendezVous rdv, {bool grise = false}) {
+    // medecinConcerne est un objet Medecin? dans ton modèle
+    // On accède au nom via compteUtilisateur.lastName comme défini dans utilisateur_model.dart
+    final String nomMedecin = rdv.medecinConcerne?.compteUtilisateur.lastName ?? "Médecin";
+    final String specialite = rdv.medecinConcerne?.specialiteMedicale ?? "Généraliste";
+
     return Opacity(
       opacity: grise ? 0.7 : 1.0,
       child: Card(
@@ -119,9 +135,9 @@ class _MesRendezVousPageState extends State<MesRendezVousPage> {
           children: [
             ListTile(
               leading: const CircleAvatar(backgroundColor: Colors.blueAccent, child: Icon(Icons.person, color: Colors.white)),
-              title: Text("Dr ${medecin['last_name']}", style: const TextStyle(fontWeight: FontWeight.bold)),
+              title: Text("Dr $nomMedecin", style: const TextStyle(fontWeight: FontWeight.bold)),
               subtitle: Text(specialite),
-              trailing: _buildStatusBadge(rdv['statut_actuel_rdv']),
+              trailing: _buildStatusBadge(rdv.statutActuelRdv),
             ),
             const Divider(height: 1),
             Padding(
@@ -129,9 +145,17 @@ class _MesRendezVousPageState extends State<MesRendezVousPage> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(children: [const Icon(Icons.access_time, size: 16, color: Colors.grey), const SizedBox(width: 5), Text("${rdv['date_rdv']} à ${rdv['heure_rdv']}")]),
-                  if (!grise && rdv['statut_actuel_rdv'] != 'annulé') 
-                    TextButton.icon(onPressed: () => _confirmerAnnulation(rdv['id']), icon: const Icon(Icons.cancel, color: Colors.red, size: 18), label: const Text("Annuler", style: TextStyle(color: Colors.red))),
+                  Row(children: [
+                    const Icon(Icons.access_time, size: 16, color: Colors.grey), 
+                    const SizedBox(width: 5), 
+                    Text("${rdv.dateRdv} à ${rdv.heureRdv}")
+                  ]),
+                  if (!grise && rdv.statutActuelRdv != 'annulé') 
+                    TextButton.icon(
+                      onPressed: () => _confirmerAnnulation(rdv.id), 
+                      icon: const Icon(Icons.cancel, color: Colors.red, size: 18), 
+                      label: const Text("Annuler", style: TextStyle(color: Colors.red))
+                    ),
                 ],
               ),
             ),
@@ -149,19 +173,47 @@ class _MesRendezVousPageState extends State<MesRendezVousPage> {
         content: const Text("Cette action est irréversible."),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text("Retour")),
-          ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red), onPressed: () { Navigator.pop(context); _annulerRDV(id); }, child: const Text("Confirmer l'annulation", style: TextStyle(color: Colors.white))),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red), 
+            onPressed: () { Navigator.pop(context); _annulerRDV(id); }, 
+            child: const Text("Confirmer l'annulation", style: TextStyle(color: Colors.white))
+          ),
         ],
       ),
     );
   }
 
   Widget _buildEmptyState(bool estAncien) {
-    return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(estAncien ? Icons.folder_open : Icons.event_busy, size: 60, color: Colors.grey), const SizedBox(height: 10), Text(estAncien ? "Historique vide" : "Aucun rendez-vous à venir")]));
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center, 
+        children: [
+          Icon(estAncien ? Icons.folder_open : Icons.event_busy, size: 60, color: Colors.grey), 
+          const SizedBox(height: 10), 
+          Text(estAncien ? "Historique vide" : "Aucun rendez-vous à venir")
+        ]
+      )
+    );
   }
 
   Widget _buildStatusBadge(String statut) {
-    Color color = (statut == 'confirmé' || statut == 'validé') ? Colors.green : (statut == 'annulé' ? Colors.red : Colors.orange);
-    return Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)), child: Text(statut.toUpperCase(), style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold)));
+    Color color;
+    switch (statut.toLowerCase()) {
+      case 'confirmé':
+      case 'validé':
+        color = Colors.green;
+        break;
+      case 'annulé':
+        color = Colors.red;
+        break;
+      default:
+        color = Colors.orange;
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), 
+      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)), 
+      child: Text(statut.toUpperCase(), style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold))
+    );
   }
 
   void _afficherMessage(String msg, Color couleur) {

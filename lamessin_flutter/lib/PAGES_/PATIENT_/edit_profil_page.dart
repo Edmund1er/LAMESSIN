@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../SERVICES_/api_service.dart';
+import '../../MODELS_/utilisateur_model.dart'; 
 
 class EditProfilPage extends StatefulWidget {
-  final Map<String, dynamic> profilActuel;
-  const EditProfilPage({super.key, required this.profilActuel});
+  final Patient patient; 
+  const EditProfilPage({super.key, required this.patient});
 
   @override
   State<EditProfilPage> createState() => _EditProfilPageState();
@@ -21,10 +22,9 @@ class _EditProfilPageState extends State<EditProfilPage> {
   @override
   void initState() {
     super.initState();
-    final compte = widget.profilActuel['compte_utilisateur'] ?? {};
-    _prenomController = TextEditingController(text: compte['first_name']);
-    _nomController = TextEditingController(text: compte['last_name']);
-    _telController = TextEditingController(text: compte['numero_telephone']);
+    _prenomController = TextEditingController(text: widget.patient.compteUtilisateur.firstName);
+    _nomController = TextEditingController(text: widget.patient.compteUtilisateur.lastName);
+    _telController = TextEditingController(text: widget.patient.compteUtilisateur.numeroTelephone);
   }
 
   @override
@@ -36,19 +36,17 @@ class _EditProfilPageState extends State<EditProfilPage> {
   }
 
   void _sauvegarder() async {
-// Validation
-    if (_prenomController.text.isEmpty || _nomController.text.isEmpty || _telController.text.isEmpty) {
+    if (_prenomController.text.trim().isEmpty || _nomController.text.trim().isEmpty || _telController.text.trim().isEmpty) {
       _afficherMessage("Veuillez remplir tous les champs obligatoires", Colors.red);
       return;
     }
 
     setState(() => _enChargement = true);
     
-// Le groupe sanguin n'est PAS inclus ici
     Map<String, dynamic> data = {
-      "first_name": _prenomController.text,
-      "last_name": _nomController.text,
-      "numero_telephone": _telController.text,
+      "first_name": _prenomController.text.trim(),
+      "last_name": _nomController.text.trim(),
+      "numero_telephone": _telController.text.trim(),
     };
 
     bool succes = await ApiService.updateProfil(data);
@@ -56,9 +54,9 @@ class _EditProfilPageState extends State<EditProfilPage> {
     if (mounted) {
       setState(() => _enChargement = false);
       if (succes) {
-        Navigator.pop(context, true); // Succès : retourne true
+        Navigator.pop(context, true);
       } else {
-        _afficherMessage("Erreur lors de la mise à jour des données", Colors.red);
+        _afficherMessage("Erreur lors de la mise à jour", Colors.red);
       }
     }
   }
@@ -77,17 +75,13 @@ class _EditProfilPageState extends State<EditProfilPage> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-// --- HEADER DECORATIF DEGRADÉ ---
             Container(
               height: 10,
               width: double.infinity,
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [couleurVerte.withOpacity(0.8), couleurBleue],
-                ),
+                gradient: LinearGradient(colors: [couleurVerte.withOpacity(0.8), couleurBleue]),
               ),
             ),
-
             Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
@@ -95,32 +89,13 @@ class _EditProfilPageState extends State<EditProfilPage> {
                   const SizedBox(height: 20),
                   const Text("Vos coordonnées", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
                   const SizedBox(height: 30),
-
-// --- FORMULAIRE STYLISÉ ---
                   _buildPremiumField(_prenomController, "Prénom", Icons.person_outline_rounded),
                   const SizedBox(height: 15),
                   _buildPremiumField(_nomController, "Nom", Icons.person_outline_rounded),
                   const SizedBox(height: 15),
                   _buildPremiumField(_telController, "Numéro de téléphone", Icons.phone_android_rounded, keyboard: TextInputType.phone),
-
                   const SizedBox(height: 45),
-
-// --- BOUTON ENREGISTRER  ---
-                  SizedBox(
-                    width: double.infinity,
-                    height: 55,
-                    child: ElevatedButton(
-                      onPressed: _enChargement ? null : _sauvegarder,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color.fromARGB(255, 78, 192, 17),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                        elevation: 3,
-                      ),
-                      child: _enChargement 
-                        ? const CircularProgressIndicator(color: Colors.white) 
-                        : const Text("SAUVEGARDER LES MODIFICATIONS", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
-                    ),
-                  ),
+                  _buildBoutonSauvegarder(),
                   const SizedBox(height: 20),
                 ],
               ),
@@ -131,7 +106,23 @@ class _EditProfilPageState extends State<EditProfilPage> {
     );
   }
 
-// Widget pour des champs de saisie 
+  Widget _buildBoutonSauvegarder() {
+    return SizedBox(
+      width: double.infinity,
+      height: 55,
+      child: ElevatedButton(
+        onPressed: _enChargement ? null : _sauvegarder,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color.fromARGB(255, 78, 192, 17),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          elevation: 3,
+        ),
+        child: _enChargement 
+          ? const CircularProgressIndicator(color: Colors.white) 
+          : const Text("SAUVEGARDER LES MODIFICATIONS", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+      ),
+    );
+  }
 
   Widget _buildPremiumField(TextEditingController controller, String label, IconData icon, {TextInputType keyboard = TextInputType.text}) {
     return Container(

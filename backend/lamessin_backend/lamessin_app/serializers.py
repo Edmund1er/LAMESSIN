@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from .models import *
 from django.utils import timezone
+# IMPORT IMPORTANT POUR LE LOGIN CUSTOM
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 
 # ====================================================================================================
@@ -14,12 +16,34 @@ class UtilisateurSerializer(serializers.ModelSerializer):
                   'est_un_compte_patient', 'est_un_compte_medecin', 'est_un_compte_pharmacien')
 
 
+# --- FIX LOGIN : NOUVEAU SERIALIZER ---
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    """
+    Ce serializer intercepte la requête de connexion.
+    Il attend une clé 'numero_telephone' au lieu de 'username' dans le JSON envoyé par Flutter.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # On ajoute un champ explicit pour 'numero_telephone'
+        self.fields['numero_telephone'] = serializers.CharField()
+        # On retire le champ 'username' par défaut pour éviter la confusion dans l'API
+        self.fields.pop('username', None)
+
+    def validate(self, attrs):
+        # Astuce : On copie la valeur de 'numero_telephone' dans 'username'.
+        # Comme notre modèle Utilisateur a USERNAME_FIELD = 'numero_telephone',
+        # Django SimpleJWT va utiliser cette valeur pour chercher l'utilisateur.
+        attrs['username'] = attrs.get('numero_telephone')
+        return super().validate(attrs)
+
+
 class PatientSerializer(serializers.ModelSerializer):
     compte_utilisateur = UtilisateurSerializer(read_only=True)
 
     class Meta:
         model = Patient
-        fields = ('compte_utilisateur', 'date_naissance', 'groupe_sanguin')
+        fields = ('compte_utilisateur', 'date_naissance', 'groupe_sanguin', 'photo_profil')
 
 
 class MedecinSerializer(serializers.ModelSerializer):
@@ -27,7 +51,7 @@ class MedecinSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Medecin
-        fields = ('compte_utilisateur', 'specialite_medicale', 'numero_licence')
+        fields = ('compte_utilisateur', 'specialite_medicale', 'numero_licence', 'photo_profil')
 
 
 class PharmacienSerializer(serializers.ModelSerializer):
@@ -42,19 +66,22 @@ class InscriptionSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
     type_compte = serializers.ChoiceField(choices=['patient', 'medecin', 'pharmacien'], write_only=True)
 
-    # Champs optionnels selon le profil
     specialite_medicale = serializers.CharField(required=False, write_only=True)
     numero_licence = serializers.CharField(required=False, write_only=True)
     date_naissance = serializers.DateField(required=False, write_only=True)
     groupe_sanguin = serializers.CharField(required=False, write_only=True)
+    photo_profil = serializers.ImageField(required=False, write_only=True)
 
     class Meta:
         model = Utilisateur
         fields = ('username', 'numero_telephone', 'email', 'password', 'first_name', 'last_name',
-                  'type_compte', 'specialite_medicale', 'numero_licence', 'date_naissance', 'groupe_sanguin')
+                  'type_compte', 'specialite_medicale', 'numero_licence', 'date_naissance', 'groupe_sanguin',
+                  'photo_profil')
 
     def validate(self, data):
-        type_compte = data.get('type_compte')
+        # FIX INSCRIPTION : On force en minuscule pour gérer 'PATIENT', 'Patient', etc.
+        type_compte = data.get('type_compte', '').lower()
+
         errors = {}
         if type_compte == 'medecin':
             if not data.get('specialite_medicale'): errors['specialite_medicale'] = "Requis pour médecin."
@@ -68,26 +95,30 @@ class InscriptionSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
-        type_compte = validated_data.pop('type_compte')
+        type_compte = validated_data.pop('type_compte').lower()  # On récupère en minuscule
         spec = validated_data.pop('specialite_medicale', None)
         licence = validated_data.pop('numero_licence', None)
         naissance = validated_data.pop('date_naissance', None)
         sang = validated_data.pop('groupe_sanguin', None)
+        photo = validated_data.pop('photo_profil', None)
 
         user = Utilisateur.objects.create_user(**validated_data)
 
         if type_compte == 'patient':
             user.est_un_compte_patient = True
-            Patient.objects.create(compte_utilisateur=user, date_naissance=naissance, groupe_sanguin=sang)
+            Patient.objects.create(compte_utilisateur=user, date_naissance=naissance, groupe_sanguin=sang,
+                                   photo_profil=photo)
         elif type_compte == 'medecin':
             user.est_un_compte_medecin = True
-            Medecin.objects.create(compte_utilisateur=user, specialite_medicale=spec, numero_licence=licence)
+            Medecin.objects.create(compte_utilisateur=user, specialite_medicale=spec, numero_licence=licence,
+                                   photo_profil=photo)
         elif type_compte == 'pharmacien':
             user.est_un_compte_pharmacien = True
             Pharmacien.objects.create(compte_utilisateur=user, numero_licence=licence)
 
         user.save()
         return user
+
 
 # ====================================================================================================
 # SERIALIZERS SOINS, CONSULTATIONS & ORDONNANCES
@@ -108,7 +139,7 @@ class OrdonnanceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Ordonnance
-        fields = ('id', 'date_prescription', 'medecin_nom', 'code_securite', 'lignes')
+        fields = ('id', 'date_prescription', 'medecin_nom', 'code_securite', 'lignes', 'fichier_ordonnance')
 
 
 class ConsultationSerializer(serializers.ModelSerializer):
@@ -116,7 +147,8 @@ class ConsultationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Consultation
-        fields = ('id', 'rdv', 'diagnostic', 'actes_effectues', 'notes_medecin', 'date_consultation', 'ordonnances')
+        fields = ('id', 'rdv', 'diagnostic', 'actes_effectues', 'notes_medecin', 'date_consultation', 'ordonnances',
+                  'document_joint')
 
 
 # ====================================================================================================
@@ -126,7 +158,6 @@ class ConsultationSerializer(serializers.ModelSerializer):
 class RendezVousSerializer(serializers.ModelSerializer):
     patient_demandeur = PatientSerializer(read_only=True)
     medecin_concerne = MedecinSerializer(read_only=True)
-# On affiche si une consultation a déjà eu lieu pour ce RDV
     a_ete_consulte = serializers.SerializerMethodField()
 
     class Meta:
@@ -150,25 +181,33 @@ class RendezVousCreateSerializer(serializers.ModelSerializer):
 # ====================================================================================================
 
 class LigneCommandeSerializer(serializers.ModelSerializer):
-    nom_medicament = serializers.ReadOnlyField(source='medicament_ajoute.nom_commercial')
-    pharmacie_nom = serializers.ReadOnlyField(source='pharmacie_vendeuse.nom')
+    nom_medicament = serializers.ReadOnlyField(source='produit.nom_commercial')
+    pharmacie_nom = serializers.ReadOnlyField(source='pharmacie.nom')
+    image_produit = serializers.ImageField(source='produit.image_produit', read_only=True)
 
     class Meta:
         model = LigneCommande
-        # Utilise exactement les noms de ton modèle
-        fields = ('id', 'medicament_ajoute', 'nom_medicament', 'quantite_commandee', 'prix_unitaire', 'pharmacie_nom')
+        fields = ('id', 'produit', 'nom_medicament', 'quantite', 'prix_unitaire', 'pharmacie_nom', 'image_produit')
+
 
 class CommandeSerializer(serializers.ModelSerializer):
-    # Utilise source='lignecommande_set' si tu n'as pas mis de related_name='lignes' dans ton modèle
-    lignes = LigneCommandeSerializer(source='lignecommande_set', many=True, read_only=True)
-    prix_total = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    lignes = LigneCommandeSerializer(many=True, read_only=True)
+    patient_nom = serializers.ReadOnlyField(source='patient.compte_utilisateur.last_name')
+    estimation_retrait = serializers.SerializerMethodField()
 
     class Meta:
         model = Commande
-        fields = ('id', 'patient_acheteur', 'date_commande', 'statut_commande', 'methode_retrait', 'lignes', 'prix_total')
-    def get_prix_total(self, obj):
-        total = sum(ligne.quantite_commandee * ligne.prix_unitaire for ligne in obj.lignes.all())
-        return total
+        fields = ('id', 'patient_nom', 'date_creation', 'statut', 'methode_retrait', 'lignes', 'total',
+                  'estimation_retrait',
+                  'transaction_id'
+                  )
+
+    def get_estimation_retrait(self, obj):
+        # Logique métier pour le scénario : estimation de retrait
+        if obj.methode_retrait == "LIVRAISON":
+            return "Estimation : 1h à 2h"
+        return "Prêt pour retrait dans 30 min"
+
 
 # ====================================================================================================
 # SERIALIZERS SUIVI, NOTIFICATIONS & CHAT
@@ -210,10 +249,9 @@ class EtablissementSanteSerializer(serializers.ModelSerializer):
     class Meta:
         model = EtablissementSante
         fields = ('id', 'nom', 'adresse', 'contact', 'coordonnee_latitude_gps', 'coordonnee_longitude_gps',
-                  'plage_horaire_ouverture', 'type_etablissement', 'pharmacie_est_garde')
+                  'plage_horaire_ouverture', 'type_etablissement', 'pharmacie_est_garde', 'image_etablissement')
 
     def get_type_etablissement(self, obj):
-
         if hasattr(obj, 'pharmacie'):
             return "pharmacie"
         if hasattr(obj, 'hopital'):
@@ -223,6 +261,7 @@ class EtablissementSanteSerializer(serializers.ModelSerializer):
     def get_pharmacie_est_garde(self, obj):
         return obj.pharmacie.pharmacie_est_garde if hasattr(obj, 'pharmacie') else False
 
+
 # ====================================================================================================
 # SERIALIZERS MÉDICAMENTS & STOCK
 # ====================================================================================================
@@ -230,7 +269,7 @@ class EtablissementSanteSerializer(serializers.ModelSerializer):
 class MedicamentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Medicament
-        fields = ('id', 'nom_commercial', 'description', 'posologie_standard', 'prix_vente')
+        fields = ('id', 'nom_commercial', 'description', 'posologie_standard', 'prix_vente', 'image_produit')
 
 
 class StockSerializer(serializers.ModelSerializer):
@@ -242,9 +281,7 @@ class StockSerializer(serializers.ModelSerializer):
 
 
 class StockPharmacieSerializer(serializers.ModelSerializer):
-
     id_pharmacie = serializers.ReadOnlyField(source='pharmacie_detentrice.id')
-
     nom_pharmacie = serializers.ReadOnlyField(source='pharmacie_detentrice.nom')
     adresse_pharmacie = serializers.ReadOnlyField(source='pharmacie_detentrice.adresse')
     latitude = serializers.ReadOnlyField(source='pharmacie_detentrice.coordonnee_latitude_gps')
@@ -255,15 +292,15 @@ class StockPharmacieSerializer(serializers.ModelSerializer):
         fields = ('id_pharmacie', 'nom_pharmacie', 'adresse_pharmacie',
                   'quantite_actuelle_en_stock', 'date_peremption', 'latitude', 'longitude')
 
+
 class MedicamentsSerializer(serializers.ModelSerializer):
     stocks_disponibles = serializers.SerializerMethodField()
 
     class Meta:
         model = Medicament
-        fields = ('id', 'nom_commercial', 'description', 'posologie_standard', 'prix_vente', 'stocks_disponibles')
+        fields = ('id', 'nom_commercial', 'description', 'posologie_standard', 'prix_vente', 'image_produit',
+                  'stocks_disponibles')
 
     def get_stocks_disponibles(self, obj):
         stocks = Stock.objects.filter(produit_concerne=obj, quantite_actuelle_en_stock__gt=0)
         return StockPharmacieSerializer(stocks, many=True).data
-
-#--------------------------------------------------------------------------------------------------------------------

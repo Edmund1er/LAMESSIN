@@ -24,6 +24,10 @@ import 'PAGES_/PATIENT_/edit_profil_page.dart';
 import 'PAGES_/PATIENT_/mon_profil.dart';
 import "PAGES_/PATIENT_/mes_rendez_vous_page.dart"; 
 import "PAGES_/PATIENT_/AssistantHistoriquePage.dart";
+import "PAGES_/PATIENT_/notifications_history_page.dart";
+
+// Import du modèle Patient pour la route
+import 'MODELS_/utilisateur_model.dart'; 
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -76,7 +80,15 @@ class MyApp extends StatelessWidget {
         "/register": (context) => const Register(),
         "/home_page": (context) => const HomePage(),
         "/profil_patient": (context) => const ProfilPatientPage(),
-        "/edit_profil": (context) => const EditProfilPage(profilActuel: {}),
+        
+        "/edit_profil": (context) {
+          final args = ModalRoute.of(context)!.settings.arguments;
+          if (args is Patient) {
+            return EditProfilPage(patient: args);
+          }
+          return const Scaffold(body: Center(child: Text("Erreur : Aucun profil fourni")));
+        },
+
         "/page_utilisateur": (context) => const PageUtilisateur(),
         "/recherches_services_medicaux": (context) => const RechercheServicesPage(),
         "/assistant": (context) => const AssistantPage(),
@@ -84,7 +96,8 @@ class MyApp extends StatelessWidget {
         "/mes_commandes": (context) => const MesCommandesPage(), 
         "/rendez_vous_page": (context) => const RendezVousPage(),
         "/mes_rendez_vous_page": (context) => const MesRendezVousPage(),
-        "/historique_chatbot": (context) => const AssistantHistoriquePage(),
+        "/historique_chatbot": (context) => const AssistantHistoriquePage(),  
+        "/historique_notifications": (context) => const NotificationHistoryPage(),
       },
     );
   }

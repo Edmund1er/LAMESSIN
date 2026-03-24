@@ -30,14 +30,13 @@ class _PanierPageState extends State<PanierPage> {
   
   double get total => widget.items.fold(0, (sum, item) => sum + (item.prix * item.quantite));
 
-  Future<void> _validerCommandeComplete() async {
+Future<void> _validerCommandeComplete() async {
     if (widget.items.isEmpty) return;
 
-    // Préparation du JSON identique à ce que ton views.py attend
     List<Map<String, dynamic>> articlesJson = widget.items.map((item) => {
       'id': item.idMedoc,
       'qte': item.quantite,
-      'pharmacie_id': item.idPharmacie, // La clé attendue par Django
+      'pharmacie_id': item.idPharmacie,
     }).toList();
 
     showDialog(
@@ -54,24 +53,32 @@ class _PanierPageState extends State<PanierPage> {
 
       if (resultat != null && resultat['payment_url'] != null) {
         final Uri url = Uri.parse(resultat['payment_url']);
+        
         if (await canLaunchUrl(url)) {
           await launchUrl(url, mode: LaunchMode.externalApplication);
-          
+
           setState(() {
             widget.items.clear();
           });
           
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Commande créée ! Redirection vers FedaPay..."), backgroundColor: Colors.green)
+            const SnackBar(
+              content: Text("Commande créée ! Redirection vers le paiement..."), 
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+            )
           );
-          Navigator.pop(context); 
+          
+          Future.delayed(const Duration(seconds: 1), () {
+            if (mounted) Navigator.pop(context); 
+          });
         }
       } else {
-        _afficherErreur("Erreur lors de la génération du lien de paiement.");
+        _afficherErreur("Impossible de générer le lien de paiement.");
       }
     } catch (e) {
       if (mounted) Navigator.pop(context);
-      _afficherErreur("Erreur réseau : $e");
+      _afficherErreur("Erreur de connexion au serveur.");
     }
   }
 

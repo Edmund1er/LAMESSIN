@@ -6,3 +6,4 @@ class LamessinAppConfig(AppConfig):
 
     def ready(self):
         import lamessin_app.signals
+

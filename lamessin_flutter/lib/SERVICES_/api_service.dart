@@ -1,107 +1,135 @@
 import 'dart:convert';
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+// Imports de modèles
+import '../MODELS_/utilisateur_model.dart';
+import '../MODELS_/medicament_model.dart';
+import '../MODELS_/rendezvous_model.dart';
+import '../MODELS_/message_model.dart';
+import '../MODELS_/notification_model.dart';
+import '../MODELS_/etablissement_model.dart';
+import '../MODELS_/commande_model.dart';
+import '../MODELS_/ordonnance_model.dart';
+import '../MODELS_/consultation_model.dart';
+import '../MODELS_/traitement_model.dart';
+
 class ApiService {
-  static const bool useNgrok = false; 
+  static const bool useNgrok = true;
 
   static String get baseUrl {
-    if (useNgrok) {
-      return "https://budlike-kai-unflickering.ngrok-free.dev/api";
-    }
-
-    if (kIsWeb) {
-      return "http://127.0.0.1:8000/api";
-    }
-    if (Platform.isAndroid) {
-
-      return "http://10.0.2.2:8000/api"; 
-    } else if (Platform.isIOS) {
-      return "http://localhost:8000/api";
-    }
-
-    return "http://127.0.0.1:8000/api";
+    if (useNgrok) return "https://budlike-kai-unflickering.ngrok-free.dev/api";
+    if (kIsWeb) return "http://127.0.0.1:8000/api";
+    if (Platform.isAndroid) return "http://10.0.2.2:8000/api";
+    return "http://localhost:8000/api";
   }
+
+  // AJOUT : URL de base pour les médias (images)
+  static String get mediaBaseUrl {
+    if (useNgrok) return "https://budlike-kai-unflickering.ngrok-free.dev";
+    if (kIsWeb) return "http://127.0.0.1:8000";
+    if (Platform.isAndroid) return "http://10.0.2.2:8000";
+    return "http://localhost:8000";
+  }
+
+  // ===========================================================================
+  // GESTION DES TOKENS & PERSISTANCE (CONNEXION AUTOMATIQUE)
+  // ===========================================================================
+
+  // Récupération du Token d'accès
   static Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('access_token');
   }
 
+  // VÉRIFICATION DE CONNEXION AUTOMATIQUE (Au démarrage)
+  static Future<bool> estConnecte() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? accessToken = prefs.getString('access_token');
+    String? refreshToken = prefs.getString('refresh_token');
+
+    if (accessToken == null && refreshToken == null) return false;
+
+    // Si on a un access_token, on vérifie s'il est encore valide avec un appel léger (profil)
+    final response = await http.get(
+      Uri.parse('$baseUrl/profil/'),
+      headers: await _getHeaders(),
+    );
+
+    if (response.statusCode == 200) {
+      return true; // Toujours valide
+    } else if (response.statusCode == 401 && refreshToken != null) {
+      // Access token expiré, on tente de rafraîchir avec le refresh_token
+      return await rafraichirLeToken();
+    }
+
+    return false;
+  }
+
+  // Rafraîchir le token automatiquement
+  static Future<bool> rafraichirLeToken() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      String? refreshToken = prefs.getString('refresh_token');
+
+      if (refreshToken == null) return false;
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/token/refresh/'),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"refresh": refreshToken}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        await prefs.setString('access_token', data['access']);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // Gestion des Headers avec injection automatique du Token
   static Future<Map<String, String>> _getHeaders() async {
     String? token = await getToken();
     return {
       "Content-Type": "application/json",
       "Accept": "application/json",
-      "ngrok-skip-browser-warning": "true", 
+      "ngrok-skip-browser-warning": "true",
       if (token != null) "Authorization": "Bearer $token",
     };
   }
 
   // ===========================================================================
-  // NOTIFICATIONS (FIREBASE FCM)
+  // AUTHENTIFICATION & PROFIL
   // ===========================================================================
 
-  static Future<bool> enregistrerFCMToken(String fcmToken) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/notifications/enregistrerToken/'),
-        headers: await _getHeaders(),
-        body: jsonEncode({"token": fcmToken}), 
-      );
-      return response.statusCode == 200 || response.statusCode == 201;
-    } catch (e) { return false; }
-  }
-
-  static Future<List<dynamic>> getNotifications() async {
-    try {
-      final response = await http.get(Uri.parse('$baseUrl/notifications/'), headers: await _getHeaders());
-      return response.statusCode == 200 ? json.decode(utf8.decode(response.bodyBytes)) : [];
-    } catch (e) { return []; }
-  }
-
-  // ===========================================================================
-  // AUTHENTIFICATION & PROFIL 
-  // ===========================================================================
   static Future<String?> login(String telephone, String password) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/login/'),
         headers: {
           "Content-Type": "application/json",
-          "ngrok-skip-browser-warning": "true", 
+          "ngrok-skip-browser-warning": "true",
         },
-        body: jsonEncode({
-          "numero_telephone": telephone,
-          "password": password,
-        }),
+        body: jsonEncode({"numero_telephone": telephone, "password": password}),
       );
-
       if (response.statusCode == 200) {
-// On décode la réponse du serveur
         final Map<String, dynamic> data = jsonDecode(response.body);
-
-// On récupère l'instance des préférences locales
         final prefs = await SharedPreferences.getInstance();
-
-// Sauvegarde des tokens
-        if (data.containsKey('access')) {
+        if (data.containsKey('access'))
           await prefs.setString('access_token', data['access']);
-        }
-        if (data.containsKey('refresh')) {
+        if (data.containsKey('refresh'))
           await prefs.setString('refresh_token', data['refresh']);
-        }
-
-        print("Connexion réussie ! Token récupéré.");
         return data['access'];
-      } else {
-// Affiche l'erreur exacte renvoyée par Django dans ta console Flutter
-        print("Échec connexion (${response.statusCode}): ${response.body}");
-        return null;
       }
+      return null;
     } catch (e) {
-      print("Erreur lors de l'appel API Login: $e");
       return null;
     }
   }
@@ -110,162 +138,319 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/inscription/'),
-        headers: {"Content-Type": "application/json", "ngrok-skip-browser-warning": "true"},
+        headers: {
+          "Content-Type": "application/json",
+          "ngrok-skip-browser-warning": "true",
+        },
         body: jsonEncode(donnees),
       );
       return response.statusCode == 201;
-    } catch (e) { return false; }
+    } catch (e) {
+      return false;
+    }
   }
 
-  static Future<Map<String, dynamic>?> getProfil() async {
+  // Remplace toute la méthode getProfil par celle-ci
+  static Future<dynamic> getProfil() async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/profil/'), headers: await _getHeaders());
-      if (response.statusCode == 200) return json.decode(utf8.decode(response.bodyBytes));
+      final response = await http.get(
+        Uri.parse('$baseUrl/profil/'),
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode == 200) {
+        var data = json.decode(utf8.decode(response.bodyBytes));
+        
+        // CORRECTION ICI :
+        // Si la réponse contient 'compte_utilisateur', c'est que c'est un profil détaillé (Patient/Medecin).
+        if (data.containsKey('compte_utilisateur')) {
+           // On vérifie si c'est un patient (présence de date_naissance)
+           if (data.containsKey('date_naissance')) {
+             return Patient.fromJson(data);
+           }
+           // Sinon on renvoie l'Utilisateur imbriqué (pour Medecin/Pharmacien ou fallback)
+           return Utilisateur.fromJson(data['compte_utilisateur']);
+        } else {
+           // Cas rare : réponse directe Utilisateur
+           return Utilisateur.fromJson(data);
+        }
+      }
       return null;
-    } catch (e) { return null; }
+    } catch (e) {
+      return null;
+    }
   }
 
   static Future<bool> updateProfil(Map<String, dynamic> donnees) async {
     try {
-      final response = await http.patch(Uri.parse('$baseUrl/updateProfil/'), headers: await _getHeaders(), body: jsonEncode(donnees));
+      print("TENTATIVE UPDATE PROFIL: $donnees"); // Debug
+      final response = await http.patch(
+        Uri.parse('$baseUrl/updateProfil/'),
+        headers: await _getHeaders(),
+        body: jsonEncode(donnees),
+      );
+      
+      print("UPDATE PROFIL STATUS: ${response.statusCode}");
+      print("UPDATE PROFIL BODY: ${response.body}");
+
       return response.statusCode == 200;
-    } catch (e) { return false; }
+    } catch (e) {
+      print("ERREUR UPDATE PROFIL: $e");
+      return false;
+    }
+  }
+  static Future<void> logout() async {
+    try {
+      // Si tu utilises SharedPreferences pour le token, vide-le ici
+      // final prefs = await SharedPreferences.getInstance();
+      // await prefs.clear();
+      print("Déconnexion réussie");
+    } catch (e) {
+      print("Erreur lors de la déconnexion: $e");
+    }
   }
 
-  static Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('access_token');
-    await prefs.remove('refresh_token');
+  // ===========================================================================
+  // NOTIFICATIONS
+  // ===========================================================================
+
+  static Future<bool> enregistrerFCMToken(String fcmToken) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/notifications/enregistrerToken/'),
+        headers: await _getHeaders(),
+        body: jsonEncode({"token": fcmToken}),
+      );
+      return response.statusCode == 200 || response.statusCode == 201;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  static Future<List<NotificationModel>> getNotifications() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/notifications/'),
+        headers: await _getHeaders(),
+      );
+      if (response.statusCode == 200) {
+        List data = json.decode(utf8.decode(response.bodyBytes));
+        return data.map((item) => NotificationModel.fromJson(item)).toList();
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
   }
 
   // ===========================================================================
   // RENDEZ-VOUS
   // ===========================================================================
 
-  static Future<List<dynamic>> getListeMedecins() async {
+  static Future<List<Medecin>> getListeMedecins() async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/listeMedecins/'), headers: await _getHeaders());
-      return response.statusCode == 200 ? json.decode(utf8.decode(response.bodyBytes)) : [];
-    } catch (e) { return []; }
+      final response = await http.get(
+        Uri.parse('$baseUrl/listeMedecins/'),
+        headers: await _getHeaders(),
+      );
+      if (response.statusCode == 200) {
+        List data = json.decode(utf8.decode(response.bodyBytes));
+        return data.map((item) => Medecin.fromJson(item)).toList();
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
   }
 
   static Future<List<dynamic>> getCreneaux(int medecinId, String date) async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/creneauxDisponible/?medecin=$medecinId&date=$date'), headers: await _getHeaders());
+      final response = await http.get(
+        Uri.parse('$baseUrl/creneauxDisponible/?medecin=$medecinId&date=$date'),
+        headers: await _getHeaders(),
+      );
       return response.statusCode == 200 ? jsonDecode(response.body) : [];
-    } catch (e) { return []; }
+    } catch (e) {
+      return [];
+    }
   }
 
   static Future<bool> creerRendezVous(Map<String, dynamic> rdv) async {
     try {
-      final response = await http.post(Uri.parse('$baseUrl/rendezvous/creer/'), headers: await _getHeaders(), body: jsonEncode(rdv));
+      final response = await http.post(
+        Uri.parse('$baseUrl/rendezvous/creer/'),
+        headers: await _getHeaders(),
+        body: jsonEncode(rdv),
+      );
       return response.statusCode == 201;
-    } catch (e) { return false; }
+    } catch (e) {
+      return false;
+    }
   }
 
-  static Future<List<dynamic>> getMesRendezVous() async {
+  static Future<List<RendezVous>> getMesRendezVous() async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/rendezvous/'), headers: await _getHeaders());
-      return response.statusCode == 200 ? json.decode(utf8.decode(response.bodyBytes)) : [];
-    } catch (e) { return []; }
+      final response = await http.get(
+        Uri.parse('$baseUrl/rendezvous/'),
+        headers: await _getHeaders(),
+      );
+      if (response.statusCode == 200) {
+        List data = json.decode(utf8.decode(response.bodyBytes));
+        return data.map((item) => RendezVous.fromJson(item)).toList();
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
   }
 
   static Future<bool> annulerRendezVous(int id) async {
     try {
-      final response = await http.patch(Uri.parse('$baseUrl/rendezvous/$id/'), headers: await _getHeaders());
+      final response = await http.patch(
+        Uri.parse('$baseUrl/rendezvous/$id/'),
+        headers: await _getHeaders(),
+      );
       return response.statusCode == 200;
-    } catch (e) { return false; }
+    } catch (e) {
+      return false;
+    }
   }
 
   // ===========================================================================
-  // COMMANDES & PAIEMENT avec FedaPay
+  // COMMANDES & MÉDICAMENTS
   // ===========================================================================
 
-  static Future<Map<String, dynamic>?> creerCommandeEtPayer(int medicamentId, int quantite) async {
+  static Future<List<Medicament>> rechercherMedicaments(String query) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/medicaments/recherche/?q=$query'),
+        headers: await _getHeaders(),
+      );
+      
+      // DEBUG : Affiche ce que le serveur répond pour comprendre pourquoi ça ne vient pas
+      print("RECHERCHE MEDOC STATUS: ${response.statusCode}");
+      print("RECHERCHE MEDOC BODY: ${response.body}");
+
+      if (response.statusCode == 200) {
+        List data = json.decode(utf8.decode(response.bodyBytes));
+        return data.map((item) => Medicament.fromJson(item)).toList();
+      }
+      return [];
+    } catch (e) {
+      print("ERREUR RECHERCHE MEDOC: $e");
+      return [];
+    }
+  }
+
+
+  static Future<Map<String, dynamic>?> creerCommandeMultiple(
+    List<Map<String, dynamic>> articles, {
+    String methodeRetrait = "RETRAIT",
+  }) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/commandes/creerEtPayer/'), 
+        // URL CORRIGÉE ICI : Un seul Uri.parse correspondant au backend
+        Uri.parse('$baseUrl/commandes/creerEtPayer/'),
         headers: await _getHeaders(),
-        body: json.encode({'medicament_id': medicamentId, 'quantite': quantite}),
+        body: jsonEncode({
+          'articles': articles,
+          'methode_retrait': methodeRetrait,
+        }),
       );
-      if (response.statusCode == 200) return json.decode(response.body);
+      return (response.statusCode == 200 || response.statusCode == 201)
+          ? json.decode(response.body)
+          : null;
+    } catch (e) {
       return null;
-    } catch (e) { return null; }
+    }
   }
 
   static Future<Map<String, dynamic>?> obtenirLienPaiement(int commandeId) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/commandes/$commandeId/genererLien/'), 
-        headers: await _getHeaders()
-      );
-      if (response.statusCode == 200) return json.decode(response.body);
-      return null;
-    } catch (e) { return null; }
-  }
-
-  static Future<List<dynamic>> getMesCommandes() async {
-    try {
-      final response = await http.get(Uri.parse('$baseUrl/commandes/'), headers: await _getHeaders());
-      return response.statusCode == 200 ? json.decode(utf8.decode(response.bodyBytes)) : [];
-    } catch (e) { return []; }
-  }
-  static Future<Map<String, dynamic>?> creerCommandeMultiple(List<Map<String, dynamic>> articles) async {
-    try {
-      final List<Map<String, dynamic>> formattedArticles = articles.map((item) {
-        return {
-// .toString() puis int.parse sécurise si c'est déjà un int ou un String
-          'id': int.parse((item['id'] ?? item['idMedoc']).toString()),
-          'qte': int.parse((item['qte'] ?? item['quantite']).toString()),
-          'pharmacie_id': int.parse((item['pharmacieId'] ?? item['pharmacie_id']).toString()),
-        };
-      }).toList();
-
       final response = await http.post(
-        Uri.parse('$baseUrl/commandes/multiple/'),
+        Uri.parse('$baseUrl/commandes/$commandeId/genererLien/'),
         headers: await _getHeaders(),
-        body: json.encode({'articles': formattedArticles}),
       );
-      return (response.statusCode == 200 || response.statusCode == 201) ? json.decode(response.body) : null;
-    } catch (e) { 
-      print("Erreur Commande Multiple: $e");
-      return null; 
+
+      if (response.statusCode == 200) {
+        // Le backend renverra un JSON contenant {'payment_url': '...'}
+        return json.decode(utf8.decode(response.bodyBytes));
+      } else {
+        debugPrint("Erreur lors de la génération du lien CinetPay: ${response.statusCode}");
+        return null;
+      }
+    } catch (e) {
+      debugPrint("Erreur réseau obtenirLienPaiement: $e");
+      return null;
     }
   }
+
+  static Future<List<Commande>> getMesCommandes() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/commandes/'),
+        headers: await _getHeaders(),
+      );
+      if (response.statusCode == 200) {
+        List data = json.decode(utf8.decode(response.bodyBytes));
+        return data.map((item) => Commande.fromJson(item)).toList();
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
   // ===========================================================================
   // MÉDICAL & ÉTABLISSEMENTS
   // ===========================================================================
 
-  static Future<List<dynamic>> rechercherMedicaments(String query) async {
+  static Future<List<EtablissementSante>> getEtablissements() async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/medicaments/recherche/?q=$query'), headers: await _getHeaders());
-      return response.statusCode == 200 ? json.decode(utf8.decode(response.bodyBytes)) : [];
-    } catch (e) { return []; }
+      final response = await http.get(
+        Uri.parse("$baseUrl/etablissements/"),
+        headers: await _getHeaders(),
+      );
+      if (response.statusCode == 200) {
+        List data = json.decode(utf8.decode(response.bodyBytes));
+        return data.map((item) => EtablissementSante.fromJson(item)).toList();
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
   }
 
-  static Future<List<dynamic>> getEtablissements() async {
+  static Future<List<Traitement>> getTraitements() async {
     try {
-      final response = await http.get(Uri.parse("$baseUrl/etablissements/"), headers: await _getHeaders());
-      return response.statusCode == 200 ? json.decode(utf8.decode(response.bodyBytes)) : [];
-    } catch (e) { return []; }
+      final response = await http.get(
+        Uri.parse('$baseUrl/traitements/'),
+        headers: await _getHeaders(),
+      );
+      if (response.statusCode == 200) {
+        List data = json.decode(utf8.decode(response.bodyBytes));
+        return data.map((item) => Traitement.fromJson(item)).toList();
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
   }
 
-  static Future<List<dynamic>> getTraitements() async {
+  static Future<List<Ordonnance>> getMesOrdonnances() async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/traitements/'), headers: await _getHeaders());
-      return response.statusCode == 200 ? jsonDecode(response.body) : [];
-    } catch (e) { return []; }
-  }
-
-  // ===========================================================================
-  // ORDONNANCES & SUIVI MÉDICAL
-  // ===========================================================================
-
-  static Future<List<dynamic>> getMesOrdonnances() async {
-    try {
-      final response = await http.get(Uri.parse('$baseUrl/ordonnances/'), headers: await _getHeaders());
-      return response.statusCode == 200 ? json.decode(utf8.decode(response.bodyBytes)) : [];
-    } catch (e) { return []; }
+      final response = await http.get(
+        Uri.parse('$baseUrl/ordonnances/'),
+        headers: await _getHeaders(),
+      );
+      if (response.statusCode == 200) {
+        List data = json.decode(utf8.decode(response.bodyBytes));
+        return data.map((item) => Ordonnance.fromJson(item)).toList();
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
   }
 
   static Future<bool> validerPriseMedicament(int priseId) async {
@@ -275,14 +460,32 @@ class ApiService {
         headers: await _getHeaders(),
       );
       return response.statusCode == 200;
-    } catch (e) { return false; }
+    } catch (e) {
+      return false;
+    }
+  }
+
+  static Future<List<Consultation>> getMesConsultations() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/consultations/'),
+        headers: await _getHeaders(),
+      );
+      if (response.statusCode == 200) {
+        List data = json.decode(utf8.decode(response.bodyBytes));
+        return data.map((item) => Consultation.fromJson(item)).toList();
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
   }
 
   // ===========================================================================
-  // ASSISTANT INTELLIGENT (GEMINI)
+  // ASSISTANT (GEMINI)
   // ===========================================================================
 
-  static Future<Map<String, dynamic>?> envoyerMessageAssistant(String prompt) async {
+  static Future<Message?> envoyerMessageAssistant(String prompt) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/assistant/chat/'),
@@ -290,25 +493,42 @@ class ApiService {
         body: jsonEncode({"prompt": prompt}),
       );
       if (response.statusCode == 200 || response.statusCode == 201) {
-        return json.decode(utf8.decode(response.bodyBytes));
+        return Message.fromJson(json.decode(utf8.decode(response.bodyBytes)));
       }
       return null;
-    } catch (e) { return null; }
+    } catch (e) {
+      return null;
+    }
   }
-static Future<List<dynamic>> getHistoriqueAssistant() async {
+
+  static Future<List<Message>> getHistoriqueAssistant() async {
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/assistant/historique/'),
         headers: await _getHeaders(),
       );
       if (response.statusCode == 200) {
-// utf8.decode est important pour les accents (é, à, è)
-        return json.decode(utf8.decode(response.bodyBytes));
+        List data = json.decode(utf8.decode(response.bodyBytes));
+        return data.map((item) => Message.fromJson(item)).toList();
       }
       return [];
     } catch (e) {
-      print("Erreur historique: $e");
       return [];
+    }
+  }
+
+  static Future<Map<String, dynamic>?> getRecuCommande(int commandeId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/commandes/$commandeId/recu/'),
+        headers: await _getHeaders(),
+      );
+      if (response.statusCode == 200) {
+        return json.decode(utf8.decode(response.bodyBytes));
+      }
+      return null;
+    } catch (e) {
+      return null;
     }
   }
 }

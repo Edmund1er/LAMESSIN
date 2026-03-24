@@ -1,47 +1,40 @@
 # ====================================================================================================
-# IMPORTATIONS
+# IMPORTATIONS CONSOLIDÉES
 # ====================================================================================================
+import os
+import json
+import requests
+from datetime import datetime, timedelta
+
+from django.db import transaction
+from django.utils.dateparse import parse_date
+from django.utils import timezone
+from django.shortcuts import get_object_or_404
+from django.http import HttpResponse
+from django.views.decorators.csrf import csrf_exempt
+from dotenv import load_dotenv
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, generics
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.tokens import RefreshToken
 
-from django.views.decorators.csrf import csrf_exempt
-from django.http import HttpResponse
-from django.db import transaction
-from django.utils.dateparse import parse_date
-from django.utils import timezone
-from django.shortcuts import get_object_or_404
-import json
-import requests
-from datetime import datetime, timedelta
-
-# Importation pour les notifications Firebase
-from firebase_admin import messaging
-
-
-#pourle chat bot
-import os
-from dotenv import load_dotenv
 import google.generativeai as genai
+from firebase_admin import messaging
 
 from .models import *
 from .serializers import *
 
-# Configuration Globale FedaPay
-
-FEDAPAY_SECRET_KEY = "sk_sandbox_-OZyOtHCUyKTfru8x0_xdeP8"
-FEDAPAY_URL = "https://sandbox-api.fedapay.com/v1"
-
-
-# Si api.env est dans le même dossier que manage.py :
-
+# ====================================================================================================
+# CONFIGURATION GLOBALE & ENVIRONNEMENT
+# ====================================================================================================
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 load_dotenv(os.path.join(BASE_DIR, 'api.env'))
 
-# Vérification de sécurité
-# Configuration de Gemini
+FEDAPAY_SECRET_KEY = "sk_sandbox_-OZyOtHCUyKTfru8x0_xdeP8"
+FEDAPAY_URL = "https://sandbox-api.fedapay.com/v1"
 
 genai.configure(api_key=os.environ.get("GEMINI_KEY"))
 model_gemini = genai.GenerativeModel('gemini-1.5-flash')
@@ -52,7 +45,6 @@ model_gemini = genai.GenerativeModel('gemini-1.5-flash')
 # ====================================================================================================
 
 def notifier_paiement_reussi(utilisateur, commande_id):
-
     if not utilisateur.fcm_token:
         return
 
@@ -73,27 +65,61 @@ def notifier_paiement_reussi(utilisateur, commande_id):
     except Exception as e:
         print(f"Erreur FCM: {e}")
 
+
 # ====================================================================================================
-# AUTHENTIFICATION & PROFIL
+# AUTHENTIFICATION & SESSION PERMANENTE (LOGIQUE MODERNE)
 # ====================================================================================================
 
 class Login(TokenObtainPairView):
-
+    """
+    Retourne Access et Refresh Token.
+    Flutter doit stocker le 'refresh' pour renouveler la session automatiquement.
+    """
+    serializer_class = CustomTokenObtainPairSerializer
     pass
 
-class inscription(APIView):
 
+class LogoutView(APIView):
+    """
+    Déconnexion manuelle : invalide le refresh token.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            refresh_token = request.data["refresh"]
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            return Response({"success": True, "message": "Déconnecté"}, status=status.HTTP_205_RESET_CONTENT)
+        except Exception:
+            return Response({"error": "Token invalide ou déjà révoqué"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class InscriptionView(APIView):
+    """
+    Inscription + Connexion automatique (génération de tokens).
+    """
     permission_classes = [AllowAny]
 
     def post(self, request):
         serializer = InscriptionSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
-            return Response({"success": True, "message": "Compte créé avec succès"}, status=status.HTTP_201_CREATED)
+            user = serializer.save()
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                "success": True,
+                "message": "Compte créé avec succès",
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
+            }, status=status.HTTP_201_CREATED)
         return Response({"success": False, "errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
-class UserProfil(APIView):
 
+# ====================================================================================================
+# PROFIL & UTILISATEUR
+# ====================================================================================================
+
+class UserProfil(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -111,8 +137,8 @@ class UserProfil(APIView):
             data = UtilisateurSerializer(user).data
         return Response(data)
 
-class UpdateProfilView(APIView):
 
+class UpdateProfilView(APIView):
     permission_classes = [IsAuthenticated]
 
     def patch(self, request):
@@ -124,25 +150,23 @@ class UpdateProfilView(APIView):
         user.save()
         return Response({"success": True})
 
+
 # ====================================================================================================
 # GESTION MÉDICALE (MÉDICAMENTS, SOINS, ÉTABLISSEMENTS)
 # ====================================================================================================
 
 class RechercheMedicament(APIView):
-
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         query = request.query_params.get('q', '')
-        if query:
-            medicaments = Medicament.objects.filter(nom_commercial__istartswith=query)
-        else:
-            medicaments = Medicament.objects.all()[:50]
+        medicaments = Medicament.objects.filter(
+            nom_commercial__istartswith=query) if query else Medicament.objects.all()[:50]
         serializer = MedicamentsSerializer(medicaments, many=True)
         return Response(serializer.data)
 
-class EnregistrerSoin(APIView):
 
+class EnregistrerSoin(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -154,33 +178,30 @@ class EnregistrerSoin(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class ListeEtablissements(APIView):
 
+class ListeEtablissements(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         type_filtre = request.query_params.get('type')
-        if type_filtre:
-            etablissements = EtablissementSante.objects.filter(type_etablissement=type_filtre)
-        else:
-            etablissements = EtablissementSante.objects.all()
+        etablissements = EtablissementSante.objects.filter(
+            type_etablissement=type_filtre) if type_filtre else EtablissementSante.objects.all()
         return Response(EtablissementSanteSerializer(etablissements, many=True).data)
+
 
 # ====================================================================================================
 # RENDEZ-VOUS
 # ====================================================================================================
 
 class LiteMedecins(APIView):
-
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         medecins = Medecin.objects.all()
-        serializer = MedecinSerializer(medecins, many=True)
-        return Response(serializer.data)
+        return Response(MedecinSerializer(medecins, many=True).data)
+
 
 class CreezRendezVous(APIView):
-
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -196,8 +217,8 @@ class CreezRendezVous(APIView):
             return Response({"success": True, "message": "RDV enregistré"}, status=201)
         return Response(serializer.errors, status=400)
 
-class CreneauxDispo(APIView):
 
+class CreneauxDispo(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -211,6 +232,7 @@ class CreneauxDispo(APIView):
         rdvs_existants = RendezVous.objects.filter(
             medecin_concerne_id=medecin_id, date_rdv=date_obj
         ).exclude(statut_actuel_rdv="annulé").values_list('heure_rdv', flat=True)
+
         creneaux = []
         for plage in plages:
             t = datetime.combine(plage.date, plage.heure_debut)
@@ -224,16 +246,17 @@ class CreneauxDispo(APIView):
                 t += pas
         return Response(creneaux)
 
-class ListeRendezVousPatient(generics.ListAPIView):
 
+class ListeRendezVousPatient(generics.ListAPIView):
     serializer_class = RendezVousSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return RendezVous.objects.filter(patient_demandeur__compte_utilisateur=self.request.user).order_by('date_rdv', 'heure_rdv')
+        return RendezVous.objects.filter(patient_demandeur__compte_utilisateur=self.request.user).order_by('date_rdv',
+                                                                                                           'heure_rdv')
+
 
 class AnnulerRendezVous(generics.UpdateAPIView):
-
     queryset = RendezVous.objects.all()
     serializer_class = RendezVousSerializer
     permission_classes = [IsAuthenticated]
@@ -246,16 +269,26 @@ class AnnulerRendezVous(generics.UpdateAPIView):
         instance.save()
         return Response({"success": True, "message": "Rendez-vous annulé."})
 
+
 # ====================================================================================================
 # COMMANDES & PAIEMENTS
 # ====================================================================================================
+
 class MesCommandesView(generics.ListAPIView):
-    serializer_class = CommandeSerializer # Assure-toi que ce serializer existe
+    serializer_class = CommandeSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        # On ne renvoie que les commandes du patient connecté
-        return Commande.objects.filter(patient_acheteur__compte_utilisateur=self.request.user).order_by('-date_commande')
+        return Commande.objects.filter(patient__compte_utilisateur=self.request.user).order_by(
+            '-date_creation')
+
+
+# ====================================================================================================
+# CONFIGURATION CINETPAY
+# ====================================================================================================
+CINETPAY_API_KEY = os.environ.get("CINETPAY_API_KEY")
+CINETPAY_SITE_ID = os.environ.get("CINETPAY_SITE_ID")
+CINETPAY_URL = "https://api-checkout.cinetpay.com/v2/payment"
 
 
 class CreerCommandeMultiple(APIView):
@@ -268,69 +301,74 @@ class CreerCommandeMultiple(APIView):
 
         try:
             with transaction.atomic():
-
                 patient = Patient.objects.get(compte_utilisateur=request.user)
+                trans_id = f"CMD-{datetime.now().strftime('%Y%m%d%H%M%S')}-{request.user.id}"
+
+                # CORRECTION ICI : Utilisation des champs exacts du modèle
                 commande = Commande.objects.create(
-                    patient_acheteur=patient,
-                    prix_total=0,
-                    statut_commande='en_attente'
+                    patient=patient,
+                    total=0,
+                    statut='EN_ATTENTE',
                 )
 
                 total_general = 0
+
                 for item in articles:
+
                     medoc = get_object_or_404(Medicament, id=item['id'])
-                    pharma = get_object_or_404(EtablissementSante, id=item['pharmacie_id'])
-                    quantite = int(item.get('qte', 1))
-                    prix_unitaire = float(medoc.prix_unitaire)
+
+                    # On cherche la pharmacie via l'ID contenu dans l'objet StockPharmacie
+                    pharmacie = get_object_or_404(Pharmacie, id=item['id_pharmacie'])
+
+                    qte = int(item.get('qte', 1))
+                    pv = float(medoc.prix_vente)
 
                     LigneCommande.objects.create(
-                        ma_commande=commande,  # Vérifie le nom ici
-                        medicament_ajoute=medoc,  # Vérifie le nom ici
-                        pharmacie_vendeuse=pharma,
-                        quantite_commandee=quantite,
-                        prix_unitaire=prix_unitaire
+                        ma_commande=commande,
+                        produit=medoc,
+                        pharmacie=pharmacie,  # Maintenant, on a la bonne pharmacie (ID 1)
+                        quantite=qte,
+                        prix_unitaire=pv
                     )
-                    total_general += (prix_unitaire * quantite)
+                    total_general += (pv * qte)
 
-                commande.prix_total = total_general
+                commande.total = total_general
                 commande.save()
 
-
-            headers = {
-                "Authorization": f"Bearer {FEDAPAY_SECRET_KEY}",
-                "Content-Type": "application/json"
-            }
-
-            data_trans = {
+            payload = {
+                "apikey": CINETPAY_API_KEY,
+                "site_id": CINETPAY_SITE_ID,
+                "transaction_id": trans_id,
                 "amount": int(total_general),
-                "currency": {"iso": "XOF"},
-                "description": f"Commande N°{commande.id} - Lamessin",
-                "metadata": {"commande_id": commande.id},
-                "callback_url": "https://votre-domaine.com/api/callback",
-                "customer": {
-                    "firstname": request.user.first_name,
-                    "lastname": request.user.last_name,
-                    "email": request.user.email or "client@lamessin.tg",
-                    "phone_number": {"number": request.user.numero_telephone, "country": "tg"}
-                }
+                "currency": "XOF",
+                "alternative_currency": "",
+                "description": f"Achat médicaments Commande N°{commande.id}",
+                "customer_name": request.user.last_name,
+                "customer_surname": request.user.first_name,
+                "customer_email": request.user.email or "client@lamessin.tg",
+                "customer_phone_number": request.user.numero_telephone,
+                "customer_address": "Lomé",
+                "customer_city": "Lomé",
+                "customer_country": "TG",
+                "customer_state": "TG",
+                "customer_zip_code": "00228",
+                "notify_url": f"{os.environ.get('MY_DOMAIN')}/api/cinetpay-webhook/",
+                "return_url": "https://ton-domaine.com/paiement-succes/",
+                "channels": "ALL",
+                "metadata": str(commande.id)
             }
 
+            resp = requests.post(CINETPAY_URL, json=payload)
+            resp_data = resp.json()
 
-            resp = requests.post(f"{FEDAPAY_URL}/transactions", headers=headers, json=data_trans)
-            if resp.status_code not in [200, 201]:
-                return Response({"error": "Erreur creation FedaPay"}, status=400)
-
-            res_data = resp.json()
-            trans_id = res_data['v1/transaction']['id']
-
-            resp_token = requests.post(f"{FEDAPAY_URL}/transactions/{trans_id}/token", headers=headers)
-            token_data = resp_token.json()
-
-            return Response({
-                'success': True,
-                'payment_url': token_data['v1/token']['url'],
-                'commande_id': commande.id
-            })
+            if resp_data.get('code') == '201':
+                return Response({
+                    'success': True,
+                    'payment_url': resp_data['data']['payment_url'],
+                    'commande_id': commande.id
+                })
+            else:
+                return Response({'error': resp_data.get('message')}, status=400)
 
         except Exception as e:
             return Response({'error': str(e)}, status=400)
@@ -340,68 +378,86 @@ class GenererLienPaiement(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, commande_id):
-        commande = get_object_or_404(Commande, id=commande_id, patient_acheteur__compte_utilisateur=request.user)
-        if commande.statut_commande == 'paye':
+        commande = get_object_or_404(Commande, id=commande_id, patient__compte_utilisateur=request.user)
+        # CORRECTION ICI : Vérification du statut
+        if commande.statut == 'PAYE':
             return Response({'error': 'Déjà payée'}, status=400)
 
-        headers = {"Authorization": f"Bearer {FEDAPAY_SECRET_KEY}", "Content-Type": "application/json"}
-        data = {
-            "amount": int(commande.prix_total),
-            "currency": {"iso": "XOF"},
-            "description": f"Paiement N°{commande.id}",
-            "customer": {
-                "firstname": request.user.first_name,
-                "lastname": request.user.last_name,
-                "email": request.user.email or "client@lamessin.tg",
-                "phone_number": {"number": request.user.numero_telephone, "country": "tg"}
-            }
+        trans_id = f"CMD-RETRY-{commande.id}-{int(datetime.now().timestamp())}"
+
+        payload = {
+            "apikey": CINETPAY_API_KEY,
+            "site_id": CINETPAY_SITE_ID,
+            "transaction_id": trans_id,
+            "amount": int(commande.total),
+            "currency": "XOF",
+            "description": f"Relance Paiement Commande N°{commande.id}",
+            "customer_name": request.user.last_name,
+            "customer_surname": request.user.first_name,
+            "metadata": str(commande.id),
+            "notify_url": f"{os.environ.get('MY_DOMAIN')}/api/cinetpay-webhook/",
+            "return_url": f"{os.environ.get('MY_DOMAIN')}/paiement-succes/",
+            "channels": "ALL"
         }
 
         try:
-            resp = requests.post(f"{FEDAPAY_URL}/transactions", headers=headers, json=data)
-            res_data = resp.json()
-            trans_id = res_data['v1/transaction']['id']
-
-            resp_token = requests.post(f"{FEDAPAY_URL}/transactions/{trans_id}/token", headers=headers)
-            return Response({'payment_url': resp_token.json()['v1/token']['url']})
+            resp = requests.post(CINETPAY_URL, json=payload)
+            resp_data = resp.json()
+            return Response({'payment_url': resp_data['data']['payment_url']})
         except Exception as e:
-            return Response({'error': str(e)}, status=400)
+            return Response({'error': "Impossible de générer le lien"}, status=400)
 
 
 @csrf_exempt
-def fedapay_webhook(request):
+def cinetpay_webhook(request):
     if request.method == 'POST':
+        trans_id = request.POST.get('cpm_trans_id')
+        site_id = request.POST.get('cpm_site_id')
+
+        check_url = "https://api-checkout.cinetpay.com/v2/payment/check"
+        payload = {
+            "apikey": CINETPAY_API_KEY,
+            "site_id": CINETPAY_SITE_ID,
+            "transaction_id": trans_id
+        }
+
         try:
-            data = json.loads(request.body)
+            response = requests.post(check_url, json=payload)
+            res_data = response.json()
 
-            entity = data.get('entity')
-            status_feda = data.get('status')
+            if res_data.get('code') == '00':
+                commande_id = res_data['data'].get('metadata')
 
-            if entity == 'transaction' and status_feda == 'approved':
-                metadata = data.get('metadata', {})
-                commande_id = metadata.get('commande_id')
-
-                if commande_id:
-                    commande = Commande.objects.filter(id=commande_id).first()
-                    if commande and commande.statut_commande != 'paye':
-                        commande.statut_commande = 'paye'
+                with transaction.atomic():
+                    commande = Commande.objects.get(id=commande_id)
+                    # CORRECTION ICI : Vérification et mise à jour du statut correct
+                    if commande.statut != 'PAYE':
+                        commande.statut = 'PAYE'
                         commande.save()
 
-                        notifier_paiement_reussi(
-                            commande.patient_acheteur.compte_utilisateur,
-                            commande.id
-                        )
+                        for ligne in commande.lignes.all():
+                            stock = Stock.objects.filter(
+                                produit_concerne=ligne.produit,
+                                pharmacie_detentrice=ligne.pharmacie
+                            ).first()
+                            if stock:
+                                stock.quantite_actuelle_en_stock -= ligne.quantite
+                                stock.save()
+                        notifier_paiement_reussi(commande.patient.compte_utilisateur, commande.id)
+
             return HttpResponse(status=200)
         except Exception as e:
             print(f"Erreur Webhook: {e}")
             return HttpResponse(status=400)
+
     return HttpResponse(status=405)
+
+
 # ====================================================================================================
-# NOTIFICATIONS & FCM
+# TRAITEMENTS & NOTIFICATIONS
 # ====================================================================================================
 
 class ListeTraitementsPatient(APIView):
-# Liste des traitements
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -412,54 +468,18 @@ class ListeTraitementsPatient(APIView):
         except Patient.DoesNotExist:
             return Response({"error": "Profil patient non trouvé"}, status=404)
 
-class ListeNotifications(APIView):
-# Historique des notifications
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        notifications = Notification.objects.filter(destinataire=request.user).order_by('-heure_envoi')
-        return Response(NotificationSerializer(notifications, many=True).data)
-
-class EnregistrerFCMToken(APIView):
-# Enregistrement du token
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        token = request.data.get('token')
-        if not token: return Response({"error": "Token requis"}, status=400)
-        request.user.fcm_token = token
-        request.user.save()
-        return Response({"success": True})
-
-
-# ======================================================================================================================================
-# ORDONNANCES ET TRAITEMENTS CÔTÉ PATIENT
-# ======================================================================================================================================
-
-class ListeOrdonnancesPatient(APIView):
-
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        try:
-            patient = Patient.objects.get(compte_utilisateur=request.user)
-            ordonnances = Ordonnance.objects.filter(patient_beneficiaire=patient).order_by('-date_prescription')
-            serializer = OrdonnanceSerializer(ordonnances, many=True)
-            return Response(serializer.data)
-        except Patient.DoesNotExist:
-            return Response({"error": "Profil patient non trouvé"}, status=404)
 
 class DetailTraitement(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, pk):
         traitement = get_object_or_404(Traitement, id=pk, patient_concerne__compte_utilisateur=request.user)
-        # On récupère aussi les prises associées à ce traitement
-        prises = PriseMedicament.objects.filter(traitement=traitement).order_by('date_prise_reelle','heure_prise_prevue')
-
+        prises = PriseMedicament.objects.filter(traitement=traitement).order_by('date_prise_reelle',
+                                                                                'heure_prise_prevue')
         data = TraitementSerializer(traitement).data
         data['historique_prises'] = PriseMedicamentSerializer(prises, many=True).data
         return Response(data)
+
 
 class ValiderPriseMedicament(APIView):
     permission_classes = [IsAuthenticated]
@@ -472,68 +492,89 @@ class ValiderPriseMedicament(APIView):
         prise.save()
         return Response({"success": True, "message": "Prise enregistrée"})
 
-# ======================================================================================================================================
-# ASSISTANT CHATBOT
-# ======================================================================================================================================
+
+class ListeOrdonnancesPatient(generics.ListAPIView):
+    serializer_class = OrdonnanceSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Ordonnance.objects.filter(
+            patient_beneficiaire__compte_utilisateur=self.request.user
+        ).order_by('-date_prescription')
+
+
+class ListeNotifications(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        notifications = Notification.objects.filter(destinataire=request.user).order_by('-heure_envoi')
+        return Response(NotificationSerializer(notifications, many=True).data)
+
+
+class EnregistrerFCMToken(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        token = request.data.get('token')
+        if not token: return Response({"error": "Token requis"}, status=400)
+        request.user.fcm_token = token
+        request.user.save()
+        return Response({"success": True})
+
+
+# ====================================================================================================
+# DOCUMENTS MÉDICAUX (UPLOAD)
+# ====================================================================================================
+
+class UploadDocumentMedicalView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        fichier = request.FILES.get('document')
+        if not fichier: return Response({"error": "Aucun fichier fourni"}, status=400)
+
+        if request.user.est_un_compte_medecin:
+            consultation_id = request.data.get('consultation_id')
+            consultation = get_object_or_404(Consultation, id=consultation_id)
+            consultation.document_joint = fichier
+            consultation.save()
+            return Response({"success": True, "message": "Document enregistré"})
+
+        return Response({"error": "Action non autorisée"}, status=403)
+
+
+# ====================================================================================================
+# ASSISTANT CHATBOT GEMINI
+# ====================================================================================================
+
 class ChatbotGeminiView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
         user_prompt = request.data.get("prompt")
+        if not user_prompt: return Response({"error": "Le message ne peut pas être vide."}, status=400)
 
-        if not user_prompt:
-            return Response({"error": "Le message ne peut pas être vide."}, status=400)
-
-# 1. On récupère ou on crée la session Chatbot liée à l'utilisateur
         session, _ = Chatbot.objects.get_or_create(utilisateur=request.user)
-
-# 2. On sauvegarde le message envoyé par le patient
-        Message.objects.create(
-            chatbot_associe=session,
-            contenu_texte=user_prompt,
-            envoye_par_utilisateur=True
-        )
+        Message.objects.create(chatbot_associe=session, contenu_texte=user_prompt, envoye_par_utilisateur=True)
 
         try:
-# 3. Appel à l'IA Gemini avec des paramètres de sécurité
             response = model_gemini.generate_content(
                 user_prompt,
-                generation_config=genai.types.GenerationConfig(
-                    max_output_tokens=500,
-                    temperature=0.7,
-                )
+                generation_config=genai.types.GenerationConfig(max_output_tokens=500, temperature=0.7)
             )
-
             reponse_ia = response.text
-
-# 4. On sauvegarde la réponse de l'IA dans l'historique
-            message_bot = Message.objects.create(
-                chatbot_associe=session,
-                contenu_texte=reponse_ia,
-                envoye_par_utilisateur=False
-            )
-
-# 5. On renvoie le message de l'IA au format JSON (via le Serializer)
+            message_bot = Message.objects.create(chatbot_associe=session, contenu_texte=reponse_ia,
+                                                 envoye_par_utilisateur=False)
             return Response(MessageSerializer(message_bot).data, status=status.HTTP_201_CREATED)
-
         except Exception as e:
-            print(f"--- ERREUR GEMINI --- : {str(e)}")
-            return Response({
-                "error": "L'assistant est indisponible pour le moment.",
-                "details": str(e)
-            }, status=500)
+            return Response({"error": "L'assistant est indisponible.", "details": str(e)}, status=500)
 
 
 class AssistantHistoriqueView(APIView):
-
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-# On récupère la session de l'utilisateur
         session, _ = Chatbot.objects.get_or_create(utilisateur=request.user)
-
-# On récupère tous les messages triés par heure
         messages = Message.objects.filter(chatbot_associe=session).order_by('heure_message')
+        return Response(MessageSerializer(messages, many=True).data)
 
-        serializer = MessageSerializer(messages, many=True)
-        return Response(serializer.data)

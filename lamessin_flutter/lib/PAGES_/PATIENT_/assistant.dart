@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../SERVICES_/api_service.dart';
+import '../../MODELS_/message_model.dart';
 
 class AssistantPage extends StatefulWidget {
   const AssistantPage({super.key});
@@ -10,14 +11,27 @@ class AssistantPage extends StatefulWidget {
 
 class _AssistantPageState extends State<AssistantPage> {
   final TextEditingController _controller = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   final List<Map<String, dynamic>> _messages = [];
   bool _isTyping = false;
-  bool _isLoading = true; // Pour afficher un loader au début
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _chargerHistorique(); // <--- On charge l'historique ici
+    _chargerHistorique();
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   Future<void> _chargerHistorique() async {
@@ -26,12 +40,13 @@ class _AssistantPageState extends State<AssistantPage> {
       setState(() {
         for (var msg in historique) {
           _messages.add({
-            'role': msg['envoye_par_utilisateur'] ? 'user' : 'bot',
-            'text': msg['contenu_texte']
+            'role': msg.envoyeParUtilisateur ? 'user' : 'bot',
+            'text': msg.contenuTexte // <--- UTILISE .contenuTexte
           });
         }
         _isLoading = false;
       });
+      _scrollToBottom();
     }
   }
 
@@ -44,35 +59,36 @@ class _AssistantPageState extends State<AssistantPage> {
       _isTyping = true;
     });
     _controller.clear();
+    _scrollToBottom();
 
     final response = await ApiService.envoyerMessageAssistant(texte);
 
-    setState(() {
-      _isTyping = false;
-      if (response != null) {
-        _messages.add({'role': 'bot', 'text': response['contenu_texte']});
-      } else {
-        _messages.add({'role': 'bot', 'text': "Oups ! Connexion perdue."});
-      }
-    });
+    if (mounted) {
+      setState(() {
+        _isTyping = false;
+        if (response != null) {
+          _messages.add({
+            'role': 'bot', 
+            'text': response.contenuTexte // <--- UTILISE .contenuTexte
+          });
+        }
+      });
+      _scrollToBottom();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
-      appBar: AppBar(
-        title: const Text("Assistant IA Lamessin", style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.teal[800],
-        elevation: 0.5,
-      ),
+      appBar: AppBar(title: const Text("Assistant Santé")),
       body: _isLoading 
-        ? const Center(child: CircularProgressIndicator(color: Colors.teal))
+        ? const Center(child: CircularProgressIndicator())
         : Column(
             children: [
               Expanded(
                 child: ListView.builder(
+                  controller: _scrollController,
                   padding: const EdgeInsets.all(16),
                   itemCount: _messages.length,
                   itemBuilder: (context, index) {
@@ -81,65 +97,41 @@ class _AssistantPageState extends State<AssistantPage> {
                   },
                 ),
               ),
-              if (_isTyping) const Padding(padding: EdgeInsets.all(8), child: LinearProgressIndicator(color: Colors.teal, backgroundColor: Colors.transparent)),
+              if (_isTyping) const LinearProgressIndicator(color: Colors.teal),
               _buildInputArea(),
             ],
           ),
     );
   }
 
-  // ... (Garde tes méthodes _buildChatBubble et _buildInputArea identiques)
   Widget _buildChatBubble(String text, bool isUser) {
     return Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 6),
         padding: const EdgeInsets.all(14),
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.8),
         decoration: BoxDecoration(
           color: isUser ? Colors.teal[600] : Colors.white,
-          borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(16),
-            topRight: const Radius.circular(16),
-            bottomLeft: Radius.circular(isUser ? 16 : 4),
-            bottomRight: Radius.circular(isUser ? 4 : 16),
-          ),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5, offset: const Offset(0, 2))],
+          borderRadius: BorderRadius.circular(16),
         ),
-        child: Text(
-          text,
-          style: TextStyle(color: isUser ? Colors.white : Colors.black87, fontSize: 15),
-        ),
+        child: Text(text, style: TextStyle(color: isUser ? Colors.white : Colors.black87)),
       ),
     );
   }
 
   Widget _buildInputArea() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-      decoration: const BoxDecoration(color: Colors.white),
+      padding: const EdgeInsets.all(16),
+      color: Colors.white,
       child: Row(
         children: [
           Expanded(
             child: TextField(
               controller: _controller,
-              decoration: InputDecoration(
-                hintText: "Posez votre question...",
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
-                filled: true,
-                fillColor: Colors.grey[100],
-                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              ),
+              decoration: const InputDecoration(hintText: "Décrivez vos symptômes..."),
             ),
           ),
-          const SizedBox(width: 8),
-          CircleAvatar(
-            backgroundColor: Colors.teal[600],
-            child: IconButton(
-              icon: const Icon(Icons.send, color: Colors.white, size: 20),
-              onPressed: _envoyerMessage,
-            ),
-          )
+          IconButton(icon: const Icon(Icons.send), onPressed: _envoyerMessage),
         ],
       ),
     );
