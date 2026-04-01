@@ -492,21 +492,16 @@ class ApiService {
   // ===========================================================================
   // ASSISTANT (GEMINI)
   // ===========================================================================
-
-  static Future<Message?> envoyerMessageAssistant(String prompt) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/assistant/chat/'),
-        headers: await _getHeaders(),
-        body: jsonEncode({"prompt": prompt}),
-      );
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        return Message.fromJson(json.decode(utf8.decode(response.bodyBytes)));
-      }
-      return null;
-    } catch (e) {
-      return null;
+  static Future<String?> envoyerMessageAssistant(String prompt) async {
+    final response = await http.post(
+      Uri.parse("http://127.0.0.1:8000/api/assistant/chat/"),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({"prompt": prompt}),
+    );
+    if (response.statusCode == 200) {
+      return json.decode(utf8.decode(response.bodyBytes))['reponse'];
     }
+    return null;
   }
 
   static Future<List<Message>> getHistoriqueAssistant() async {

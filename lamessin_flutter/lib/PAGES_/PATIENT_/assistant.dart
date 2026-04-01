@@ -66,9 +66,7 @@ class _AssistantPageState extends State<AssistantPage> {
         _isTyping = false;
         _messages.add({
           'role': 'bot',
-          'text': response != null
-              ? response.contenuTexte
-              : "Oups ! Connexion perdue.",
+          'text': response ?? "Oups ! Connexion perdue.", // <- CORRIGÉ ICI
         });
       });
       _scrollToBottom();

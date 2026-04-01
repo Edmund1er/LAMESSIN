@@ -89,6 +89,8 @@ urlpatterns = [
 # ASSISTANT VIRTUEL (IA GEMINI)
 # ====================================================================================================
 
-    path('assistant/chat/', views.ChatbotGeminiView.as_view(), name='assistant_gemini'),
+    path('assistant/chat/', views.assistant, name='assistant_gemini'),
+
+    
     path('assistant/historique/', views.AssistantHistoriqueView.as_view(), name='assistant_historique'),
 ]

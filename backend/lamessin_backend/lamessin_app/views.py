@@ -5,6 +5,7 @@ import os
 import json
 import requests
 from datetime import datetime, timedelta
+from pathlib import Path
 
 from django.db import transaction
 from django.utils.dateparse import parse_date
@@ -12,16 +13,18 @@ from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
+
 from dotenv import load_dotenv
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, generics
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-import google.generativeai as genai
+from google import genai
 from firebase_admin import messaging
 
 from .models import *
@@ -36,8 +39,6 @@ load_dotenv(os.path.join(BASE_DIR, 'api.env'))
 FEDAPAY_SECRET_KEY = "sk_sandbox_-OZyOtHCUyKTfru8x0_xdeP8"
 FEDAPAY_URL = "https://sandbox-api.fedapay.com/v1"
 
-genai.configure(api_key=os.environ.get("GEMINI_KEY"))
-model_gemini = genai.GenerativeModel('gemini-1.5-flash')
 
 
 # ====================================================================================================
@@ -304,7 +305,6 @@ class CreerCommandeMultiple(APIView):
                 patient = Patient.objects.get(compte_utilisateur=request.user)
                 trans_id = f"CMD-{datetime.now().strftime('%Y%m%d%H%M%S')}-{request.user.id}"
 
-                # CORRECTION ICI : Utilisation des champs exacts du modèle
                 commande = Commande.objects.create(
                     patient=patient,
                     total=0,
@@ -314,19 +314,15 @@ class CreerCommandeMultiple(APIView):
                 total_general = 0
 
                 for item in articles:
-
                     medoc = get_object_or_404(Medicament, id=item['id'])
-
-                    # On cherche la pharmacie via l'ID contenu dans l'objet StockPharmacie
                     pharmacie = get_object_or_404(Pharmacie, id=item['id_pharmacie'])
-
                     qte = int(item.get('qte', 1))
                     pv = float(medoc.prix_vente)
 
                     LigneCommande.objects.create(
                         ma_commande=commande,
                         produit=medoc,
-                        pharmacie=pharmacie,  # Maintenant, on a la bonne pharmacie (ID 1)
+                        pharmacie=pharmacie,
                         quantite=qte,
                         prix_unitaire=pv
                     )
@@ -379,7 +375,6 @@ class GenererLienPaiement(APIView):
 
     def get(self, request, commande_id):
         commande = get_object_or_404(Commande, id=commande_id, patient__compte_utilisateur=request.user)
-        # CORRECTION ICI : Vérification du statut
         if commande.statut == 'PAYE':
             return Response({'error': 'Déjà payée'}, status=400)
 
@@ -430,7 +425,6 @@ def cinetpay_webhook(request):
 
                 with transaction.atomic():
                     commande = Commande.objects.get(id=commande_id)
-                    # CORRECTION ICI : Vérification et mise à jour du statut correct
                     if commande.statut != 'PAYE':
                         commande.statut = 'PAYE'
                         commande.save()
@@ -547,27 +541,17 @@ class UploadDocumentMedicalView(APIView):
 # ASSISTANT CHATBOT GEMINI
 # ====================================================================================================
 
-class ChatbotGeminiView(APIView):
-    permission_classes = [IsAuthenticated]
 
-    def post(self, request):
-        user_prompt = request.data.get("prompt")
-        if not user_prompt: return Response({"error": "Le message ne peut pas être vide."}, status=400)
-
-        session, _ = Chatbot.objects.get_or_create(utilisateur=request.user)
-        Message.objects.create(chatbot_associe=session, contenu_texte=user_prompt, envoye_par_utilisateur=True)
-
-        try:
-            response = model_gemini.generate_content(
-                user_prompt,
-                generation_config=genai.types.GenerationConfig(max_output_tokens=500, temperature=0.7)
-            )
-            reponse_ia = response.text
-            message_bot = Message.objects.create(chatbot_associe=session, contenu_texte=reponse_ia,
-                                                 envoye_par_utilisateur=False)
-            return Response(MessageSerializer(message_bot).data, status=status.HTTP_201_CREATED)
-        except Exception as e:
-            return Response({"error": "L'assistant est indisponible.", "details": str(e)}, status=500)
+client = genai.Client(api_key="AIzaSyAIRtRJ8XKpeS_RlaQUtRIkoZuIrQJWUAQ")
+from rest_framework.permissions import IsAuthenticated
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def assistant(request):
+    reponse = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=request.data.get("prompt")
+    )
+    return Response({"reponse": reponse.text})
 
 
 class AssistantHistoriqueView(APIView):
@@ -577,4 +561,3 @@ class AssistantHistoriqueView(APIView):
         session, _ = Chatbot.objects.get_or_create(utilisateur=request.user)
         messages = Message.objects.filter(chatbot_associe=session).order_by('heure_message')
         return Response(MessageSerializer(messages, many=True).data)
-
