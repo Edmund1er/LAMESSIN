@@ -1,3 +1,4 @@
+import 'dart:ui'; // Import pour l'effet de flou
 import 'package:flutter/material.dart';
 import '../../SERVICES_/api_service.dart';
 import '../../THEME_/app_theme.dart';
@@ -42,139 +43,231 @@ class _LoginState extends State<Login> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // ── HEADER VIOLET ──
-            Container(
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.only(
-                  bottomLeft:  Radius.circular(32),
-                  bottomRight: Radius.circular(32),
+      body: Stack(
+        children: [
+          // 1. IMAGE DE FOND
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/login.jpeg',
+              fit: BoxFit.cover,
+            ),
+          ),
+
+          // 2. DEGRADÉ D'ASSOMBRISSEMENT (Pour faire ressortir le texte et le formulaire)
+          // Le haut est transparent pour voir l'image, le bas est sombre pour le contraste
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.1), // Très léger en haut
+                    Colors.black.withOpacity(0.7), // Plus sombre en bas
+                  ],
                 ),
               ),
-              padding: EdgeInsets.only(
-                top: MediaQuery.of(context).padding.top + 40,
-                bottom: 36, left: 28, right: 28,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 52, height: 52,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+
+          // 3. CONTENU PRINCIPAL
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 30),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox(height: 40),
+
+                    // --- LOGO (Chic et simple) ---
+                    Container(
+                      width: 80, height: 80,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 20,
+                            spreadRadius: 5,
+                          )
+                        ],
+                      ),
+                      child: Icon(Icons.local_hospital_rounded,
+                          color: AppColors.primary, size: 40),
                     ),
-                    child: const Icon(Icons.local_hospital_rounded,
-                        color: Colors.white, size: 28),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text('Bienvenue sur\nLAMESSIN',
-                      style: TextStyle(color: Colors.white, fontSize: 28,
-                          fontWeight: FontWeight.w900, height: 1.2)),
-                  const SizedBox(height: 8),
-                  Text('Connectez-vous à votre espace',
+                    const SizedBox(height: 30),
+
+                    // --- TITRE (Marquant) ---
+                    Text(
+                      'Bienvenue sur LAMESSIN',
+                      textAlign: TextAlign.center,
                       style: TextStyle(
-                          color: Colors.white.withOpacity(0.7), fontSize: 14)),
-                ],
-              ),
-            ),
-
-            // ── FORMULAIRE ──
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 8),
-
-                  _label('Téléphone'),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _telephone,
-                    keyboardType: TextInputType.phone,
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
-                    decoration: InputDecoration(
-                      hintText: '+228 90 00 00 00',
-                      prefixIcon: const Icon(Icons.phone_rounded,
-                          color: AppColors.primary, size: 20),
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-
-                  _label('Mot de passe'),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _password,
-                    obscureText: _obscure,
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
-                    decoration: InputDecoration(
-                      hintText: '••••••••',
-                      prefixIcon: const Icon(Icons.lock_rounded,
-                          color: AppColors.primary, size: 20),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscure ? Icons.visibility_off_rounded
-                                   : Icons.visibility_rounded,
-                          color: AppColors.textSecondary, size: 20,
-                        ),
-                        onPressed: () => setState(() => _obscure = !_obscure),
+                        color: Colors.white,
+                        fontSize: 32,
+                        fontWeight: FontWeight.w900,
+                        height: 1.3,
+                        shadows: [
+                          Shadow(
+                            color: Colors.black.withOpacity(0.3),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          )
+                        ]
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: () {},
-                      child: const Text('Mot de passe oublié ?',
-                          style: TextStyle(color: AppColors.primary,
-                              fontWeight: FontWeight.w700, fontSize: 13)),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Connectez-vous à votre espace santé',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.8),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 0.5,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
 
-                  AppWidgets.darkButton(
-                    label: 'Se connecter',
-                    onPressed: _clicConnexion,
-                    loading: _chargement,
-                  ),
-                  const SizedBox(height: 20),
+                    const SizedBox(height: 60),
 
-                  Center(
-                    child: GestureDetector(
-                      onTap: () => Navigator.pushNamed(context, "/register"),
-                      child: RichText(
-                        text: const TextSpan(
-                          text: 'Pas encore de compte ? ',
-                          style: TextStyle(
-                              color: AppColors.textSecondary, fontSize: 14),
-                          children: [
-                            TextSpan(
-                              text: "S'inscrire",
-                              style: TextStyle(color: AppColors.primary,
-                                  fontWeight: FontWeight.w800, fontSize: 14),
+                    // --- CARTE DE FORMULAIRE (EFFET VERRE / GLASSMORPHISM) ---
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(30),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                        child: Container(
+                          padding: const EdgeInsets.all(28),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2), // Blanc très transparent
+                            borderRadius: BorderRadius.circular(30),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.4),
+                              width: 1.5,
                             ),
-                          ],
+                          ),
+                          child: Column(
+                            children: [
+                              // --- CHAMP TÉLÉPHONE ---
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.9), // Fond blanc pour la lisibilité
+                                  borderRadius: BorderRadius.circular(15),
+                                ),
+                                child: TextField(
+                                  controller: _telephone,
+                                  keyboardType: TextInputType.phone,
+                                  style: const TextStyle(
+                                    fontSize: 15, 
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textPrimary
+                                  ),
+                                  decoration: const InputDecoration(
+                                    hintText: 'Numéro de téléphone',
+                                    hintStyle: TextStyle(color: Colors.grey),
+                                    prefixIcon: Icon(Icons.phone_rounded, color: AppColors.primary),
+                                    border: InputBorder.none,
+                                    contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+
+                              // --- CHAMP MOT DE PASSE ---
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.9),
+                                  borderRadius: BorderRadius.circular(15),
+                                ),
+                                child: TextField(
+                                  controller: _password,
+                                  obscureText: _obscure,
+                                  style: const TextStyle(
+                                    fontSize: 15, 
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textPrimary
+                                  ),
+                                  decoration: InputDecoration(
+                                    hintText: 'Mot de passe',
+                                    hintStyle: const TextStyle(color: Colors.grey),
+                                    prefixIcon: const Icon(Icons.lock_rounded, color: AppColors.primary),
+                                    suffixIcon: IconButton(
+                                      icon: Icon(
+                                        _obscure ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                                        color: AppColors.textSecondary,
+                                      ),
+                                      onPressed: () => setState(() => _obscure = !_obscure),
+                                    ),
+                                    border: InputBorder.none,
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+
+                              // --- MOT DE PASSE OUBLIÉ ---
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: TextButton(
+                                  onPressed: () {},
+                                  child: const Text('Mot de passe oublié ?',
+                                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+
+                              // --- BOUTON CONNEXION ---
+                              SizedBox(
+                                width: double.infinity,
+                                height: 55,
+                                child: ElevatedButton(
+                                  onPressed: _clicConnexion,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.primary,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(15),
+                                    ),
+                                    elevation: 5,
+                                    shadowColor: Colors.black.withOpacity(0.2),
+                                  ),
+                                  child: _chargement
+                                      ? const SizedBox(width: 25, height: 25, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
+                                      : const Text('Se connecter',
+                                          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+
+                              // --- LIEN INSCRIPTION ---
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text('Pas encore de compte ? ',
+                                      style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 14)),
+                                  GestureDetector(
+                                    onTap: () => Navigator.pushNamed(context, "/register"),
+                                    child: const Text("S'inscrire",
+                                        style: TextStyle(
+                                          color: Colors.white, 
+                                          fontWeight: FontWeight.w800, 
+                                          fontSize: 14,
+                                          decoration: TextDecoration.underline
+                                        )),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 40),
+                  ],
+                ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
-
-  Widget _label(String text) => Text(text,
-      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700,
-          color: AppColors.textPrimary));
 }

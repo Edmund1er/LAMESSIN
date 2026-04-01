@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../SERVICES_/api_service.dart';
+import '../../SERVICES_/patient_service.dart'; // CORRECTION
 import '../../THEME_/app_theme.dart';
 
 class PanierItem {
@@ -47,7 +47,7 @@ class _PanierPageState extends State<PanierPage> {
     );
 
     try {
-      final resultat = await ApiService.creerCommandeMultiple(articlesJson);
+      final resultat = await PatientService.creerCommandeMultiple(articlesJson); // CORRECTION
       if (!mounted) return;
       Navigator.pop(context);
 

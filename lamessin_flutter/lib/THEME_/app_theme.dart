@@ -1,31 +1,31 @@
 import 'package:flutter/material.dart';
 
 // ─────────────────────────────────────────────
-//  PALETTE LAMESSIN (inspirée des maquettes)
+//  PALETTE LAMESSIN (Mise à jour selon l'image)
 // ─────────────────────────────────────────────
 class AppColors {
-  static const Color primary      = Color(0xFF3D3BDB); // violet principal
-  static const Color primaryDark  = Color(0xFF2B29B0);
-  static const Color primaryLight = Color(0xFFEEEEFF);
+  static const Color primary      = Color(0xFF00C2CB); // Cyan/Turquoise de l'image
+  static const Color primaryDark  = Color(0xFF00A8B0);
+  static const Color primaryLight = Color(0xFFE0F7F8);
 
-  static const Color accent       = Color(0xFFFF6B6B);
-  static const Color success      = Color(0xFF22C55E);
-  static const Color successLight = Color(0xFFE6F9F0);
+  static const Color accent       = Color(0xFF4ECDC4);
+  static const Color success      = Color(0xFF27AE60);
+  static const Color successLight = Color(0xFFE9F7EF);
   static const Color warning      = Color(0xFFF59E0B);
   static const Color warningLight = Color(0xFFFFF3E0);
   static const Color danger       = Color(0xFFE53E3E);
   static const Color dangerLight  = Color(0xFFFFE8E8);
 
-  static const Color background     = Color(0xFFF7F7FC);
+  static const Color background     = Color(0xFFF8FAFB); // Fond bleuté très clair
   static const Color surface        = Color(0xFFFFFFFF);
-  static const Color surfaceVariant = Color(0xFFF0F0F8);
+  static const Color surfaceVariant = Color(0xFFF1F4F8);
 
-  static const Color textPrimary   = Color(0xFF1A1A2E);
-  static const Color textSecondary = Color(0xFF8A8AA0);
-  static const Color textHint      = Color(0xFFC0C0D0);
+  static const Color textPrimary   = Color(0xFF2D3142); // Bleu nuit doux
+  static const Color textSecondary = Color(0xFF9094A6);
+  static const Color textHint      = Color(0xFFC1C7D0);
 
-  static const Color border      = Color(0xFFEDEDF5);
-  static const Color borderLight = Color(0xFFF0F0F8);
+  static const Color border      = Color(0xFFE2E8F0);
+  static const Color borderLight = Color(0xFFF1F5F9);
 }
 
 // ─────────────────────────────────────────────
@@ -101,7 +101,7 @@ class AppTheme {
 // ─────────────────────────────────────────────
 class AppWidgets {
 
-  /// Bouton principal violet
+  /// Bouton principal
   static Widget primaryButton({
     required String label,
     required VoidCallback? onPressed,

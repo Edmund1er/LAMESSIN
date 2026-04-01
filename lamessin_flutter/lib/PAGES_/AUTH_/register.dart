@@ -1,9 +1,11 @@
+import 'dart:ui'; // Nécessaire pour le flou
 import 'package:flutter/material.dart';
 import '../../SERVICES_/api_service.dart';
 import '../../THEME_/app_theme.dart';
 
 class Register extends StatefulWidget {
   const Register({super.key});
+
   @override
   State<Register> createState() => _RegisterState();
 }
@@ -21,14 +23,7 @@ class _RegisterState extends State<Register> {
 
   String? _groupeSanguinChoisi;
   final List<String> _groupes = [
-    "A+",
-    "A-",
-    "B+",
-    "B-",
-    "AB+",
-    "AB-",
-    "O+",
-    "O-",
+    "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-",
   ];
   DateTime? _dateNaissance;
   String _roleChoisi = "patient";
@@ -44,16 +39,26 @@ class _RegisterState extends State<Register> {
       locale: const Locale("fr", "FR"),
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.light(primary: AppColors.primary),
+          colorScheme: const ColorScheme.light(
+            primary: AppColors.primary,
+            onPrimary: Colors.white,
+            onSurface: AppColors.textPrimary,
+          ),
+          textButtonTheme: TextButtonThemeData(
+            style: TextButton.styleFrom(foregroundColor: AppColors.primary),
+          ),
         ),
         child: child!,
       ),
     );
-    if (picked != null) setState(() => _dateNaissance = picked);
+    if (picked != null && picked != _dateNaissance) {
+      setState(() => _dateNaissance = picked);
+    }
   }
 
   void _lancerInscription() async {
     if (!_formKey.currentState!.validate()) return;
+
     if (_roleChoisi == "patient" && _dateNaissance == null) {
       AppWidgets.showSnack(
         context,
@@ -62,6 +67,7 @@ class _RegisterState extends State<Register> {
       );
       return;
     }
+
     setState(() => _isLoading = true);
 
     Map<String, dynamic> monColis = {
@@ -71,223 +77,275 @@ class _RegisterState extends State<Register> {
       "password": _password.text,
       "first_name": _prenom.text.trim(),
       "last_name": _nom.text.trim(),
-      "type_compte": _roleChoisi,
+      "type_compte": _roleChoisi.toUpperCase(),
     };
+
     if (_roleChoisi == "patient") {
-      monColis["date_naissance"] = _dateNaissance?.toIso8601String().split(
-        'T',
-      )[0];
+      monColis["date_naissance"] = _dateNaissance?.toIso8601String().split('T')[0];
       monColis["groupe_sanguin"] = _groupeSanguinChoisi;
     } else {
       monColis["specialite_medicale"] = _specialite.text.trim();
       monColis["numero_licence"] = _licence.text.trim();
     }
 
-    bool succes = await ApiService.inscription(monColis);
-    if (mounted) setState(() => _isLoading = false);
-    if (succes) {
-      if (!mounted) return;
-      Navigator.pushReplacementNamed(context, "/login");
-      AppWidgets.showSnack(
-        context,
-        "Inscription réussie !",
-        color: AppColors.success,
-      );
-    } else {
-      AppWidgets.showSnack(
-        context,
-        "Erreur lors de l'inscription.",
-        color: AppColors.danger,
-      );
+    try {
+      bool succes = await ApiService.inscription(monColis);
+      
+      if (mounted) setState(() => _isLoading = false);
+
+      if (succes) {
+        if (!mounted) return;
+        AppWidgets.showSnack(
+          context,
+          "Inscription réussie ! Connectez-vous.",
+          color: AppColors.success,
+        );
+        Navigator.pushReplacementNamed(context, "/login");
+      } else {
+        AppWidgets.showSnack(
+          context,
+          "Erreur lors de l'inscription. Vérifiez vos informations.",
+          color: AppColors.danger,
+        );
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+      AppWidgets.showSnack(context, "Erreur réseau : $e", color: AppColors.danger);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // ── HEADER ──
-            Container(
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(32),
-                  bottomRight: Radius.circular(32),
-                ),
-              ),
-              padding: EdgeInsets.only(
-                top: MediaQuery.of(context).padding.top + 24,
-                bottom: 28,
-                left: 20,
-                right: 20,
-              ),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Container(
-                      width: 38,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        color: Colors.white,
-                        size: 18,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Créer un compte',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      Text(
-                        'Rejoignez LAMESSIN',
-                        style: TextStyle(color: Colors.white70, fontSize: 13),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/register.jpeg',
+              fit: BoxFit.cover,
             ),
+          ),
 
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 8),
-
-                    // Sélecteur de rôle
-                    SegmentedButton<String>(
-                      segments: const [
-                        ButtonSegment(value: 'patient', label: Text('Patient')),
-                        ButtonSegment(value: 'medecin', label: Text('Médecin')),
-                        ButtonSegment(
-                          value: 'pharmacien',
-                          label: Text('Pharma'),
-                        ),
-                      ],
-                      selected: {_roleChoisi},
-                      style: ButtonStyle(
-                        backgroundColor: MaterialStateProperty.resolveWith((
-                          states,
-                        ) {
-                          if (states.contains(MaterialState.selected))
-                            return AppColors.primary;
-                          return AppColors.background;
-                        }),
-                        foregroundColor: MaterialStateProperty.resolveWith((
-                          states,
-                        ) {
-                          if (states.contains(MaterialState.selected))
-                            return Colors.white;
-                          return AppColors.textSecondary;
-                        }),
-                      ),
-                      onSelectionChanged: (val) =>
-                          setState(() => _roleChoisi = val.first),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Nom + Prénom
-                    Row(
-                      children: [
-                        Expanded(child: _buildField(_nom, "Nom", Icons.person)),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildField(
-                            _prenom,
-                            "Prénom",
-                            Icons.person_outline,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    _buildField(
-                      _telephone,
-                      "Téléphone",
-                      Icons.phone,
-                      type: TextInputType.phone,
-                    ),
-                    const SizedBox(height: 12),
-                    _buildField(
-                      _email,
-                      "Email",
-                      Icons.email,
-                      type: TextInputType.emailAddress,
-                      isEmail: true,
-                    ),
-                    const SizedBox(height: 12),
-                    _buildPasswordField(),
-                    const SizedBox(height: 16),
-
-                    if (_roleChoisi == "patient") ...[
-                      _buildDatePicker(),
-                      const SizedBox(height: 12),
-                      _buildBloodSelector(),
-                    ] else ...[
-                      _buildField(
-                        _specialite,
-                        "Spécialité",
-                        Icons.medical_services,
-                      ),
-                      const SizedBox(height: 12),
-                      _buildField(_licence, "N° Licence", Icons.verified_user),
-                    ],
-
-                    const SizedBox(height: 28),
-                    AppWidgets.primaryButton(
-                      label: "S'inscrire",
-                      onPressed: _lancerInscription,
-                      loading: _isLoading,
-                    ),
-                    const SizedBox(height: 20),
-                    Center(
-                      child: GestureDetector(
-                        onTap: () => Navigator.pop(context),
-                        child: RichText(
-                          text: const TextSpan(
-                            text: 'Déjà un compte ? ',
-                            style: TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 14,
-                            ),
-                            children: [
-                              TextSpan(
-                                text: 'Se connecter',
-                                style: TextStyle(
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.2), // Le haut reste clair pour voir l'image
+                    Colors.black.withOpacity(0.75), // Le bas s'assombrit pour le formulaire
                   ],
                 ),
               ),
             ),
+          ),
+
+          // 3. CONTENU PRINCIPAL
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox(height: 20),
+
+                    // BOUTON RETOUR (FLOTTANT)
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white.withOpacity(0.3)),
+                          ),
+                          child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    // --- TITRE (Chic et Visible) ---
+                    Text(
+                      'Créer un compte',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 32,
+                        fontWeight: FontWeight.w900,
+                        shadows: [
+                          Shadow(
+                            color: Colors.black.withOpacity(0.3),
+                            blurRadius: 10,
+                            offset: const Offset(0, 3),
+                          )
+                        ]
+                      ),
+                    ),
+                    Text(
+                      'Rejoignez LAMESSIN',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.85),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+
+                    const SizedBox(height: 30),
+
+                    // --- CARTE FORMULAIRE (GLASSMORPHISM) ---
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(30),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                        child: Container(
+                          padding: const EdgeInsets.all(25),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.15), // Fond transparent
+                            borderRadius: BorderRadius.circular(30),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.3),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Form(
+                            key: _formKey,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // SÉLECTEUR DE RÔLE
+                                const Text("Je suis un...", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+                                const SizedBox(height: 10),
+                                Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.3),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: _roleButton('Patient', Icons.person, 'patient'),
+                                      ),
+                                      const SizedBox(width: 5),
+                                      Expanded(
+                                        child: _roleButton('Médecin', Icons.medical_services, 'medecin'),
+                                      ),
+                                      const SizedBox(width: 5),
+                                      Expanded(
+                                        child: _roleButton('Pharma', Icons.local_pharmacy, 'pharmacien'),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+
+                                // CHAMPS NOM & PRÉNOM
+                                Row(
+                                  children: [
+                                    Expanded(child: _buildField(_nom, "Nom", Icons.person)),
+                                    const SizedBox(width: 12),
+                                    Expanded(child: _buildField(_prenom, "Prénom", Icons.person_outline)),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+
+                                // TÉLÉPHONE
+                                _buildField(_telephone, "Téléphone", Icons.phone_android_rounded, type: TextInputType.phone),
+                                const SizedBox(height: 12),
+
+                                // EMAIL
+                                _buildField(_email, "Email", Icons.email_outlined, type: TextInputType.emailAddress, isEmail: true),
+                                const SizedBox(height: 12),
+
+                                // MOT DE PASSE
+                                _buildPasswordField(),
+                                const SizedBox(height: 20),
+
+                                // CHAMPS CONDITIONNELS
+                                if (_roleChoisi == "patient") ...[
+                                  const Text("Informations de santé", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                                  const SizedBox(height: 10),
+                                  _buildDatePicker(),
+                                  const SizedBox(height: 12),
+                                  _buildBloodSelector(),
+                                ] else ...[
+                                  const Text("Informations professionnelles", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                                  const SizedBox(height: 10),
+                                  _buildField(_specialite, "Spécialité", Icons.workspace_premium_outlined),
+                                  const SizedBox(height: 12),
+                                  _buildField(_licence, "N° Licence", Icons.verified_user_outlined),
+                                ],
+
+                                const SizedBox(height: 25),
+
+                                // BOUTON VALIDER
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 50,
+                                  child: ElevatedButton(
+                                    onPressed: _isLoading ? null : _lancerInscription,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.primary,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                                      elevation: 5,
+                                    ),
+                                    child: _isLoading
+                                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
+                                        : const Text("CRÉER MON COMPTE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+                                  ),
+                                ),
+                                const SizedBox(height: 15),
+
+                                // LIEN
+                                Center(
+                                  child: GestureDetector(
+                                    onTap: () => Navigator.pop(context),
+                                    child: Text("Vous avez déjà un compte ? Se connecter",
+                                        style: TextStyle(color: Colors.white.withOpacity(0.9), fontWeight: FontWeight.w600, fontSize: 13)),
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- WIDGETS PERSONNALISÉS STYLE GLASS ---
+
+  Widget _roleButton(String label, IconData icon, String value) {
+    bool isSelected = _roleChoisi == value;
+    return GestureDetector(
+      onTap: () => setState(() => _roleChoisi = value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: isSelected ? Colors.white : Colors.white70, size: 20),
+            const SizedBox(height: 4),
+            Text(label, style: TextStyle(color: isSelected ? Colors.white : Colors.white70, fontSize: 11, fontWeight: FontWeight.bold)),
           ],
         ),
       ),
@@ -298,100 +356,87 @@ class _RegisterState extends State<Register> {
     TextEditingController ctrl,
     String label,
     IconData icon, {
-    bool isPass = false,
     TextInputType type = TextInputType.text,
     bool isEmail = false,
   }) {
-    return TextFormField(
-      controller: ctrl,
-      keyboardType: type,
-      style: const TextStyle(
-        fontSize: 14,
-        fontWeight: FontWeight.w500,
-        color: AppColors.textPrimary,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 15),
+      decoration: BoxDecoration(
+        // Fond blanc semi-transparent (70%) pour lisibilité
+        color: Colors.white.withOpacity(0.7),
+        borderRadius: BorderRadius.circular(12),
       ),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(
-          color: AppColors.textSecondary,
-          fontSize: 13,
+      child: TextFormField(
+        controller: ctrl,
+        keyboardType: type,
+        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+          prefixIcon: Icon(icon, color: AppColors.primary, size: 20),
+          border: InputBorder.none,
         ),
-        prefixIcon: Icon(icon, color: AppColors.primary, size: 20),
+        validator: (value) {
+          if (value == null || value.isEmpty) return "Requis";
+          if (isEmail && !RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+            return "Email invalide";
+          }
+          return null;
+        },
       ),
-      validator: (v) => (v == null || v.isEmpty)
-          ? "Obligatoire"
-          : (isEmail && !v.contains("@") ? "Email invalide" : null),
     );
   }
 
   Widget _buildPasswordField() {
-    return TextFormField(
-      controller: _password,
-      obscureText: _obscure,
-      style: const TextStyle(
-        fontSize: 14,
-        fontWeight: FontWeight.w500,
-        color: AppColors.textPrimary,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 15),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.7),
+        borderRadius: BorderRadius.circular(12),
       ),
-      decoration: InputDecoration(
-        labelText: 'Mot de passe',
-        labelStyle: const TextStyle(
-          color: AppColors.textSecondary,
-          fontSize: 13,
-        ),
-        prefixIcon: const Icon(
-          Icons.lock_rounded,
-          color: AppColors.primary,
-          size: 20,
-        ),
-        suffixIcon: IconButton(
-          icon: Icon(
-            _obscure ? Icons.visibility_off_rounded : Icons.visibility_rounded,
-            color: AppColors.textSecondary,
-            size: 20,
+      child: TextFormField(
+        controller: _password,
+        obscureText: _obscure,
+        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+        decoration: InputDecoration(
+          labelText: "Mot de passe",
+          labelStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+          prefixIcon: const Icon(Icons.lock_outline, color: AppColors.primary, size: 20),
+          suffixIcon: IconButton(
+            icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility, color: AppColors.textSecondary),
+            onPressed: () => setState(() => _obscure = !_obscure),
           ),
-          onPressed: () => setState(() => _obscure = !_obscure),
+          border: InputBorder.none,
         ),
+        validator: (value) {
+          if (value == null || value.isEmpty) return "Requis";
+          if (value.length < 6) return "6 car. min";
+          return null;
+        },
       ),
-      validator: (v) => (v == null || v.isEmpty) ? "Obligatoire" : null,
     );
   }
 
   Widget _buildDatePicker() {
-    return GestureDetector(
+    return InkWell(
       onTap: () => _selectionnerDate(context),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 14),
         decoration: BoxDecoration(
-          color: AppColors.background,
+          color: Colors.white.withOpacity(0.7),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: _dateNaissance != null
-                ? AppColors.primary
-                : AppColors.border,
-            width: 1.5,
-          ),
         ),
         child: Row(
           children: [
-            const Icon(
-              Icons.calendar_today_rounded,
-              color: AppColors.primary,
-              size: 20,
-            ),
+            const Icon(Icons.cake_outlined, color: AppColors.primary, size: 20),
             const SizedBox(width: 12),
             Text(
               _dateNaissance == null
                   ? "Date de naissance"
-                  : "${_dateNaissance!.day.toString().padLeft(2, '0')}/"
-                        "${_dateNaissance!.month.toString().padLeft(2, '0')}/"
-                        "${_dateNaissance!.year}",
+                  : "Né(e) le : ${_dateNaissance!.day}/${_dateNaissance!.month}/${_dateNaissance!.year}",
               style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: _dateNaissance != null
-                    ? AppColors.textPrimary
-                    : AppColors.textHint,
+                color: _dateNaissance == null ? AppColors.textSecondary : AppColors.textPrimary,
+                fontSize: 14, fontWeight: FontWeight.w600,
               ),
             ),
           ],
@@ -401,29 +446,31 @@ class _RegisterState extends State<Register> {
   }
 
   Widget _buildBloodSelector() {
-    return DropdownButtonFormField<String>(
-      value: _groupeSanguinChoisi,
-      decoration: const InputDecoration(
-        labelText: "Groupe sanguin",
-        labelStyle: TextStyle(color: AppColors.textSecondary, fontSize: 13),
-        prefixIcon: Icon(
-          Icons.bloodtype_rounded,
-          color: AppColors.primary,
-          size: 20,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 15),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.7),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButtonFormField<String>(
+          value: _groupeSanguinChoisi,
+          icon: const Icon(Icons.arrow_drop_down, color: AppColors.primary),
+          style: const TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w600),
+          dropdownColor: Colors.white,
+          decoration: InputDecoration(
+            labelText: "Groupe Sanguin",
+            labelStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+            border: InputBorder.none,
+            prefixIcon: const Icon(Icons.bloodtype_outlined, color: AppColors.primary, size: 20),
+          ),
+          items: _groupes.map((String g) {
+            return DropdownMenuItem(value: g, child: Text(g));
+          }).toList(),
+          onChanged: (value) => setState(() => _groupeSanguinChoisi = value),
+          validator: (value) => value == null ? "Requis" : null,
         ),
       ),
-      items: _groupes
-          .map(
-            (g) => DropdownMenuItem(
-              value: g,
-              child: Text(
-                g,
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
-            ),
-          )
-          .toList(),
-      onChanged: (val) => setState(() => _groupeSanguinChoisi = val),
     );
   }
 }

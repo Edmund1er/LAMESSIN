@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../SERVICES_/api_service.dart';
+import '../../SERVICES_/api_service.dart'; // Gardé pour mediaBaseUrl
+import '../../SERVICES_/patient_service.dart'; // CORRECTION
 import '../../MODELS_/traitement_model.dart';
 import '../../MODELS_/consultation_model.dart';
 import '../../THEME_/app_theme.dart';
@@ -20,8 +21,8 @@ class _SuiviTraitementsPageState extends State<SuiviTraitementsPage> {
 
   Future<void> _chargerDonnees() async {
     setState(() => _chargement = true);
-    final traitements   = await ApiService.getTraitements();
-    final consultations = await ApiService.getMesConsultations();
+    final traitements   = await PatientService.getTraitements(); // CORRECTION
+    final consultations = await PatientService.getMesConsultations(); // CORRECTION
     if (mounted) setState(() {
       _donnees = [...consultations, ...traitements];
       _chargement = false;
@@ -169,7 +170,7 @@ class _SuiviTraitementsPageState extends State<SuiviTraitementsPage> {
       margin: const EdgeInsets.only(bottom: 8),
       child: InkWell(
         onTap: done ? null : () async {
-          bool ok = await ApiService.validerPriseMedicament(p.id);
+          bool ok = await PatientService.validerPriseMedicament(p.id); // CORRECTION
           if (ok) _chargerDonnees();
         },
         borderRadius: BorderRadius.circular(12),

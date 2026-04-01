@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../SERVICES_/api_service.dart';
+import '../../SERVICES_/patient_service.dart';
 import '../../MODELS_/message_model.dart';
 import '../../THEME_/app_theme.dart';
 
@@ -17,7 +17,7 @@ class _AssistantHistoriquePageState extends State<AssistantHistoriquePage> {
   void initState() { super.initState(); _chargerData(); }
 
   Future<void> _chargerData() async {
-    final data = await ApiService.getHistoriqueAssistant();
+    final data = await PatientService.getHistoriqueAssistant();
     if (mounted) setState(() { _historique = data; _isLoading = false; });
   }
 

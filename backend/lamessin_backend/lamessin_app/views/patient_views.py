@@ -1,12 +1,10 @@
 # ====================================================================================================
-# IMPORTATIONS CONSOLIDÉES
+# IMPORTATIONS PATIENT
 # ====================================================================================================
 import os
 import json
 import requests
 from datetime import datetime, timedelta
-from pathlib import Path
-
 from django.db import transaction
 from django.utils.dateparse import parse_date
 from django.utils import timezone
@@ -14,31 +12,29 @@ from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 
-from dotenv import load_dotenv
-
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, generics
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from google import genai
+import google.generativeai as genai
+
 from firebase_admin import messaging
 
-from .models import *
-from .serializers import *
+from lamessin_app.models import *
+from lamessin_app.serializers import *
 
 # ====================================================================================================
-# CONFIGURATION GLOBALE & ENVIRONNEMENT
+# CONFIGURATION PATIENT (Env Variables)
 # ====================================================================================================
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-load_dotenv(os.path.join(BASE_DIR, 'api.env'))
-
-FEDAPAY_SECRET_KEY = "sk_sandbox_-OZyOtHCUyKTfru8x0_xdeP8"
-FEDAPAY_URL = "https://sandbox-api.fedapay.com/v1"
-
+# Chargement de l'environnement si nécessaire, sinon hérité de settings/main_views.py
+# On récupère les clés Cinetpay ici car utilisées par les commandes patients
+CINETPAY_API_KEY = os.environ.get("CINETPAY_API_KEY")
+CINETPAY_SITE_ID = os.environ.get("CINETPAY_SITE_ID")
+CINETPAY_URL = "https://api-checkout.cinetpay.com/v2/payment"
+MY_DOMAIN = os.environ.get("MY_DOMAIN")
 
 
 # ====================================================================================================
@@ -68,92 +64,7 @@ def notifier_paiement_reussi(utilisateur, commande_id):
 
 
 # ====================================================================================================
-# AUTHENTIFICATION & SESSION PERMANENTE (LOGIQUE MODERNE)
-# ====================================================================================================
-
-class Login(TokenObtainPairView):
-    """
-    Retourne Access et Refresh Token.
-    Flutter doit stocker le 'refresh' pour renouveler la session automatiquement.
-    """
-    serializer_class = CustomTokenObtainPairSerializer
-    pass
-
-
-class LogoutView(APIView):
-    """
-    Déconnexion manuelle : invalide le refresh token.
-    """
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        try:
-            refresh_token = request.data["refresh"]
-            token = RefreshToken(refresh_token)
-            token.blacklist()
-            return Response({"success": True, "message": "Déconnecté"}, status=status.HTTP_205_RESET_CONTENT)
-        except Exception:
-            return Response({"error": "Token invalide ou déjà révoqué"}, status=status.HTTP_400_BAD_REQUEST)
-
-
-class InscriptionView(APIView):
-    """
-    Inscription + Connexion automatique (génération de tokens).
-    """
-    permission_classes = [AllowAny]
-
-    def post(self, request):
-        serializer = InscriptionSerializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.save()
-            refresh = RefreshToken.for_user(user)
-            return Response({
-                "success": True,
-                "message": "Compte créé avec succès",
-                "access": str(refresh.access_token),
-                "refresh": str(refresh),
-            }, status=status.HTTP_201_CREATED)
-        return Response({"success": False, "errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
-
-
-# ====================================================================================================
-# PROFIL & UTILISATEUR
-# ====================================================================================================
-
-class UserProfil(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        user = request.user
-        if user.est_un_compte_patient:
-            profile = Patient.objects.get(compte_utilisateur=user)
-            data = PatientSerializer(profile).data
-        elif user.est_un_compte_medecin:
-            profile = Medecin.objects.get(compte_utilisateur=user)
-            data = MedecinSerializer(profile).data
-        elif user.est_un_compte_pharmacien:
-            profile = Pharmacien.objects.get(compte_utilisateur=user)
-            data = PharmacienSerializer(profile).data
-        else:
-            data = UtilisateurSerializer(user).data
-        return Response(data)
-
-
-class UpdateProfilView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def patch(self, request):
-        user = request.user
-        data = request.data
-        user.first_name = data.get('first_name', user.first_name)
-        user.last_name = data.get('last_name', user.last_name)
-        user.numero_telephone = data.get('numero_telephone', user.numero_telephone)
-        user.save()
-        return Response({"success": True})
-
-
-# ====================================================================================================
-# GESTION MÉDICALE (MÉDICAMENTS, SOINS, ÉTABLISSEMENTS)
+# RECHERCHE & ÉTABLISSEMENTS
 # ====================================================================================================
 
 class RechercheMedicament(APIView):
@@ -165,19 +76,6 @@ class RechercheMedicament(APIView):
             nom_commercial__istartswith=query) if query else Medicament.objects.all()[:50]
         serializer = MedicamentsSerializer(medicaments, many=True)
         return Response(serializer.data)
-
-
-class EnregistrerSoin(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        if not request.user.est_un_compte_medecin:
-            return Response({"error": "Accès réservé aux médecins"}, status=403)
-        serializer = ConsultationSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ListeEtablissements(APIView):
@@ -284,14 +182,6 @@ class MesCommandesView(generics.ListAPIView):
             '-date_creation')
 
 
-# ====================================================================================================
-# CONFIGURATION CINETPAY
-# ====================================================================================================
-CINETPAY_API_KEY = os.environ.get("CINETPAY_API_KEY")
-CINETPAY_SITE_ID = os.environ.get("CINETPAY_SITE_ID")
-CINETPAY_URL = "https://api-checkout.cinetpay.com/v2/payment"
-
-
 class CreerCommandeMultiple(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -348,7 +238,7 @@ class CreerCommandeMultiple(APIView):
                 "customer_country": "TG",
                 "customer_state": "TG",
                 "customer_zip_code": "00228",
-                "notify_url": f"{os.environ.get('MY_DOMAIN')}/api/cinetpay-webhook/",
+                "notify_url": f"{MY_DOMAIN}/api/cinetpay-webhook/",
                 "return_url": "https://ton-domaine.com/paiement-succes/",
                 "channels": "ALL",
                 "metadata": str(commande.id)
@@ -390,8 +280,8 @@ class GenererLienPaiement(APIView):
             "customer_name": request.user.last_name,
             "customer_surname": request.user.first_name,
             "metadata": str(commande.id),
-            "notify_url": f"{os.environ.get('MY_DOMAIN')}/api/cinetpay-webhook/",
-            "return_url": f"{os.environ.get('MY_DOMAIN')}/paiement-succes/",
+            "notify_url": f"{MY_DOMAIN}/api/cinetpay-webhook/",
+            "return_url": f"{MY_DOMAIN}/paiement-succes/",
             "channels": "ALL"
         }
 
@@ -448,7 +338,7 @@ def cinetpay_webhook(request):
 
 
 # ====================================================================================================
-# TRAITEMENTS & NOTIFICATIONS
+# TRAITEMENTS & DOSSIER PATIENT
 # ====================================================================================================
 
 class ListeTraitementsPatient(APIView):
@@ -497,61 +387,23 @@ class ListeOrdonnancesPatient(generics.ListAPIView):
         ).order_by('-date_prescription')
 
 
-class ListeNotifications(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        notifications = Notification.objects.filter(destinataire=request.user).order_by('-heure_envoi')
-        return Response(NotificationSerializer(notifications, many=True).data)
-
-
-class EnregistrerFCMToken(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        token = request.data.get('token')
-        if not token: return Response({"error": "Token requis"}, status=400)
-        request.user.fcm_token = token
-        request.user.save()
-        return Response({"success": True})
-
-
 # ====================================================================================================
-# DOCUMENTS MÉDICAUX (UPLOAD)
+# ASSISTANT CHATBOT GEMINI (PATIENT)
 # ====================================================================================================
 
-class UploadDocumentMedicalView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        fichier = request.FILES.get('document')
-        if not fichier: return Response({"error": "Aucun fichier fourni"}, status=400)
-
-        if request.user.est_un_compte_medecin:
-            consultation_id = request.data.get('consultation_id')
-            consultation = get_object_or_404(Consultation, id=consultation_id)
-            consultation.document_joint = fichier
-            consultation.save()
-            return Response({"success": True, "message": "Document enregistré"})
-
-        return Response({"error": "Action non autorisée"}, status=403)
-
-
-# ====================================================================================================
-# ASSISTANT CHATBOT GEMINI
-# ====================================================================================================
-
-
-client = genai.Client(api_key="AIzaSyAIRtRJ8XKpeS_RlaQUtRIkoZuIrQJWUAQ")
-from rest_framework.permissions import IsAuthenticated
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def assistant(request):
-    reponse = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=request.data.get("prompt")
-    )
-    return Response({"reponse": reponse.text})
+    # Configuration de la clé API (normalement dans settings.py, mais on la garde ici pour l'instant)
+    genai.configure(api_key="AIzaSyAIRtRJ8XKpeS_RlaQUtRIkoZuIrQJWUAQ")
+
+    # Initialisation du modèle
+    model = genai.GenerativeModel("gemini-2.5-flash")
+
+    # Génération de la réponse
+    response = model.generate_content(request.data.get("prompt"))
+
+    return Response({"reponse": response.text})
 
 
 class AssistantHistoriqueView(APIView):

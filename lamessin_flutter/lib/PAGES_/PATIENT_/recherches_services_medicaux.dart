@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../SERVICES_/api_service.dart';
+import '../../SERVICES_/patient_service.dart'; // CORRECTION (Ajouté)
 import '../../WIDGETS_/menu_navigation.dart';
 import '../../MODELS_/medicament_model.dart';
 import '../../MODELS_/etablissement_model.dart';
@@ -62,7 +63,7 @@ class _RechercheServicesPageState extends State<RechercheServicesPage> {
     if (query.length < 2) { setState(() => resultatsMedicaments = []); return; }
     setState(() => rechercheEnCours = true);
     try {
-      final List<Medicament> resultats = await ApiService.rechercherMedicaments(query);
+      final List<Medicament> resultats = await PatientService.rechercherMedicaments(query); // CORRECTION
       if (_currentPosition != null) {
         for (var medoc in resultats) {
           medoc.stocksDisponibles.sort((a, b) {
@@ -83,7 +84,7 @@ class _RechercheServicesPageState extends State<RechercheServicesPage> {
   Future<void> _chargerEtTrierEtablissements() async {
     setState(() => chargementEtablissements = true);
     try {
-      List<EtablissementSante> data = await ApiService.getEtablissements();
+      List<EtablissementSante> data = await PatientService.getEtablissements(); // Rester dans ApiService
       if (_currentPosition != null) {
         data.sort((a, b) {
           double dA = Geolocator.distanceBetween(_currentPosition!.latitude,

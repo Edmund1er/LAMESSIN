@@ -72,7 +72,8 @@ flutter:
   # Déclaration des assets (images)
   assets:
     - assets/images/accueil_image.jpeg
-
+    - assets/images/login.jpeg
+    - assets/images/register.jpeg
 
 
 

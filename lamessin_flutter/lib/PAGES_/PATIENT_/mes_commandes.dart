@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../SERVICES_/api_service.dart';
+import '../../SERVICES_/patient_service.dart'; // CORRECTION
 import '../../WIDGETS_/menu_navigation.dart';
 import '../../MODELS_/commande_model.dart';
 import '../../THEME_/app_theme.dart';
@@ -35,13 +35,13 @@ class _MesCommandesPageState extends State<MesCommandesPage>
   }
 
   Future<void> _chargerCommandes() async {
-    final data = await ApiService.getMesCommandes();
+    final data = await PatientService.getMesCommandes(); // CORRECTION
     if (mounted) setState(() { _commandes = data; _chargement = false; });
   }
 
   Future<void> _relancerPaiement(int commandeId) async {
     AppWidgets.showSnack(context, "Ouverture du portail de paiement Togo...");
-    final resultat = await ApiService.obtenirLienPaiement(commandeId);
+    final resultat = await PatientService.obtenirLienPaiement(commandeId); // CORRECTION
     if (resultat != null && resultat['payment_url'] != null) {
       final Uri uri = Uri.parse(resultat['payment_url']);
       if (await canLaunchUrl(uri)) {

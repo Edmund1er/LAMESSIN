@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../SERVICES_/api_service.dart';
+import '../../SERVICES_/patient_service.dart'; // CORRECTION
 import '../../WIDGETS_/menu_navigation.dart';
 import '../../MODELS_/utilisateur_model.dart';
 import '../../THEME_/app_theme.dart';
@@ -33,7 +33,7 @@ class _RendezVousPageState extends State<RendezVousPage> {
   Future<void> _chargerMedecins() async {
     setState(() { _estEnTrainDeCharger = true; _messageErreur = null; });
     try {
-      List<Medecin> liste = await ApiService.getListeMedecins();
+      List<Medecin> liste = await PatientService.getListeMedecins(); // CORRECTION
       if (mounted) setState(() {
         _medecinsDisponibles = liste;
         _estEnTrainDeCharger = false;
@@ -53,7 +53,7 @@ class _RendezVousPageState extends State<RendezVousPage> {
     try {
       String dateStr = DateFormat('yyyy-MM-dd').format(_dateChoisie!);
       int idMed = _medecinSelectionne!.compteUtilisateur.id;
-      List<dynamic> data = await ApiService.getCreneaux(idMed, dateStr);
+      List<dynamic> data = await PatientService.getCreneaux(idMed, dateStr); // CORRECTION
       setState(() {
         _creneauxDisponibles = data;
         _idHeureSelectionnee = null;
@@ -82,7 +82,7 @@ class _RendezVousPageState extends State<RendezVousPage> {
       "motif_consultation": _motif.text.trim(),
       "statut_actuel_rdv": "en_attente",
     };
-    bool succes = await ApiService.creerRendezVous(rdv);
+    bool succes = await PatientService.creerRendezVous(rdv); // CORRECTION
     if (!mounted) return;
     setState(() => _estEnTrainDeCharger = false);
     if (succes) {

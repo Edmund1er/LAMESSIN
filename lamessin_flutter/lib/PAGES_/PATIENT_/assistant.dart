@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../SERVICES_/api_service.dart';
+import 'package:lamessin_flutter/MODELS_/utilisateur_model.dart';
+import '../../SERVICES_/patient_service.dart';
 import '../../MODELS_/message_model.dart';
 import '../../THEME_/app_theme.dart';
 
@@ -35,7 +36,7 @@ class _AssistantPageState extends State<AssistantPage> {
   }
 
   Future<void> _chargerHistorique() async {
-    final historique = await ApiService.getHistoriqueAssistant();
+    final historique = await PatientService.getHistoriqueAssistant();
     if (mounted) {
       setState(() {
         for (var msg in historique) {
@@ -60,7 +61,7 @@ class _AssistantPageState extends State<AssistantPage> {
     _controller.clear();
     _scrollToBottom();
 
-    final response = await ApiService.envoyerMessageAssistant(texte);
+    final response = await PatientService.envoyerMessageAssistant(texte);
     if (mounted) {
       setState(() {
         _isTyping = false;

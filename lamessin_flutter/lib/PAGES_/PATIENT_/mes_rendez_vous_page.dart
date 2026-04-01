@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../SERVICES_/api_service.dart';
+import '../../SERVICES_/patient_service.dart'; // CORRECTION
 import '../../WIDGETS_/menu_navigation.dart';
 import '../../MODELS_/rendezvous_model.dart';
 import '../../MODELS_/utilisateur_model.dart';
@@ -21,7 +21,7 @@ class _MesRendezVousPageState extends State<MesRendezVousPage> {
   Future<void> _recupererRendezVous() async {
     setState(() => _chargement = true);
     try {
-      final List<RendezVous> data = await ApiService.getMesRendezVous();
+      final List<RendezVous> data = await PatientService.getMesRendezVous(); // CORRECTION
       setState(() { _tousMesRDV = data; _chargement = false; });
     } catch (e) {
       setState(() => _chargement = false);
@@ -30,7 +30,7 @@ class _MesRendezVousPageState extends State<MesRendezVousPage> {
   }
 
   Future<void> _annulerRDV(int id) async {
-    bool succes = await ApiService.annulerRendezVous(id);
+    bool succes = await PatientService.annulerRendezVous(id); // CORRECTION
     if (succes) { _msg("Rendez-vous annulé", AppColors.warning); _recupererRendezVous(); }
     else _msg("Erreur lors de l'annulation", AppColors.danger);
   }
