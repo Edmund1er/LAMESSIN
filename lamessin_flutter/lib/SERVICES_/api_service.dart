@@ -18,7 +18,7 @@ import '../MODELS_/consultation_model.dart';
 import '../MODELS_/traitement_model.dart';
 
 class ApiService {
-  static const bool useNgrok = true;
+  static const bool useNgrok = false;
 
   static String get baseUrl {
     if (useNgrok) return "https://budlike-kai-unflickering.ngrok-free.dev/api";
@@ -136,6 +136,7 @@ class ApiService {
 
   static Future<bool> inscription(Map<String, dynamic> donnees) async {
     try {
+      print("DONNÉES ENVOYÉES: ${jsonEncode(donnees)}"); // ← AJOUTER
       final response = await http.post(
         Uri.parse('$baseUrl/inscription/'),
         headers: {
@@ -144,8 +145,11 @@ class ApiService {
         },
         body: jsonEncode(donnees),
       );
+      print("INSCRIPTION STATUS: ${response.statusCode}"); // ← AJOUTER
+      print("INSCRIPTION BODY: ${response.body}"); // ← AJOUTER
       return response.statusCode == 201;
     } catch (e) {
+      print("ERREUR INSCRIPTION: $e"); // ← AJOUTER
       return false;
     }
   }
@@ -160,19 +164,19 @@ class ApiService {
 
       if (response.statusCode == 200) {
         var data = json.decode(utf8.decode(response.bodyBytes));
-        
+
         // CORRECTION ICI :
         // Si la réponse contient 'compte_utilisateur', c'est que c'est un profil détaillé (Patient/Medecin).
         if (data.containsKey('compte_utilisateur')) {
-           // On vérifie si c'est un patient (présence de date_naissance)
-           if (data.containsKey('date_naissance')) {
-             return Patient.fromJson(data);
-           }
-           // Sinon on renvoie l'Utilisateur imbriqué (pour Medecin/Pharmacien ou fallback)
-           return Utilisateur.fromJson(data['compte_utilisateur']);
+          // On vérifie si c'est un patient (présence de date_naissance)
+          if (data.containsKey('date_naissance')) {
+            return Patient.fromJson(data);
+          }
+          // Sinon on renvoie l'Utilisateur imbriqué (pour Medecin/Pharmacien ou fallback)
+          return Utilisateur.fromJson(data['compte_utilisateur']);
         } else {
-           // Cas rare : réponse directe Utilisateur
-           return Utilisateur.fromJson(data);
+          // Cas rare : réponse directe Utilisateur
+          return Utilisateur.fromJson(data);
         }
       }
       return null;
@@ -189,7 +193,7 @@ class ApiService {
         headers: await _getHeaders(),
         body: jsonEncode(donnees),
       );
-      
+
       print("UPDATE PROFIL STATUS: ${response.statusCode}");
       print("UPDATE PROFIL BODY: ${response.body}");
 
@@ -199,6 +203,7 @@ class ApiService {
       return false;
     }
   }
+
   static Future<void> logout() async {
     try {
       // Si tu utilises SharedPreferences pour le token, vide-le ici
@@ -326,7 +331,7 @@ class ApiService {
         Uri.parse('$baseUrl/medicaments/recherche/?q=$query'),
         headers: await _getHeaders(),
       );
-      
+
       // DEBUG : Affiche ce que le serveur répond pour comprendre pourquoi ça ne vient pas
       print("RECHERCHE MEDOC STATUS: ${response.statusCode}");
       print("RECHERCHE MEDOC BODY: ${response.body}");
@@ -341,7 +346,6 @@ class ApiService {
       return [];
     }
   }
-
 
   static Future<Map<String, dynamic>?> creerCommandeMultiple(
     List<Map<String, dynamic>> articles, {
@@ -365,7 +369,9 @@ class ApiService {
     }
   }
 
-  static Future<Map<String, dynamic>?> obtenirLienPaiement(int commandeId) async {
+  static Future<Map<String, dynamic>?> obtenirLienPaiement(
+    int commandeId,
+  ) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/commandes/$commandeId/genererLien/'),
@@ -376,7 +382,9 @@ class ApiService {
         // Le backend renverra un JSON contenant {'payment_url': '...'}
         return json.decode(utf8.decode(response.bodyBytes));
       } else {
-        debugPrint("Erreur lors de la génération du lien CinetPay: ${response.statusCode}");
+        debugPrint(
+          "Erreur lors de la génération du lien CinetPay: ${response.statusCode}",
+        );
         return null;
       }
     } catch (e) {

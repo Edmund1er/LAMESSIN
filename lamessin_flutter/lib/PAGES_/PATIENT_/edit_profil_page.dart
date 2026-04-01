@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../SERVICES_/api_service.dart';
-import '../../MODELS_/utilisateur_model.dart'; 
+import '../../MODELS_/utilisateur_model.dart';
+import '../../THEME_/app_theme.dart';
 
 class EditProfilPage extends StatefulWidget {
-  final Patient patient; 
+  final Patient patient;
   const EditProfilPage({super.key, required this.patient});
-
   @override
   State<EditProfilPage> createState() => _EditProfilPageState();
 }
@@ -16,15 +16,12 @@ class _EditProfilPageState extends State<EditProfilPage> {
   late TextEditingController _telController;
   bool _enChargement = false;
 
-  final Color couleurVerte = const Color.fromARGB(255, 78, 192, 17);
-  final Color couleurBleue = const Color(0xFF0056b3);
-
   @override
   void initState() {
     super.initState();
     _prenomController = TextEditingController(text: widget.patient.compteUtilisateur.firstName);
-    _nomController = TextEditingController(text: widget.patient.compteUtilisateur.lastName);
-    _telController = TextEditingController(text: widget.patient.compteUtilisateur.numeroTelephone);
+    _nomController    = TextEditingController(text: widget.patient.compteUtilisateur.lastName);
+    _telController    = TextEditingController(text: widget.patient.compteUtilisateur.numeroTelephone);
   }
 
   @override
@@ -36,27 +33,27 @@ class _EditProfilPageState extends State<EditProfilPage> {
   }
 
   void _sauvegarder() async {
-    if (_prenomController.text.trim().isEmpty || _nomController.text.trim().isEmpty || _telController.text.trim().isEmpty) {
-      _afficherMessage("Veuillez remplir tous les champs obligatoires", Colors.red);
+    if (_prenomController.text.trim().isEmpty ||
+        _nomController.text.trim().isEmpty ||
+        _telController.text.trim().isEmpty) {
+      AppWidgets.showSnack(context,
+          "Veuillez remplir tous les champs obligatoires", color: AppColors.danger);
       return;
     }
-
     setState(() => _enChargement = true);
-    
     Map<String, dynamic> data = {
-      "first_name": _prenomController.text.trim(),
-      "last_name": _nomController.text.trim(),
+      "first_name":       _prenomController.text.trim(),
+      "last_name":        _nomController.text.trim(),
       "numero_telephone": _telController.text.trim(),
     };
-
     bool succes = await ApiService.updateProfil(data);
-
     if (mounted) {
       setState(() => _enChargement = false);
       if (succes) {
         Navigator.pop(context, true);
       } else {
-        _afficherMessage("Erreur lors de la mise à jour", Colors.red);
+        AppWidgets.showSnack(context,
+            "Erreur lors de la mise à jour", color: AppColors.danger);
       }
     }
   }
@@ -64,91 +61,72 @@ class _EditProfilPageState extends State<EditProfilPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F9FF),
-      appBar: AppBar(
-        title: const Text("Modifier Profil", style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
-        foregroundColor: couleurBleue,
-        elevation: 1,
-        centerTitle: true,
-      ),
+      backgroundColor: AppColors.background,
+      appBar: AppWidgets.appBar("Modifier mon profil"),
       body: SingleChildScrollView(
-        child: Column(
-          children: [
-            Container(
-              height: 10,
-              width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          // Avatar
+          Center(
+            child: Container(
+              width: 80, height: 80,
               decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [couleurVerte.withOpacity(0.8), couleurBleue]),
+                color: AppColors.primaryLight,
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.primary.withOpacity(0.3), width: 3),
               ),
+              child: const Icon(Icons.person_rounded, color: AppColors.primary, size: 40),
             ),
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  const SizedBox(height: 20),
-                  const Text("Vos coordonnées", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
-                  const SizedBox(height: 30),
-                  _buildPremiumField(_prenomController, "Prénom", Icons.person_outline_rounded),
-                  const SizedBox(height: 15),
-                  _buildPremiumField(_nomController, "Nom", Icons.person_outline_rounded),
-                  const SizedBox(height: 15),
-                  _buildPremiumField(_telController, "Numéro de téléphone", Icons.phone_android_rounded, keyboard: TextInputType.phone),
-                  const SizedBox(height: 45),
-                  _buildBoutonSauvegarder(),
-                  const SizedBox(height: 20),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 28),
+
+          const Text("Vos coordonnées",
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary)),
+          const SizedBox(height: 16),
+
+          _label("Prénom"),
+          const SizedBox(height: 8),
+          _buildField(_prenomController, "Kofi", Icons.person_rounded),
+          const SizedBox(height: 16),
+
+          _label("Nom"),
+          const SizedBox(height: 8),
+          _buildField(_nomController, "Mensah", Icons.person_outline_rounded),
+          const SizedBox(height: 16),
+
+          _label("Numéro de téléphone"),
+          const SizedBox(height: 8),
+          _buildField(_telController, "+228 90 00 00 00", Icons.phone_android_rounded,
+              keyboard: TextInputType.phone),
+          const SizedBox(height: 36),
+
+          AppWidgets.primaryButton(
+            label: "Sauvegarder les modifications",
+            icon: Icons.save_rounded,
+            onPressed: _sauvegarder,
+            loading: _enChargement,
+          ),
+          const SizedBox(height: 20),
+        ]),
       ),
     );
   }
 
-  Widget _buildBoutonSauvegarder() {
-    return SizedBox(
-      width: double.infinity,
-      height: 55,
-      child: ElevatedButton(
-        onPressed: _enChargement ? null : _sauvegarder,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color.fromARGB(255, 78, 192, 17),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-          elevation: 3,
-        ),
-        child: _enChargement 
-          ? const CircularProgressIndicator(color: Colors.white) 
-          : const Text("SAUVEGARDER LES MODIFICATIONS", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+  Widget _label(String text) => Text(text, style: const TextStyle(
+      fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary));
+
+  Widget _buildField(TextEditingController ctrl, String hint, IconData icon,
+      {TextInputType keyboard = TextInputType.text}) {
+    return TextField(
+      controller: ctrl,
+      keyboardType: keyboard,
+      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500,
+          color: AppColors.textPrimary),
+      decoration: InputDecoration(
+        hintText: hint,
+        prefixIcon: Icon(icon, color: AppColors.primary, size: 20),
       ),
     );
-  }
-
-  Widget _buildPremiumField(TextEditingController controller, String label, IconData icon, {TextInputType keyboard = TextInputType.text}) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [BoxShadow(color: couleurBleue.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
-      ),
-      child: TextField(
-        controller: controller,
-        keyboardType: keyboard,
-        style: const TextStyle(fontWeight: FontWeight.w500),
-        decoration: InputDecoration(
-          labelText: label,
-          labelStyle: const TextStyle(color: Colors.grey, fontSize: 14),
-          prefixIcon: Icon(icon, color: couleurBleue),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
-          filled: true,
-          fillColor: Colors.white,
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: couleurBleue, width: 1.5)),
-        ),
-      ),
-    );
-  }
-
-  void _afficherMessage(String msg, Color couleur) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: couleur, behavior: SnackBarBehavior.floating));
   }
 }

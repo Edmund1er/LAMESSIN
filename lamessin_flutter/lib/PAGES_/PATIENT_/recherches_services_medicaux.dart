@@ -3,53 +3,39 @@ import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../SERVICES_/api_service.dart';
 import '../../WIDGETS_/menu_navigation.dart';
-import 'panier_page.dart';
-
-// Importation de ton modèle exact
 import '../../MODELS_/medicament_model.dart';
 import '../../MODELS_/etablissement_model.dart';
+import '../../THEME_/app_theme.dart';
+import 'panier_page.dart';
 
 class RechercheServicesPage extends StatefulWidget {
   const RechercheServicesPage({super.key});
-
   @override
   State<RechercheServicesPage> createState() => _RechercheServicesPageState();
 }
 
 class _RechercheServicesPageState extends State<RechercheServicesPage> {
-  List<EtablissementSante> etablissements = []; // Typage strict : Liste d'objets EtablissementSante
+  List<EtablissementSante> etablissements = [];
   bool chargementEtablissements = true;
   String filtreType = "Tous";
 
   List<Medicament> resultatsMedicaments = [];
   bool rechercheEnCours = false;
   final TextEditingController _searchController = TextEditingController();
-  
-  // Utilisation de la position pour le calcul de distance
   Position? _currentPosition;
-
   List<PanierItem> _panier = [];
 
   @override
-  void initState() {
-    super.initState();
-    _initialiserLocalisationEtDonnees();
-  }
+  void initState() { super.initState(); _initialiserLocalisationEtDonnees(); }
 
   @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
+  void dispose() { _searchController.dispose(); super.dispose(); }
 
   Future<void> _initialiserLocalisationEtDonnees() async {
     try {
       LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
+      if (permission == LocationPermission.denied)
         permission = await Geolocator.requestPermission();
-      }
-      
-      // Récupération de la position
       _currentPosition = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.low,
           timeLimit: const Duration(seconds: 3));
@@ -61,44 +47,34 @@ class _RechercheServicesPageState extends State<RechercheServicesPage> {
   }
 
   Future<void> _ouvrirItineraire(double lat, double lng) async {
-    final String url = "https://www.google.com/maps/search/?api=1&query=$lat,$lng";
-    final Uri uri = Uri.parse(url);
+    final Uri uri = Uri.parse(
+        "https://www.google.com/maps/search/?api=1&query=$lat,$lng");
     try {
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } else {
-        await launchUrl(uri, mode: LaunchMode.platformDefault);
-      }
+      if (await canLaunchUrl(uri)) await launchUrl(uri, mode: LaunchMode.externalApplication);
+      else await launchUrl(uri, mode: LaunchMode.platformDefault);
     } catch (e) {
-      _afficherSnackBar("Erreur lors de l'ouverture de la carte", Colors.red);
+      AppWidgets.showSnack(context, "Erreur lors de l'ouverture de la carte",
+          color: AppColors.danger);
     }
   }
 
   void _rechercherMedicament(String query) async {
-    if (query.length < 2) {
-      setState(() => resultatsMedicaments = []);
-      return;
-    }
+    if (query.length < 2) { setState(() => resultatsMedicaments = []); return; }
     setState(() => rechercheEnCours = true);
     try {
       final List<Medicament> resultats = await ApiService.rechercherMedicaments(query);
-      
-      // UTILISATION DE _currentPosition : Tri des stocks par proximité si la position est connue
       if (_currentPosition != null) {
         for (var medoc in resultats) {
-          // medoc.stocksDisponibles est une List<StockPharmacie>
           medoc.stocksDisponibles.sort((a, b) {
-            double distA = Geolocator.distanceBetween(_currentPosition!.latitude, _currentPosition!.longitude, a.latitude, a.longitude);
-            double distB = Geolocator.distanceBetween(_currentPosition!.latitude, _currentPosition!.longitude, b.latitude, b.longitude);
-            return distA.compareTo(distB);
+            double dA = Geolocator.distanceBetween(_currentPosition!.latitude,
+                _currentPosition!.longitude, a.latitude, a.longitude);
+            double dB = Geolocator.distanceBetween(_currentPosition!.latitude,
+                _currentPosition!.longitude, b.latitude, b.longitude);
+            return dA.compareTo(dB);
           });
         }
       }
-
-      setState(() {
-        resultatsMedicaments = resultats;
-        rechercheEnCours = false;
-      });
+      setState(() { resultatsMedicaments = resultats; rechercheEnCours = false; });
     } catch (e) {
       setState(() => rechercheEnCours = false);
     }
@@ -107,23 +83,17 @@ class _RechercheServicesPageState extends State<RechercheServicesPage> {
   Future<void> _chargerEtTrierEtablissements() async {
     setState(() => chargementEtablissements = true);
     try {
-      // ApiService renvoie maintenant une liste d'objets EtablissementSante
       List<EtablissementSante> data = await ApiService.getEtablissements();
-      
-      // UTILISATION DE _currentPosition : Tri des établissements
       if (_currentPosition != null) {
         data.sort((a, b) {
-          // CORRECTION ICI : On utilise les propriétés de l'objet (a.latitude), pas les clés de map
-          double distA = Geolocator.distanceBetween(_currentPosition!.latitude, _currentPosition!.longitude, a.latitude, a.longitude);
-          double distB = Geolocator.distanceBetween(_currentPosition!.latitude, _currentPosition!.longitude, b.latitude, b.longitude);
-          return distA.compareTo(distB);
+          double dA = Geolocator.distanceBetween(_currentPosition!.latitude,
+              _currentPosition!.longitude, a.latitude, a.longitude);
+          double dB = Geolocator.distanceBetween(_currentPosition!.latitude,
+              _currentPosition!.longitude, b.latitude, b.longitude);
+          return dA.compareTo(dB);
         });
       }
-
-      setState(() {
-        etablissements = data;
-        chargementEtablissements = false;
-      });
+      setState(() { etablissements = data; chargementEtablissements = false; });
     } catch (e) {
       setState(() => chargementEtablissements = false);
     }
@@ -134,41 +104,94 @@ class _RechercheServicesPageState extends State<RechercheServicesPage> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) => Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom + 20, left: 20, right: 20, top: 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(medoc.nomCommercial, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 10),
-              Text("Prix : ${medoc.prixVente.toStringAsFixed(0)} FCFA"),
-              const Divider(),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  IconButton(icon: const Icon(Icons.remove_circle_outline, color: Colors.red), 
-                             onPressed: () => setModalState(() => quantite > 1 ? quantite-- : null)),
-                  Text("$quantite", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                  IconButton(icon: const Icon(Icons.add_circle_outline, color: Colors.green), 
-                             onPressed: () => setModalState(() => quantite++)),
-                ],
+        builder: (context, setModal) => Padding(
+          padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+              left: 20, right: 20, top: 20),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(width: 40, height: 4,
+                decoration: BoxDecoration(color: AppColors.border,
+                    borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 16),
+            Text(medoc.nomCommercial, style: const TextStyle(
+                fontSize: 18, fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary)),
+            const SizedBox(height: 6),
+            Text("${medoc.prixVente.toStringAsFixed(0)} FCFA / unité",
+                style: const TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: AppColors.background,
+                  borderRadius: BorderRadius.circular(14)),
+              child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                GestureDetector(
+                  onTap: () => setModal(() => quantite > 1 ? quantite-- : null),
+                  child: Container(width: 36, height: 36,
+                      decoration: BoxDecoration(color: AppColors.dangerLight,
+                          shape: BoxShape.circle),
+                      child: const Icon(Icons.remove_rounded,
+                          color: AppColors.danger, size: 18)),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Text("$quantite", style: const TextStyle(
+                      fontSize: 24, fontWeight: FontWeight.w900,
+                      color: AppColors.textPrimary)),
+                ),
+                GestureDetector(
+                  onTap: () => setModal(() => quantite++),
+                  child: Container(width: 36, height: 36,
+                      decoration: BoxDecoration(color: AppColors.successLight,
+                          shape: BoxShape.circle),
+                      child: const Icon(Icons.add_rounded,
+                          color: Color(0xFF22863A), size: 18)),
+                ),
+              ]),
+            ),
+            const SizedBox(height: 20),
+            Row(children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.textSecondary,
+                    side: const BorderSide(color: AppColors.border),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  child: const Text("Annuler",
+                      style: TextStyle(fontWeight: FontWeight.w700)),
+                ),
               ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
+              const SizedBox(width: 10),
+              Expanded(
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    elevation: 0,
+                  ),
                   onPressed: () {
                     _ajouterAuPanier(medoc, quantite, pharmacieId);
                     Navigator.pop(context);
                   },
-                  child: Text("Ajouter (${(medoc.prixVente * quantite).toStringAsFixed(0)} FCFA)", style: const TextStyle(color: Colors.white)),
+                  child: Text(
+                      "Ajouter (${(medoc.prixVente * quantite).toStringAsFixed(0)} FCFA)",
+                      style: const TextStyle(fontWeight: FontWeight.w700,
+                          fontSize: 13)),
                 ),
-              )
-            ],
-          ),
+              ),
+            ]),
+          ]),
         ),
       ),
     );
@@ -176,109 +199,182 @@ class _RechercheServicesPageState extends State<RechercheServicesPage> {
 
   void _ajouterAuPanier(Medicament medoc, int qte, int pharmacieId) {
     setState(() {
-      int index = _panier.indexWhere((item) => item.idMedoc == medoc.id && item.idPharmacie == pharmacieId);
+      int index = _panier.indexWhere(
+          (item) => item.idMedoc == medoc.id && item.idPharmacie == pharmacieId);
       if (index != -1) {
         _panier[index].quantite += qte;
       } else {
         _panier.add(PanierItem(
-          idMedoc: medoc.id,
-          idPharmacie: pharmacieId,
-          nom: medoc.nomCommercial,
-          prix: medoc.prixVente,
-          quantite: qte,
-        ));
+          idMedoc: medoc.id, idPharmacie: pharmacieId,
+          nom: medoc.nomCommercial, prix: medoc.prixVente, quantite: qte));
       }
     });
-    _afficherSnackBar("${medoc.nomCommercial} ajouté au panier", Colors.green);
-  }
-
-  void _afficherSnackBar(String msg, Color couleur) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: couleur));
+    AppWidgets.showSnack(context, "${medoc.nomCommercial} ajouté au panier",
+        color: AppColors.success);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       drawer: const MenuNavigation(),
-      appBar: AppBar(
-        title: const Text("Services Médicaux"),
-        backgroundColor: const Color(0xFF0056b3),
-        foregroundColor: Colors.white,
-      ),
+      appBar: null,
       floatingActionButton: _panier.isNotEmpty
           ? FloatingActionButton.extended(
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => PanierPage(items: _panier))).then((_) => setState(() {})),
-              label: Text("Panier (${_panier.length})"),
-              icon: const Icon(Icons.shopping_cart),
-              backgroundColor: Colors.green,
+              onPressed: () => Navigator.push(context, MaterialPageRoute(
+                      builder: (_) => PanierPage(items: _panier)))
+                  .then((_) => setState(() {})),
+              backgroundColor: AppColors.primary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              label: Text("Panier (${_panier.length})",
+                  style: const TextStyle(color: Colors.white,
+                      fontWeight: FontWeight.w700)),
+              icon: const Icon(Icons.shopping_cart_rounded, color: Colors.white),
             )
           : null,
-      body: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            color: const Color(0xFF0056b3),
-            child: TextField(
-              controller: _searchController,
-              onChanged: _rechercherMedicament,
-              decoration: InputDecoration(
-                hintText: "Rechercher un médicament...",
-                prefixIcon: const Icon(Icons.search),
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
+      body: Column(children: [
+        // ── HEADER VIOLET ──
+        Container(
+          color: AppColors.primary,
+          padding: EdgeInsets.only(
+            top: MediaQuery.of(context).padding.top + 10,
+            bottom: 16, left: 16, right: 16,
+          ),
+          child: Column(children: [
+            Row(children: [
+              Builder(builder: (ctx) => GestureDetector(
+                onTap: () => Scaffold.of(ctx).openDrawer(),
+                child: Container(
+                  width: 38, height: 38,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.menu_rounded, color: Colors.white, size: 20),
+                ),
+              )),
+              const SizedBox(width: 12),
+              const Text("Services médicaux", style: TextStyle(
+                  color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800)),
+            ]),
+            const SizedBox(height: 14),
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.surface, borderRadius: BorderRadius.circular(14)),
+              child: TextField(
+                controller: _searchController,
+                onChanged: _rechercherMedicament,
+                style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
+                decoration: const InputDecoration(
+                  hintText: "Rechercher un médicament...",
+                  prefixIcon: Icon(Icons.search_rounded,
+                      color: AppColors.textSecondary, size: 20),
+                  border: InputBorder.none,
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+                ),
               ),
             ),
-          ),
-          Expanded(
-            child: _searchController.text.isNotEmpty ? _buildResultatsMedicaments() : _buildListeEtablissements(),
-          ),
-        ],
-      ),
+          ]),
+        ),
+
+        // ── CONTENU ──
+        Expanded(
+          child: _searchController.text.isNotEmpty
+              ? _buildResultatsMedicaments()
+              : _buildListeEtablissements(),
+        ),
+      ]),
     );
   }
 
   Widget _buildResultatsMedicaments() {
-    if (rechercheEnCours) return const Center(child: CircularProgressIndicator());
-    if (resultatsMedicaments.isEmpty) return const Center(child: Text("Aucun résultat."));
+    if (rechercheEnCours)
+      return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+    if (resultatsMedicaments.isEmpty)
+      return const Center(child: Text("Aucun résultat.",
+          style: TextStyle(color: AppColors.textSecondary)));
 
     return ListView.builder(
+      padding: const EdgeInsets.all(14),
       itemCount: resultatsMedicaments.length,
-      itemBuilder: (context, index) {
+      itemBuilder: (_, index) {
         final medoc = resultatsMedicaments[index];
-        return Card(
-          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          child: ExpansionTile(
-            leading: Icon(Icons.medication, color: medoc.stocksDisponibles.isNotEmpty ? Colors.blue : Colors.red),
-            title: Text(medoc.nomCommercial, style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text("${medoc.prixVente.toStringAsFixed(0)} FCFA"),
-            children: medoc.stocksDisponibles.map((s) {
-              // Calcul de la distance pour l'affichage
-              String distanceText = "";
-              if (_currentPosition != null) {
-                double dist = Geolocator.distanceBetween(_currentPosition!.latitude, _currentPosition!.longitude, s.latitude, s.longitude);
-                distanceText = " - ${(dist / 1000).toStringAsFixed(1)} km";
-              }
-
-              return ListTile(
-                leading: const Icon(Icons.location_on, color: Colors.green),
-                title: Text(s.nomPharmacie),
-                subtitle: Text("En stock: ${s.quantiteEnStock}$distanceText"),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.directions, color: Colors.blue),
-                      onPressed: () => _ouvrirItineraire(s.latitude, s.longitude),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.add_shopping_cart, color: Colors.green), 
-                      onPressed: () => _afficherModalCommande(medoc, s.idPharmacie),
-                    ),
-                  ],
+        return Container(
+          margin: const EdgeInsets.only(bottom: 10),
+          decoration: BoxDecoration(color: AppColors.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.borderLight)),
+          child: Theme(
+            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+            child: ExpansionTile(
+              tilePadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+              leading: Container(
+                width: 40, height: 40,
+                decoration: BoxDecoration(
+                  color: medoc.stocksDisponibles.isNotEmpty
+                      ? AppColors.primaryLight : AppColors.dangerLight,
+                  borderRadius: BorderRadius.circular(11),
                 ),
-              );
-            }).toList(),
+                child: Icon(Icons.medication_rounded,
+                    color: medoc.stocksDisponibles.isNotEmpty
+                        ? AppColors.primary : AppColors.danger, size: 20),
+              ),
+              title: Text(medoc.nomCommercial, style: const TextStyle(
+                  fontSize: 14, fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary)),
+              subtitle: Text("${medoc.prixVente.toStringAsFixed(0)} FCFA",
+                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+              children: medoc.stocksDisponibles.map((s) {
+                String distanceText = "";
+                if (_currentPosition != null) {
+                  double dist = Geolocator.distanceBetween(
+                      _currentPosition!.latitude, _currentPosition!.longitude,
+                      s.latitude, s.longitude);
+                  distanceText = " · ${(dist / 1000).toStringAsFixed(1)} km";
+                }
+                return Container(
+                  margin: const EdgeInsets.fromLTRB(14, 0, 14, 8),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(color: AppColors.background,
+                      borderRadius: BorderRadius.circular(12)),
+                  child: Row(children: [
+                    const Icon(Icons.location_on_rounded,
+                        color: AppColors.success, size: 16),
+                    const SizedBox(width: 8),
+                    Expanded(child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(s.nomPharmacie, style: const TextStyle(
+                          fontSize: 13, fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary)),
+                      Text("Stock: ${s.quantiteEnStock}$distanceText",
+                          style: const TextStyle(
+                              fontSize: 11, color: AppColors.textSecondary)),
+                    ])),
+                    GestureDetector(
+                      onTap: () => _ouvrirItineraire(s.latitude, s.longitude),
+                      child: Container(
+                        width: 34, height: 34, margin: const EdgeInsets.only(right: 6),
+                        decoration: BoxDecoration(color: AppColors.primaryLight,
+                            borderRadius: BorderRadius.circular(8)),
+                        child: const Icon(Icons.directions_rounded,
+                            color: AppColors.primary, size: 17),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => _afficherModalCommande(medoc, s.idPharmacie),
+                      child: Container(
+                        width: 34, height: 34,
+                        decoration: BoxDecoration(color: AppColors.successLight,
+                            borderRadius: BorderRadius.circular(8)),
+                        child: const Icon(Icons.add_shopping_cart_rounded,
+                            color: Color(0xFF22863A), size: 17),
+                      ),
+                    ),
+                  ]),
+                );
+              }).toList(),
+            ),
           ),
         );
       },
@@ -286,28 +382,99 @@ class _RechercheServicesPageState extends State<RechercheServicesPage> {
   }
 
   Widget _buildListeEtablissements() {
-    if (chargementEtablissements) return const Center(child: CircularProgressIndicator());
-    return ListView.builder(
-      itemCount: etablissements.length,
-      itemBuilder: (context, index) {
-        final e = etablissements[index];
-        
-        // CORRECTION ICI : On utilise les propriétés directes de l'objet e (qui est un EtablissementSante)
-        // et non plus e['coordonnee_latitude_gps']
-        
-        return Card(
-          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          child: ListTile(
-            leading: Icon(e.pharmacieEstGarde == true ? Icons.local_pharmacy : Icons.local_hospital),
-            title: Text(e.nom),
-            subtitle: Text("Adresse: ${e.adresse}"),
-            trailing: IconButton(
-              icon: const Icon(Icons.directions, color: Colors.green),
-              onPressed: () => _ouvrirItineraire(e.latitude, e.longitude),
+    if (chargementEtablissements)
+      return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+
+    return Column(children: [
+      // Filtres
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        child: Row(children: ["Tous", "Pharmacie", "Hôpital"].map((type) {
+          bool sel = filtreType == type;
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: GestureDetector(
+              onTap: () => setState(() => filtreType = type),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: sel ? AppColors.primary : AppColors.surface,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: sel ? AppColors.primary : AppColors.border, width: 1.5),
+                ),
+                child: Text(type, style: TextStyle(fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: sel ? Colors.white : AppColors.textSecondary)),
+              ),
             ),
-          ),
-        );
-      },
-    );
+          );
+        }).toList()),
+      ),
+
+      Expanded(
+        child: ListView.builder(
+          padding: const EdgeInsets.fromLTRB(14, 0, 14, 80),
+          itemCount: etablissements
+              .where((e) => filtreType == "Tous" ||
+                  e.pharmacieEstGarde == (filtreType == "Pharmacie"))
+              .length,
+          itemBuilder: (_, index) {
+            final list = etablissements
+                .where((e) => filtreType == "Tous" ||
+                    e.pharmacieEstGarde == (filtreType == "Pharmacie"))
+                .toList();
+            final e = list[index];
+            bool isPharmacie = e.pharmacieEstGarde == true;
+
+            String distanceText = "";
+            if (_currentPosition != null) {
+              double dist = Geolocator.distanceBetween(_currentPosition!.latitude,
+                  _currentPosition!.longitude, e.latitude, e.longitude);
+              distanceText = "${(dist / 1000).toStringAsFixed(1)} km · ";
+            }
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.borderLight)),
+              child: Row(children: [
+                Container(
+                  width: 44, height: 44,
+                  decoration: BoxDecoration(
+                    color: isPharmacie ? AppColors.primaryLight : AppColors.dangerLight,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    isPharmacie ? Icons.local_pharmacy_rounded : Icons.local_hospital_rounded,
+                    color: isPharmacie ? AppColors.primary : AppColors.danger, size: 22),
+                ),
+                const SizedBox(width: 12),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(e.nom, style: const TextStyle(fontSize: 14,
+                      fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+                  Text("$distanceText${e.adresse}",
+                      style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                ])),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () => _ouvrirItineraire(e.latitude, e.longitude),
+                  child: Container(
+                    width: 38, height: 38,
+                    decoration: BoxDecoration(color: AppColors.primaryLight,
+                        borderRadius: BorderRadius.circular(10)),
+                    child: const Icon(Icons.directions_rounded,
+                        color: AppColors.primary, size: 20),
+                  ),
+                ),
+              ]),
+            );
+          },
+        ),
+      ),
+    ]);
   }
 }

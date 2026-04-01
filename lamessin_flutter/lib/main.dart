@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:firebase_core/firebase_core.dart'; 
-import 'package:flutter/foundation.dart'; 
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
+// Theme
+import 'THEME_/app_theme.dart';
+
 // Services
-import 'SERVICES_/notification_service.dart'; 
+import 'SERVICES_/notification_service.dart';
 import 'SERVICES_/api_service.dart';
 
 // Pages
@@ -18,16 +21,15 @@ import 'PAGES_/PATIENT_/patient_dashbord.dart';
 import 'PAGES_/PATIENT_/recherches_services_medicaux.dart';
 import 'PAGES_/PATIENT_/prise_rdv_patient.dart';
 import 'PAGES_/PATIENT_/mes_commandes.dart';
-import "PAGES_/PATIENT_/assistant.dart";
+import 'PAGES_/PATIENT_/assistant.dart';
 import 'PAGES_/PATIENT_/suivi_traitements.dart';
 import 'PAGES_/PATIENT_/edit_profil_page.dart';
 import 'PAGES_/PATIENT_/mon_profil.dart';
-import "PAGES_/PATIENT_/mes_rendez_vous_page.dart"; 
-import "PAGES_/PATIENT_/AssistantHistoriquePage.dart";
-import "PAGES_/PATIENT_/notifications_history_page.dart";
+import 'PAGES_/PATIENT_/mes_rendez_vous_page.dart';
+import 'PAGES_/PATIENT_/AssistantHistoriquePage.dart';
+import 'PAGES_/PATIENT_/notifications_history_page.dart';
 
-// Import du modèle Patient pour la route
-import 'MODELS_/utilisateur_model.dart'; 
+import 'MODELS_/utilisateur_model.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,7 +37,6 @@ void main() async {
 
   try {
     if (kIsWeb) {
-      // Config Web pour Edge
       await Firebase.initializeApp(
         options: const FirebaseOptions(
           apiKey: "AIzaSyCmbiha3Un8XQ00R21IFi3CGPfhtIEIGXE",
@@ -45,14 +46,12 @@ void main() async {
           storageBucket: "lamessin-ab826.firebasestorage.app",
         ),
       );
-      print("Firebase Web initialisé.");
     } else {
-      // Config Android
       await Firebase.initializeApp();
       await NotificationService.initialiser();
     }
   } catch (e) {
-    print("ALERTE Firebase : $e");
+    debugPrint("ALERTE Firebase : $e");
   }
 
   runApp(const MyApp());
@@ -66,6 +65,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'LAMESSIN',
+      theme: AppTheme.theme, // ← Nouveau thème global
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
@@ -80,24 +80,26 @@ class MyApp extends StatelessWidget {
         "/register": (context) => const Register(),
         "/home_page": (context) => const HomePage(),
         "/profil_patient": (context) => const ProfilPatientPage(),
-        
+
         "/edit_profil": (context) {
           final args = ModalRoute.of(context)!.settings.arguments;
-          if (args is Patient) {
-            return EditProfilPage(patient: args);
-          }
-          return const Scaffold(body: Center(child: Text("Erreur : Aucun profil fourni")));
+          if (args is Patient) return EditProfilPage(patient: args);
+          return const Scaffold(
+            body: Center(child: Text("Erreur : Aucun profil fourni")),
+          );
         },
 
         "/page_utilisateur": (context) => const PageUtilisateur(),
-        "/recherches_services_medicaux": (context) => const RechercheServicesPage(),
+        "/recherches_services_medicaux": (context) =>
+            const RechercheServicesPage(),
         "/assistant": (context) => const AssistantPage(),
         '/suivi_traitements': (context) => const SuiviTraitementsPage(),
-        "/mes_commandes": (context) => const MesCommandesPage(), 
+        "/mes_commandes": (context) => const MesCommandesPage(),
         "/rendez_vous_page": (context) => const RendezVousPage(),
         "/mes_rendez_vous_page": (context) => const MesRendezVousPage(),
-        "/historique_chatbot": (context) => const AssistantHistoriquePage(),  
-        "/historique_notifications": (context) => const NotificationHistoryPage(),
+        "/historique_chatbot": (context) => const AssistantHistoriquePage(),
+        "/historique_notifications": (context) =>
+            const NotificationHistoryPage(),
       },
     );
   }

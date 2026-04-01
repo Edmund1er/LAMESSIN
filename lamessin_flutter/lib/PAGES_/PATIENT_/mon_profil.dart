@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../SERVICES_/api_service.dart';
 import '../../MODELS_/utilisateur_model.dart';
+import '../../THEME_/app_theme.dart';
 import 'edit_profil_page.dart';
 
 class ProfilPatientPage extends StatefulWidget {
   const ProfilPatientPage({super.key});
-
   @override
   State<ProfilPatientPage> createState() => _ProfilPatientPageState();
 }
@@ -15,121 +15,243 @@ class _ProfilPatientPageState extends State<ProfilPatientPage> {
   bool _chargement = true;
 
   @override
-  void initState() {
-    super.initState();
-    _chargerProfil();
-  }
+  void initState() { super.initState(); _chargerProfil(); }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _chargerProfil();
-  }
+  void didChangeDependencies() { super.didChangeDependencies(); _chargerProfil(); }
 
   Future<void> _chargerProfil() async {
     final data = await ApiService.getProfil();
-    if (mounted) {
-      setState(() {
-        _user = data;
-        _chargement = false;
-      });
-    }
+    if (mounted) setState(() { _user = data; _chargement = false; });
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_chargement) return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    if (_user == null) return const Scaffold(body: Center(child: Text("Erreur de chargement")));
+    if (_chargement) return const Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(child: CircularProgressIndicator(color: AppColors.primary)));
+    if (_user == null) return const Scaffold(
+        body: Center(child: Text("Erreur de chargement")));
 
-    String nom = "";
-    String prenom = "";
-    String tel = "";
-    String email = "";
-    String infoSante = "";
+    String nom = "", prenom = "", tel = "", email = "", infoSante = "";
 
     if (_user is Patient) {
       final p = _user as Patient;
-      nom = p.compteUtilisateur.lastName;
+      nom    = p.compteUtilisateur.lastName;
       prenom = p.compteUtilisateur.firstName;
-      tel = p.compteUtilisateur.numeroTelephone ?? "Non renseigné";
-      
-      // CORRECTION ICI : On ne vérifie pas le null, mais le vide (.isEmpty)
-      String rawEmail = p.compteUtilisateur.email ?? "";
-      email = rawEmail.isEmpty ? "Non renseigné" : rawEmail;
-      
-      infoSante = "Groupe: ${p.groupeSanguin ?? 'Inconnu'}";
+      tel    = p.compteUtilisateur.numeroTelephone ?? "Non renseigné";
+      final rawEmail = p.compteUtilisateur.email ?? "";
+      email  = rawEmail.isEmpty ? "Non renseigné" : rawEmail;
+      infoSante = p.groupeSanguin ?? "Inconnu";
     } else if (_user is Utilisateur) {
       final u = _user as Utilisateur;
-      nom = u.lastName;
+      nom    = u.lastName;
       prenom = u.firstName;
-      tel = u.numeroTelephone;
-      email = u.email.isEmpty ? "Non renseigné" : u.email;
+      tel    = u.numeroTelephone;
+      email  = u.email.isEmpty ? "Non renseigné" : u.email;
       infoSante = "Compte Utilisateur";
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Mon Profil")),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
+      backgroundColor: AppColors.background,
+      body: RefreshIndicator(
+        onRefresh: _chargerProfil,
+        color: AppColors.primary,
+        child: CustomScrollView(
+          slivers: [
+            // ── HEADER ──
+            SliverAppBar(
+              expandedHeight: 230,
+              pinned: true,
+              backgroundColor: AppColors.primary,
+              iconTheme: const IconThemeData(color: Colors.white),
+              actions: [
+                IconButton(
+                  icon: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.settings_rounded, color: Colors.white, size: 18),
+                  ),
+                  onPressed: () {},
+                ),
+                const SizedBox(width: 8),
+              ],
+              flexibleSpace: FlexibleSpaceBar(
+                background: Container(
+                  color: AppColors.primary,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const SizedBox(height: 50),
+                      Container(
+                        width: 78, height: 78,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white.withOpacity(0.5), width: 3),
+                        ),
+                        child: const Icon(Icons.person_rounded, color: Colors.white, size: 40),
+                      ),
+                      const SizedBox(height: 12),
+                      Text("$prenom $nom", style: const TextStyle(
+                          color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)),
+                      const SizedBox(height: 4),
+                      Text(tel, style: TextStyle(
+                          color: Colors.white.withOpacity(0.7), fontSize: 13)),
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.18),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Text("Patient", style: TextStyle(
+                            color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // ── CONTENU ──
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(18),
+                child: Column(children: [
+                  // Infos personnelles
+                  _sectionLabel("Informations personnelles"),
+                  const SizedBox(height: 10),
                   Container(
-                    width: double.infinity, 
-                    padding: const EdgeInsets.all(30), 
-                    decoration: const BoxDecoration(
-                      color: Colors.blue, 
-                      borderRadius: BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30))
-                    ), 
-                    child: Column(
-                      children: [
-                        const CircleAvatar(radius: 40, backgroundColor: Colors.white, child: Icon(Icons.person, size: 40, color: Colors.blue)), 
-                        const SizedBox(height: 15), 
-                        Text("$prenom $nom", style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)), 
-                        Text(tel, style: const TextStyle(color: Colors.white70))
-                      ]
-                    )
+                    decoration: BoxDecoration(color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppColors.borderLight)),
+                    child: Column(children: [
+                      _infoRow(Icons.phone_rounded, "Téléphone", tel, false),
+                      _infoRow(Icons.email_rounded, "Email", email, true),
+                    ]),
+                  ),
+                  const SizedBox(height: 18),
+
+                  // Dossier médical
+                  _sectionLabel("Dossier médical"),
+                  const SizedBox(height: 10),
+                  Container(
+                    decoration: BoxDecoration(color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppColors.borderLight)),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(children: [
+                        Container(
+                          width: 40, height: 40,
+                          decoration: BoxDecoration(color: AppColors.dangerLight,
+                              borderRadius: BorderRadius.circular(11)),
+                          child: const Icon(Icons.water_drop_rounded,
+                              color: AppColors.danger, size: 20),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text("Groupe sanguin", style: TextStyle(
+                                fontSize: 12, color: AppColors.textSecondary)),
+                            Text("Non modifiable", style: TextStyle(
+                                fontSize: 11, color: AppColors.textHint)),
+                          ],
+                        )),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                          decoration: BoxDecoration(color: AppColors.dangerLight,
+                              borderRadius: BorderRadius.circular(8)),
+                          child: Text(infoSante, style: const TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w900,
+                              color: AppColors.danger)),
+                        ),
+                      ]),
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+
+                  AppWidgets.primaryButton(
+                    label: "Modifier mes informations",
+                    icon: Icons.edit_rounded,
+                    onPressed: () {
+                      if (_user is Patient) {
+                        Navigator.push(context, MaterialPageRoute(
+                          builder: (_) => EditProfilPage(patient: _user),
+                        )).then((_) => _chargerProfil());
+                      } else {
+                        AppWidgets.showSnack(context,
+                            "Modification disponible pour le profil patient complet");
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 12),
+
+                  SizedBox(
+                    width: double.infinity, height: 50,
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        await ApiService.logout();
+                        if (context.mounted) {
+                          Navigator.pushNamedAndRemoveUntil(
+                              context, '/login', (r) => false);
+                        }
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.danger,
+                        side: const BorderSide(color: AppColors.dangerLight, width: 1.5),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                      icon: const Icon(Icons.power_settings_new_rounded, size: 18),
+                      label: const Text("Se déconnecter",
+                          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                    ),
                   ),
                   const SizedBox(height: 20),
-                  
-                  _buildInfoTile(Icons.email, "Email", email),
-                  _buildInfoTile(Icons.phone, "Téléphone", tel),
-                  _buildInfoTile(Icons.info_outline, "Statut", infoSante),
-                ],
+                ]),
               ),
             ),
-          ),
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(color: Colors.white, boxShadow: [BoxShadow(color: Colors.black12, blurRadius:10, offset: Offset(0,-5))]),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  if (_user is Patient) {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => EditProfilPage(patient: _user))).then((_) => _chargerProfil());
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Modification disponible pour le profil patient complet")));
-                  }
-                },
-                icon: const Icon(Icons.edit),
-                label: const Text("MODIFIER MON PROFIL"),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 15), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)))
-              ),
-            ),
-          )
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildInfoTile(IconData icon, String label, String value) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Icon(icon, color: Colors.blueGrey), 
-      title: Text(label, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black54, fontSize: 14)), 
-      subtitle: Text(value, style: const TextStyle(fontSize: 15))
-    );
+  Widget _sectionLabel(String label) => Align(
+    alignment: Alignment.centerLeft,
+    child: Text(label, style: const TextStyle(fontSize: 15,
+        fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+  );
+
+  Widget _infoRow(IconData icon, String label, String value, bool isLast) {
+    return Column(children: [
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(children: [
+          Container(
+            width: 38, height: 38,
+            decoration: BoxDecoration(color: AppColors.primaryLight,
+                borderRadius: BorderRadius.circular(10)),
+            child: Icon(icon, color: AppColors.primary, size: 18),
+          ),
+          const SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(label, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+            Text(value, style: const TextStyle(fontSize: 14,
+                fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+          ])),
+        ]),
+      ),
+      if (!isLast) const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16),
+        child: Divider(height: 1, color: AppColors.borderLight),
+      ),
+    ]);
   }
 }

@@ -1,121 +1,99 @@
 import 'package:flutter/material.dart';
 import '../../SERVICES_/api_service.dart';
 import '../../MODELS_/notification_model.dart';
+import '../../THEME_/app_theme.dart';
 
 class NotificationHistoryPage extends StatelessWidget {
   const NotificationHistoryPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Palette de couleurs cohérente avec ton application
-    const Color couleurBleue = Color(0xFF1A73E8);
-    const Color couleurTeal = Color(0xFF00A896);
-
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA), // Fond légèrement grisé pour faire ressortir les cartes
-      appBar: AppBar(
-        title: const Text(
-          "Historique des notifications",
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-        ),
-        centerTitle: true,
-        backgroundColor: Colors.white,
-        foregroundColor: couleurBleue,
-        elevation: 0.5,
-      ),
+      backgroundColor: AppColors.background,
+      appBar: AppWidgets.appBar("Historique des notifications"),
       body: FutureBuilder<List<NotificationModel>>(
         future: ApiService.getNotifications(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
-              child: CircularProgressIndicator(color: couleurBleue),
-            );
+                child: CircularProgressIndicator(color: AppColors.primary));
           }
-
           if (snapshot.hasError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, size: 60, color: Colors.redAccent),
-                  const SizedBox(height: 16),
-                  Text("Erreur: ${snapshot.error}"),
-                ],
-              ),
-            );
+            return Center(child: Column(
+                mainAxisAlignment: MainAxisAlignment.center, children: [
+              Container(width: 72, height: 72,
+                  decoration: BoxDecoration(color: AppColors.dangerLight,
+                      borderRadius: BorderRadius.circular(20)),
+                  child: const Icon(Icons.error_outline_rounded,
+                      size: 36, color: AppColors.danger)),
+              const SizedBox(height: 16),
+              Text("Erreur : ${snapshot.error}",
+                  style: const TextStyle(color: AppColors.textSecondary),
+                  textAlign: TextAlign.center),
+            ]));
           }
-
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.notifications_off_outlined, size: 80, color: Colors.grey[400]),
-                  const SizedBox(height: 16),
-                  Text(
-                    "Aucune notification pour le moment",
-                    style: TextStyle(color: Colors.grey[600], fontSize: 16),
-                  ),
-                ],
-              ),
-            );
+            return Center(child: Column(
+                mainAxisAlignment: MainAxisAlignment.center, children: [
+              Container(width: 72, height: 72,
+                  decoration: BoxDecoration(color: AppColors.primaryLight,
+                      borderRadius: BorderRadius.circular(20)),
+                  child: const Icon(Icons.notifications_off_outlined,
+                      size: 36, color: AppColors.primary)),
+              const SizedBox(height: 16),
+              const Text("Aucune notification pour le moment",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary)),
+              const SizedBox(height: 6),
+              const Text("Vos alertes apparaîtront ici",
+                  style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+            ]));
           }
 
           final notifications = snapshot.data!;
-
           return ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            padding: const EdgeInsets.all(16),
             itemCount: notifications.length,
-            itemBuilder: (context, index) {
+            itemBuilder: (_, index) {
               final notif = notifications[index];
+              final String type = notif.typeNotification ?? "GENERAL";
+              IconData icone = Icons.notifications_active_rounded;
+              Color couleur  = AppColors.primary;
+              if (type.contains('ORDONNANCE')) { icone = Icons.description_rounded; couleur = AppColors.primary; }
+              else if (type.contains('RENDEZ_VOUS')) { icone = Icons.event_rounded; couleur = AppColors.warning; }
+              else if (type.contains('COMMANDE')) { icone = Icons.shopping_bag_rounded; couleur = AppColors.accent; }
 
-              return Card(
-                elevation: 0,
-                margin: const EdgeInsets.only(bottom: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(color: Colors.grey.withOpacity(0.2)),
+              return Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border(left: BorderSide(color: couleur, width: 4)),
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: ListTile(
-                    leading: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: couleurTeal.withOpacity(0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.notifications_active_rounded,
-                        color: couleurTeal,
-                        size: 24,
-                      ),
+                child: ListTile(
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  leading: Container(
+                    width: 38, height: 38,
+                    decoration: BoxDecoration(
+                      color: couleur.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    title: Text(
-                      notif.message ?? "Notification sans contenu",
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w500,
-                        fontSize: 15,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    subtitle: Padding(
-                      padding: const EdgeInsets.only(top: 8.0),
-                      child: Row(
-                        children: [
-                          Icon(Icons.access_time, size: 14, color: Colors.grey[500]),
-                          const SizedBox(width: 5),
-                          Text(
-                            notif.heureEnvoi ?? "--:--",
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    isThreeLine: true,
+                    child: Icon(icone, size: 18, color: couleur),
+                  ),
+                  title: Text(notif.message ?? "Notification sans contenu",
+                      style: const TextStyle(fontSize: 13,
+                          fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                  subtitle: Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Row(children: [
+                      const Icon(Icons.access_time_rounded,
+                          size: 12, color: AppColors.textSecondary),
+                      const SizedBox(width: 4),
+                      Text(notif.heureEnvoi ?? "--:--",
+                          style: const TextStyle(fontSize: 11,
+                              color: AppColors.textSecondary)),
+                    ]),
                   ),
                 ),
               );

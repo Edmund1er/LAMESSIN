@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import '../../SERVICES_/api_service.dart';
+import '../../THEME_/app_theme.dart';
 
 class Splash extends StatefulWidget {
   const Splash({super.key});
@@ -9,86 +10,81 @@ class Splash extends StatefulWidget {
   State<Splash> createState() => _SplashState();
 }
 
-class _SplashState extends State<Splash> {
+class _SplashState extends State<Splash> with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _fade;
+  late Animation<double> _scale;
+
   @override
   void initState() {
     super.initState();
+    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 900));
+    _fade  = CurvedAnimation(parent: _ctrl, curve: Curves.easeOut);
+    _scale = Tween<double>(begin: 0.88, end: 1.0)
+        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutBack));
+    _ctrl.forward();
     _demarrerChrono();
   }
 
-  void _demarrerChrono() async {
-    // On attend 3 secondes pour le logo
-    await Future.delayed(const Duration(seconds: 3));
-    
-    if (!mounted) return;
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
 
-    // Petite logique bonus : Si le token existe, on peut rediriger vers l'accueil directement
+  void _demarrerChrono() async {
+    await Future.delayed(const Duration(seconds: 3));
+    if (!mounted) return;
     String? token = await ApiService.getToken();
-    
-    if (token != null) {
-      Navigator.pushReplacementNamed(context, "/page_utilisateur");
-    } else {
-      Navigator.pushReplacementNamed(context, "/login");
-    }
+    if (!mounted) return;
+    Navigator.pushReplacementNamed(
+        context, token != null ? "/page_utilisateur" : "/login");
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF4FACFE), Color(0xFF00F2FE)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 20,
-                      spreadRadius: 5,
-                    )
-                  ]
+        width: double.infinity,
+        height: double.infinity,
+        color: AppColors.primary,
+        child: FadeTransition(
+          opacity: _fade,
+          child: ScaleTransition(
+            scale: _scale,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Logo
+                Container(
+                  width: 96, height: 96,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                        color: Colors.white.withOpacity(0.3), width: 1.5),
+                  ),
+                  child: const Icon(Icons.local_hospital_rounded,
+                      color: Colors.white, size: 48),
                 ),
-                padding: const EdgeInsets.all(20),
-                child: Image.asset(
-                  "assets/images/accueil_image.jpeg", 
-                  width: 120,
-                  height: 120,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return const Icon(Icons.medical_services, size: 80, color: Colors.blue);
-                  },
+                const SizedBox(height: 28),
+                const Text('LAMESSIN',
+                    style: TextStyle(
+                        color: Colors.white, fontSize: 34,
+                        fontWeight: FontWeight.w900, letterSpacing: 3)),
+                const SizedBox(height: 10),
+                Text('Votre santé, notre priorité',
+                    style: TextStyle(
+                        color: Colors.white.withOpacity(0.7),
+                        fontSize: 15, letterSpacing: 0.5)),
+                const SizedBox(height: 80),
+                SizedBox(
+                  width: 28, height: 28,
+                  child: CircularProgressIndicator(
+                      color: Colors.white.withOpacity(0.5), strokeWidth: 2.5),
                 ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                "LAMESSIN",
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                  letterSpacing: 1.5,
-                ),
-              ),
-              const SizedBox(height: 10),
-              const Text(
-                "Votre santé, notre priorité",
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.white70,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

@@ -4,10 +4,10 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import '../../SERVICES_/api_service.dart';
 import '../../MODELS_/utilisateur_model.dart';
 import '../../MODELS_/notification_model.dart';
+import '../../THEME_/app_theme.dart';
 
 class PageUtilisateur extends StatefulWidget {
   const PageUtilisateur({super.key});
-
   @override
   State<PageUtilisateur> createState() => _PageUtilisateurState();
 }
@@ -17,10 +17,6 @@ class _PageUtilisateurState extends State<PageUtilisateur> {
   List<NotificationModel> _notifications = [];
   bool _chargement = true;
   StreamSubscription<RemoteMessage>? _firebaseSubscription;
-
-  final Color couleurBleue = const Color(0xFF1A73E8);
-  final Color couleurVerte = const Color(0xFF00A896);
-  final Color couleurFond = const Color.fromARGB(255, 135, 206, 235);
 
   @override
   void initState() {
@@ -42,21 +38,12 @@ class _PageUtilisateurState extends State<PageUtilisateur> {
     } catch (e) {
       debugPrint("Erreur FCM: $e");
     }
-    _firebaseSubscription = FirebaseMessaging.onMessage.listen((
-      RemoteMessage message,
-    ) {
+    _firebaseSubscription = FirebaseMessaging.onMessage.listen((msg) {
       _chargerDonneesProfil();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              "${message.notification?.title ?? 'Alerte'}: ${message.notification?.body ?? ''}",
-            ),
-            backgroundColor: couleurVerte,
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 5),
-          ),
-        );
+        AppWidgets.showSnack(context,
+            "${msg.notification?.title ?? 'Alerte'}: ${msg.notification?.body ?? ''}",
+            color: AppColors.primary);
       }
     });
   }
@@ -64,8 +51,7 @@ class _PageUtilisateurState extends State<PageUtilisateur> {
   Future<void> _chargerDonneesProfil() async {
     try {
       final data = await ApiService.getProfil();
-      final List<NotificationModel> notifs =
-          await ApiService.getNotifications();
+      final List<NotificationModel> notifs = await ApiService.getNotifications();
       if (mounted) {
         setState(() {
           if (data != null) {
@@ -92,53 +78,44 @@ class _PageUtilisateurState extends State<PageUtilisateur> {
   String _calculerTempsEcoule(String? dateStr) {
     if (dateStr == null || dateStr.isEmpty) return "Récemment";
     try {
-      DateTime dateNotif = DateTime.parse(dateStr).toLocal();
-      DateTime maintenant = DateTime.now();
-      Duration difference = maintenant.difference(dateNotif);
-      if (difference.inSeconds < 60) return "Il y a ${difference.inSeconds} s";
-      if (difference.inMinutes < 60)
-        return "Il y a ${difference.inMinutes} min";
-      if (difference.inHours < 24) return "Il y a ${difference.inHours} h";
-      return "Il y a ${difference.inDays} j";
-    } catch (e) {
-      return "Récemment";
-    }
+      final diff =
+          DateTime.now().difference(DateTime.parse(dateStr).toLocal());
+      if (diff.inSeconds < 60) return "Il y a ${diff.inSeconds} s";
+      if (diff.inMinutes < 60) return "Il y a ${diff.inMinutes} min";
+      if (diff.inHours < 24)   return "Il y a ${diff.inHours} h";
+      return "Il y a ${diff.inDays} j";
+    } catch (_) { return "Récemment"; }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: couleurFond,
+      backgroundColor: AppColors.background,
       body: _chargement
-          ? Center(child: CircularProgressIndicator(color: couleurBleue))
+          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
           : RefreshIndicator(
               onRefresh: _chargerDonneesProfil,
-              color: couleurBleue,
+              color: AppColors.primary,
               child: CustomScrollView(
                 slivers: [
-                  _buildAppBar(),
+                  _buildSliverHeader(),
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.all(15),
+                      padding: const EdgeInsets.all(18),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildSectionTitle("Notifications récentes"),
-                          const SizedBox(height: 10),
+                          _sectionTitle("Notifications récentes"),
+                          const SizedBox(height: 12),
                           if (_notifications.isEmpty)
-                            _buildSimpleCard(
-                              "Aucune notification",
-                              Icons.notifications_off,
-                            ) // ICI CORRECTION
+                            _buildEmptyNotif()
                           else
-                            ..._notifications
-                                .take(5)
-                                .map((n) => _buildNotificationCard(n))
-                                .toList(),
-                          const SizedBox(height: 25),
-                          _buildSectionTitle("Nos Services"),
-                          const SizedBox(height: 10),
-                          _buildGridServices(),
+                            ..._notifications.take(5).map(_buildNotifCard),
+                          const SizedBox(height: 24),
+                          _sectionTitle("Nos Services"),
+                          const SizedBox(height: 14),
+                          _buildGrilleServices(),
+                          const SizedBox(height: 20),
                         ],
                       ),
                     ),
@@ -149,145 +126,57 @@ class _PageUtilisateurState extends State<PageUtilisateur> {
     );
   }
 
-  Widget _buildAppBar() {
+  Widget _buildSliverHeader() {
     return SliverAppBar(
-      expandedHeight: 160,
+      expandedHeight: 180,
       pinned: true,
       elevation: 0,
-      backgroundColor: couleurBleue,
+      backgroundColor: AppColors.primary,
+      automaticallyImplyLeading: false,
       actions: [
         IconButton(
-          icon: const Icon(
-            Icons.notifications_none,
-            color: Colors.white,
-            size: 22,
+          icon: Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.notifications_none_rounded,
+                color: Colors.white, size: 20),
           ),
           onPressed: () =>
               Navigator.pushNamed(context, '/historique_notifications'),
         ),
         IconButton(
-          icon: const Icon(
-            Icons.power_settings_new,
-            color: Colors.white,
-            size: 22,
+          icon: Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.power_settings_new_rounded,
+                color: Colors.white, size: 20),
           ),
           onPressed: () => _confirmerDeconnexion(context),
         ),
+        const SizedBox(width: 8),
       ],
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [couleurBleue, couleurVerte]),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.only(left: 20, bottom: 20),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.end,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "Bonjour,",
-                  style: TextStyle(color: Colors.white70, fontSize: 16),
-                ),
-                Text(
-                  "M. $_nomAffichage",
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // --- CARTES COMPACTES ---
-  Widget _buildGridServices() {
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
-      childAspectRatio: 1.35,
-      children: [
-        _buildCompactCard(
-          "Pharmacies",
-          Icons.local_hospital,
-          '/recherches_services_medicaux',
-          couleurBleue,
-        ),
-        _buildCompactCard(
-          "Traitements",
-          Icons.medical_services,
-          '/suivi_traitements',
-          couleurVerte,
-        ),
-        _buildCompactCard(
-          "Rendez-vous",
-          Icons.event_available,
-          '/mes_rendez_vous_page',
-          const Color(0xFFFF9F1C),
-        ),
-        _buildCompactCard(
-          "Commandes",
-          Icons.shopping_cart_outlined,
-          '/mes_commandes',
-          const Color(0xFFE91E63),
-        ),
-        _buildCompactCard(
-          "Assistant",
-          Icons.support_agent,
-          '/assistant',
-          const Color(0xFF00796B),
-        ),
-        _buildCompactCard(
-          "Mon Profil",
-          Icons.account_circle_outlined,
-          '/profil_patient',
-          Colors.indigo,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCompactCard(
-    String titre,
-    IconData icon,
-    String route,
-    Color couleur,
-  ) {
-    return Container(
-      height: 90,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(color: Colors.black12, blurRadius: 2, offset: Offset(0, 2)),
-        ],
-      ),
-      child: InkWell(
-        onTap: () => Navigator.pushNamed(context, route),
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-          child: Row(
+          color: AppColors.primary,
+          padding: const EdgeInsets.only(left: 22, bottom: 24, top: 60),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(icon, color: couleur, size: 22),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  titre,
+              Text("Bonjour,",
+                  style: TextStyle(
+                      color: Colors.white.withOpacity(0.7), fontSize: 15)),
+              const SizedBox(height: 4),
+              Text("M. $_nomAffichage 👋",
                   style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                  ),
-                ),
-              ),
+                      color: Colors.white, fontSize: 26,
+                      fontWeight: FontWeight.w900)),
             ],
           ),
         ),
@@ -295,123 +184,170 @@ class _PageUtilisateurState extends State<PageUtilisateur> {
     );
   }
 
-  Widget _buildNotificationCard(NotificationModel notif) {
+  Widget _sectionTitle(String title) => Text(title,
+      style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800,
+          color: AppColors.textPrimary));
+
+  Widget _buildNotifCard(NotificationModel notif) {
     final String type = notif.typeNotification ?? "GENERAL";
-    final String tempsAffiche = _calculerTempsEcoule(notif.heureEnvoi);
-    IconData icone = Icons.notifications;
-    Color couleurType = couleurVerte;
-    if (type.contains('ORDONNANCE')) {
-      icone = Icons.description;
-      couleurType = couleurBleue;
-    } else if (type.contains('RENDEZ_VOUS')) {
-      icone = Icons.event;
-      couleurType = const Color(0xFFFF9F1C);
-    } else if (type.contains('COMMANDE')) {
-      icone = Icons.shopping_bag;
-      couleurType = Colors.purple;
-    }
+    IconData icone = Icons.notifications_rounded;
+    Color couleur  = AppColors.primary;
+    if (type.contains('ORDONNANCE')) { icone = Icons.description_rounded; couleur = AppColors.primary; }
+    else if (type.contains('RENDEZ_VOUS')) { icone = Icons.event_rounded; couleur = AppColors.warning; }
+    else if (type.contains('COMMANDE')) { icone = Icons.shopping_bag_rounded; couleur = AppColors.accent; }
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border(left: BorderSide(color: couleurType, width: 4)),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border(left: BorderSide(color: couleur, width: 4)),
       ),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        onTap: () => _afficherMessageDetail(notif.message ?? ""),
-        leading: CircleAvatar(
-          backgroundColor: couleurType.withOpacity(0.1),
-          child: Icon(icone, size: 18, color: couleurType),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+        onTap: () => _afficherDetailNotif(notif.message ?? ""),
+        leading: Container(
+          width: 38, height: 38,
+          decoration: BoxDecoration(
+            color: couleur.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icone, size: 18, color: couleur),
         ),
-        title: Text(
-          notif.message ?? "Nouveau message",
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-        ),
-        subtitle: Text(tempsAffiche, style: const TextStyle(fontSize: 11)),
-        trailing: const Icon(Icons.chevron_right, size: 16),
+        title: Text(notif.message ?? "Nouveau message",
+            maxLines: 2, overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary)),
+        subtitle: Text(_calculerTempsEcoule(notif.heureEnvoi),
+            style: const TextStyle(
+                fontSize: 11, color: AppColors.textSecondary)),
+        trailing: const Icon(Icons.chevron_right_rounded,
+            size: 18, color: AppColors.textSecondary),
       ),
     );
   }
 
-  Widget _buildSimpleCard(String message, IconData icon) {
+  Widget _buildEmptyNotif() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
+      padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.borderLight),
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: Colors.grey[400], size: 40),
-          const SizedBox(height: 10),
-          Text(
-            message,
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey[600], fontSize: 14),
-          ),
-        ],
-      ),
+      child: Column(children: [
+        Icon(Icons.notifications_off_outlined,
+            color: Colors.grey[400], size: 40),
+        const SizedBox(height: 8),
+        const Text("Aucune notification",
+            style: TextStyle(color: AppColors.textSecondary)),
+      ]),
     );
   }
 
-  Widget _buildSectionTitle(String title) => Text(
-    title,
-    style: const TextStyle(
-      fontSize: 18,
-      fontWeight: FontWeight.bold,
-      color: Color(0xFF2F3E46),
-    ),
-  );
+  Widget _buildGrilleServices() {
+    final services = [
+      {'label':'Pharmacies','icon':Icons.local_pharmacy_rounded,'route':'/recherches_services_medicaux','color':AppColors.primary,'bg':AppColors.primaryLight},
+      {'label':'Traitements','icon':Icons.medication_rounded,'route':'/suivi_traitements','color':const Color(0xFF22863A),'bg':AppColors.successLight},
+      {'label':'Rendez-vous','icon':Icons.calendar_month_rounded,'route':'/mes_rendez_vous_page','color':const Color(0xFFE65100),'bg':AppColors.warningLight},
+      {'label':'Commandes','icon':Icons.shopping_bag_rounded,'route':'/mes_commandes','color':AppColors.accent,'bg':AppColors.dangerLight},
+      {'label':'Assistant IA','icon':Icons.smart_toy_rounded,'route':'/assistant','color':const Color(0xFF1A6FE8),'bg':const Color(0xFFE1F0FF)},
+      {'label':'Mon Profil','icon':Icons.account_circle_rounded,'route':'/profil_patient','color':const Color(0xFF6B3BDB),'bg':const Color(0xFFF3EEFF)},
+    ];
+
+    return GridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: 2,
+      crossAxisSpacing: 12, mainAxisSpacing: 12,
+      childAspectRatio: 1.3,
+      children: services.map((s) {
+        return GestureDetector(
+          onTap: () => Navigator.pushNamed(context, s['route'] as String),
+          child: Container(
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: AppColors.borderLight),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 46, height: 46,
+                  decoration: BoxDecoration(
+                    color: s['bg'] as Color,
+                    borderRadius: BorderRadius.circular(13),
+                  ),
+                  child: Icon(s['icon'] as IconData,
+                      color: s['color'] as Color, size: 22),
+                ),
+                const SizedBox(height: 10),
+                Text(s['label'] as String,
+                    style: const TextStyle(fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary)),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
 
   void _confirmerDeconnexion(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text("Déconnexion"),
+        title: const Text("Déconnexion",
+            style: TextStyle(fontWeight: FontWeight.w800)),
         content: const Text("Voulez-vous vraiment quitter LAMESSIN ?"),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Annuler"),
-          ),
+          TextButton(onPressed: () => Navigator.pop(ctx),
+              child: const Text("Annuler",
+                  style: TextStyle(color: AppColors.textSecondary))),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.danger,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
             onPressed: () async {
+              Navigator.pop(ctx);
               await ApiService.logout();
               if (context.mounted)
                 Navigator.pushNamedAndRemoveUntil(
-                  context,
-                  '/login',
-                  (route) => false,
-                );
+                    context, '/login', (r) => false);
             },
-            child: const Text(
-              "Se déconnecter",
-              style: TextStyle(color: Colors.white),
-            ),
+            child: const Text("Se déconnecter",
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
           ),
         ],
       ),
     );
   }
 
-  void _afficherMessageDetail(String message) {
+  void _afficherDetailNotif(String message) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        title: const Text("Notification"),
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text("Notification",
+            style: TextStyle(fontWeight: FontWeight.w800)),
         content: Text(message),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Fermer"),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Fermer",
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
           ),
         ],
       ),
