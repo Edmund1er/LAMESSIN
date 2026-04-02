@@ -87,7 +87,7 @@ class ApiService {
 
   // ========================= AUTH =========================
 
-  static Future<String?> login(String telephone, String password) async {
+static Future<String?> login(String telephone, String password) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/login/'),
@@ -107,32 +107,44 @@ class ApiService {
 
         await prefs.setString('access_token', data['access']);
         await prefs.setString('refresh_token', data['refresh']);
+        
+// Sauvegarde du rôle pour une utilisation future dans l'app
+        String role = data['role'] ?? 'INCONNU';
+        await prefs.setString('user_role', role);
 
-        return data['access'];
+        return role; 
       }
 
+      print("Erreur Login: ${response.body}");
       return null;
     } catch (e) {
+      print("Erreur Connexion: $e");
       return null;
     }
   }
 
-  static Future<bool> inscription(Map<String, dynamic> donnees) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/inscription/'),
-        headers: {
-          "Content-Type": "application/json",
-          "ngrok-skip-browser-warning": "true",
-        },
-        body: jsonEncode(donnees),
-      );
+static Future<bool> inscription(Map<String, dynamic> donnees) async {
+  try {
+    final response = await http.post(
+      Uri.parse('$baseUrl/inscription/'),
+      headers: {
+        "Content-Type": "application/json",
+        "ngrok-skip-browser-warning": "true",
+      },
+      body: jsonEncode(donnees),
+    );
 
-      return response.statusCode == 201;
-    } catch (e) {
+    if (response.statusCode == 201) {
+      return true;
+    } else {
+      print("DÉTAIL ERREUR DJANGO : ${response.body}");
       return false;
     }
+  } catch (e) {
+    print("ERREUR RÉSEAU : $e");
+    return false;
   }
+}
 
   static Future<dynamic> getProfil() async {
     try {

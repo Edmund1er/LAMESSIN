@@ -5,6 +5,7 @@ import '../../SERVICES_/api_service.dart';
 import '../../MODELS_/utilisateur_model.dart';
 import '../../MODELS_/notification_model.dart';
 import '../../THEME_/app_theme.dart';
+import '../../WIDGETS_/menu_navigation.dart';
 
 class PageUtilisateur extends StatefulWidget {
   const PageUtilisateur({super.key});
@@ -90,38 +91,71 @@ class _PageUtilisateurState extends State<PageUtilisateur> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Colors.white,
+      drawer: const MenuNavigation(),
       body: _chargement
           ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
-          : RefreshIndicator(
-              onRefresh: _chargerDonneesProfil,
-              color: AppColors.primary,
-              child: CustomScrollView(
-                slivers: [
-                  _buildSliverHeader(),
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.all(18),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _sectionTitle("Notifications récentes"),
-                          const SizedBox(height: 12),
-                          if (_notifications.isEmpty)
-                            _buildEmptyNotif()
-                          else
-                            ..._notifications.take(5).map(_buildNotifCard),
-                          const SizedBox(height: 24),
-                          _sectionTitle("Nos Services"),
-                          const SizedBox(height: 14),
-                          _buildGrilleServices(),
-                          const SizedBox(height: 20),
+          : Stack(
+              children: [
+                // 1. IMAGE DE FOND
+                Positioned.fill(
+                  child: Image.asset(
+                    'assets/images/fond_patient.jpg',
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                
+                // 2. GRADIENT (VOILE ALLÉGÉ)
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        stops: const [0.0, 0.35, 0.45, 1.0],
+                        colors: [
+                          Colors.black.withOpacity(0.35),
+                          Colors.black.withOpacity(0.15),
+                          Colors.white.withOpacity(0.0),
+                          Colors.white.withOpacity(0.0),
                         ],
                       ),
                     ),
                   ),
-                ],
-              ),
+                ),
+
+                // 3. CONTENU
+                RefreshIndicator(
+                  onRefresh: _chargerDonneesProfil,
+                  color: AppColors.primary,
+                  child: CustomScrollView(
+                    slivers: [
+                      _buildSliverHeader(),
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.all(18),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _sectionTitle("Notifications récentes"),
+                              const SizedBox(height: 12),
+                              if (_notifications.isEmpty)
+                                _buildEmptyNotif()
+                              else
+                                ..._notifications.take(5).map(_buildNotifCard),
+                              const SizedBox(height: 24),
+                              _sectionTitle("Nos Services"),
+                              const SizedBox(height: 14),
+                              _buildGrilleServices(), // Grille compacte
+                              const SizedBox(height: 20),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
     );
   }
@@ -131,7 +165,7 @@ class _PageUtilisateurState extends State<PageUtilisateur> {
       expandedHeight: 180,
       pinned: true,
       elevation: 0,
-      backgroundColor: AppColors.primary,
+      backgroundColor: Colors.transparent,
       automaticallyImplyLeading: false,
       actions: [
         IconButton(
@@ -163,7 +197,6 @@ class _PageUtilisateurState extends State<PageUtilisateur> {
       ],
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
-          color: AppColors.primary,
           padding: const EdgeInsets.only(left: 22, bottom: 24, top: 60),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.end,
@@ -171,7 +204,7 @@ class _PageUtilisateurState extends State<PageUtilisateur> {
             children: [
               Text("Bonjour,",
                   style: TextStyle(
-                      color: Colors.white.withOpacity(0.7), fontSize: 15)),
+                      color: Colors.white.withOpacity(0.9), fontSize: 15)),
               const SizedBox(height: 4),
               Text("M. $_nomAffichage 👋",
                   style: const TextStyle(
@@ -199,13 +232,13 @@ class _PageUtilisateurState extends State<PageUtilisateur> {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border(left: BorderSide(color: couleur, width: 4)),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5)],
       ),
       child: ListTile(
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
         onTap: () => _afficherDetailNotif(notif.message ?? ""),
         leading: Container(
           width: 38, height: 38,
@@ -233,7 +266,7 @@ class _PageUtilisateurState extends State<PageUtilisateur> {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.borderLight),
       ),
@@ -247,6 +280,7 @@ class _PageUtilisateurState extends State<PageUtilisateur> {
     );
   }
 
+  // --- GRILLES TRES COMPACTES (PROFESSIONNEL) ---
   Widget _buildGrilleServices() {
     final services = [
       {'label':'Pharmacies','icon':Icons.local_pharmacy_rounded,'route':'/recherches_services_medicaux','color':AppColors.primary,'bg':AppColors.primaryLight},
@@ -257,36 +291,43 @@ class _PageUtilisateurState extends State<PageUtilisateur> {
       {'label':'Mon Profil','icon':Icons.account_circle_rounded,'route':'/profil_patient','color':const Color(0xFF6B3BDB),'bg':const Color(0xFFF3EEFF)},
     ];
 
+    // FIX : Force 3 colonnes pour des blocs plus fins (Compact)
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
-      crossAxisSpacing: 12, mainAxisSpacing: 12,
-      childAspectRatio: 1.3,
+      crossAxisCount: 3, // 3 Colonnes
+      crossAxisSpacing: 6, 
+      mainAxisSpacing: 6,
+      childAspectRatio: 1.0, // Carré parfait pour compacité
       children: services.map((s) {
         return GestureDetector(
           onTap: () => Navigator.pushNamed(context, s['route'] as String),
           child: Container(
+            padding: const EdgeInsets.all(6), // Padding réduit
             decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: AppColors.borderLight),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10), // Coins plus petits
+              border: Border.all(color: Colors.grey.shade200, width: 1),
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 3)],
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                // Icônes et Conteneur Réduits
                 Container(
-                  width: 46, height: 46,
+                  width: 30, height: 30, // Taille réduite
                   decoration: BoxDecoration(
                     color: s['bg'] as Color,
-                    borderRadius: BorderRadius.circular(13),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(s['icon'] as IconData,
-                      color: s['color'] as Color, size: 22),
+                      color: s['color'] as Color, size: 16), // Icône réduite
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 4),
                 Text(s['label'] as String,
-                    style: const TextStyle(fontSize: 13,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 9, // Texte très petit
                         fontWeight: FontWeight.w700,
                         color: AppColors.textPrimary)),
               ],

@@ -70,15 +70,15 @@ class _RegisterState extends State<Register> {
 
     setState(() => _isLoading = true);
 
-    Map<String, dynamic> monColis = {
-      "username": _telephone.text.trim(),
-      "numero_telephone": _telephone.text.trim(),
-      "email": _email.text.trim(),
-      "password": _password.text,
-      "first_name": _prenom.text.trim(),
-      "last_name": _nom.text.trim(),
-      "type_compte": _roleChoisi.toUpperCase(),
-    };
+  Map<String, dynamic> monColis = {
+    "username": _telephone.text.trim(),
+    "numero_telephone": _telephone.text.trim(),
+    "email": _email.text.trim(),
+    "password": _password.text,
+    "first_name": _prenom.text.trim(),
+    "last_name": _nom.text.trim(),
+    "type_compte": _roleChoisi.toLowerCase(), 
+  };
 
     if (_roleChoisi == "patient") {
       monColis["date_naissance"] = _dateNaissance?.toIso8601String().split('T')[0];

@@ -74,6 +74,7 @@ flutter:
     - assets/images/accueil_image.jpeg
     - assets/images/login.jpeg
     - assets/images/register.jpeg
+    - assets/images/fond_patient.jpg
 
 
 

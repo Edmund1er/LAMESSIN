@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../SERVICES_/api_service.dart';
-import '../../SERVICES_/patient_service.dart'; // CORRECTION (Ajouté)
+import '../../SERVICES_/patient_service.dart';
 import '../../WIDGETS_/menu_navigation.dart';
 import '../../MODELS_/medicament_model.dart';
 import '../../MODELS_/etablissement_model.dart';
@@ -16,6 +16,8 @@ class RechercheServicesPage extends StatefulWidget {
 }
 
 class _RechercheServicesPageState extends State<RechercheServicesPage> {
+  static const Color _brandColor = Color(0xFF00C2CB);
+  
   List<EtablissementSante> etablissements = [];
   bool chargementEtablissements = true;
   String filtreType = "Tous";
@@ -63,7 +65,7 @@ class _RechercheServicesPageState extends State<RechercheServicesPage> {
     if (query.length < 2) { setState(() => resultatsMedicaments = []); return; }
     setState(() => rechercheEnCours = true);
     try {
-      final List<Medicament> resultats = await PatientService.rechercherMedicaments(query); // CORRECTION
+      final List<Medicament> resultats = await PatientService.rechercherMedicaments(query);
       if (_currentPosition != null) {
         for (var medoc in resultats) {
           medoc.stocksDisponibles.sort((a, b) {
@@ -84,7 +86,7 @@ class _RechercheServicesPageState extends State<RechercheServicesPage> {
   Future<void> _chargerEtTrierEtablissements() async {
     setState(() => chargementEtablissements = true);
     try {
-      List<EtablissementSante> data = await PatientService.getEtablissements(); // Rester dans ApiService
+      List<EtablissementSante> data = await PatientService.getEtablissements();
       if (_currentPosition != null) {
         data.sort((a, b) {
           double dA = Geolocator.distanceBetween(_currentPosition!.latitude,
@@ -105,7 +107,7 @@ class _RechercheServicesPageState extends State<RechercheServicesPage> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
+      backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (context) => StatefulBuilder(
@@ -174,7 +176,7 @@ class _RechercheServicesPageState extends State<RechercheServicesPage> {
               Expanded(
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
+                    backgroundColor: _brandColor,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10)),
@@ -217,7 +219,7 @@ class _RechercheServicesPageState extends State<RechercheServicesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Colors.transparent,
       drawer: const MenuNavigation(),
       appBar: null,
       floatingActionButton: _panier.isNotEmpty
@@ -225,7 +227,7 @@ class _RechercheServicesPageState extends State<RechercheServicesPage> {
               onPressed: () => Navigator.push(context, MaterialPageRoute(
                       builder: (_) => PanierPage(items: _panier)))
                   .then((_) => setState(() {})),
-              backgroundColor: AppColors.primary,
+              backgroundColor: _brandColor,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               label: Text("Panier (${_panier.length})",
                   style: const TextStyle(color: Colors.white,
@@ -233,65 +235,76 @@ class _RechercheServicesPageState extends State<RechercheServicesPage> {
               icon: const Icon(Icons.shopping_cart_rounded, color: Colors.white),
             )
           : null,
-      body: Column(children: [
-        // ── HEADER VIOLET ──
-        Container(
-          color: AppColors.primary,
-          padding: EdgeInsets.only(
-            top: MediaQuery.of(context).padding.top + 10,
-            bottom: 16, left: 16, right: 16,
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage("assets/images/fond_patient.jpg"),
+            fit: BoxFit.cover,
           ),
-          child: Column(children: [
-            Row(children: [
-              Builder(builder: (ctx) => GestureDetector(
-                onTap: () => Scaffold.of(ctx).openDrawer(),
-                child: Container(
-                  width: 38, height: 38,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(10),
+        ),
+        child: Column(children: [
+          // ── HEADER CYAN ──
+          Container(
+            color: _brandColor,
+            padding: EdgeInsets.only(
+              top: MediaQuery.of(context).padding.top + 10,
+              bottom: 16, left: 16, right: 16,
+            ),
+            child: Column(children: [
+              Row(children: [
+                Builder(builder: (ctx) => GestureDetector(
+                  onTap: () => Scaffold.of(ctx).openDrawer(),
+                  child: Container(
+                    width: 38, height: 38,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.menu_rounded, color: Colors.white, size: 20),
                   ),
-                  child: const Icon(Icons.menu_rounded, color: Colors.white, size: 20),
-                ),
-              )),
-              const SizedBox(width: 12),
-              const Text("Services médicaux", style: TextStyle(
-                  color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800)),
-            ]),
-            const SizedBox(height: 14),
-            Container(
-              decoration: BoxDecoration(
-                color: AppColors.surface, borderRadius: BorderRadius.circular(14)),
-              child: TextField(
-                controller: _searchController,
-                onChanged: _rechercherMedicament,
-                style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
-                decoration: const InputDecoration(
-                  hintText: "Rechercher un médicament...",
-                  prefixIcon: Icon(Icons.search_rounded,
-                      color: AppColors.textSecondary, size: 20),
-                  border: InputBorder.none,
-                  contentPadding:
-                      EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+                )),
+                const SizedBox(width: 12),
+                const Text("Services médicaux", style: TextStyle(
+                    color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800)),
+              ]),
+              const SizedBox(height: 14),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white, borderRadius: BorderRadius.circular(14)),
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: _rechercherMedicament,
+                  style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
+                  decoration: const InputDecoration(
+                    hintText: "Rechercher un médicament...",
+                    prefixIcon: Icon(Icons.search_rounded,
+                        color: AppColors.textSecondary, size: 20),
+                    border: InputBorder.none,
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+                  ),
                 ),
               ),
-            ),
-          ]),
-        ),
+            ]),
+          ),
 
-        // ── CONTENU ──
-        Expanded(
-          child: _searchController.text.isNotEmpty
-              ? _buildResultatsMedicaments()
-              : _buildListeEtablissements(),
-        ),
-      ]),
+          // ── CONTENU TRANSPARENT ──
+          Expanded(
+            child: Container(
+              color: Colors.white.withOpacity(0.92),
+              child: _searchController.text.isNotEmpty
+                  ? _buildResultatsMedicaments()
+                  : _buildListeEtablissements(),
+            ),
+          ),
+        ]),
+      ),
     );
   }
 
   Widget _buildResultatsMedicaments() {
     if (rechercheEnCours)
-      return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+      return const Center(child: CircularProgressIndicator(color: _brandColor));
     if (resultatsMedicaments.isEmpty)
       return const Center(child: Text("Aucun résultat.",
           style: TextStyle(color: AppColors.textSecondary)));
@@ -303,7 +316,7 @@ class _RechercheServicesPageState extends State<RechercheServicesPage> {
         final medoc = resultatsMedicaments[index];
         return Container(
           margin: const EdgeInsets.only(bottom: 10),
-          decoration: BoxDecoration(color: AppColors.surface,
+          decoration: BoxDecoration(color: Colors.white,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: AppColors.borderLight)),
           child: Theme(
@@ -314,12 +327,12 @@ class _RechercheServicesPageState extends State<RechercheServicesPage> {
                 width: 40, height: 40,
                 decoration: BoxDecoration(
                   color: medoc.stocksDisponibles.isNotEmpty
-                      ? AppColors.primaryLight : AppColors.dangerLight,
+                      ? _brandColor.withOpacity(0.1) : AppColors.dangerLight,
                   borderRadius: BorderRadius.circular(11),
                 ),
                 child: Icon(Icons.medication_rounded,
                     color: medoc.stocksDisponibles.isNotEmpty
-                        ? AppColors.primary : AppColors.danger, size: 20),
+                        ? _brandColor : AppColors.danger, size: 20),
               ),
               title: Text(medoc.nomCommercial, style: const TextStyle(
                   fontSize: 14, fontWeight: FontWeight.w800,
@@ -356,10 +369,10 @@ class _RechercheServicesPageState extends State<RechercheServicesPage> {
                       onTap: () => _ouvrirItineraire(s.latitude, s.longitude),
                       child: Container(
                         width: 34, height: 34, margin: const EdgeInsets.only(right: 6),
-                        decoration: BoxDecoration(color: AppColors.primaryLight,
+                        decoration: BoxDecoration(color: _brandColor.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(8)),
-                        child: const Icon(Icons.directions_rounded,
-                            color: AppColors.primary, size: 17),
+                        child: Icon(Icons.directions_rounded,
+                            color: _brandColor, size: 17),
                       ),
                     ),
                     GestureDetector(
@@ -384,7 +397,7 @@ class _RechercheServicesPageState extends State<RechercheServicesPage> {
 
   Widget _buildListeEtablissements() {
     if (chargementEtablissements)
-      return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+      return const Center(child: CircularProgressIndicator(color: _brandColor));
 
     return Column(children: [
       // Filtres
@@ -399,10 +412,10 @@ class _RechercheServicesPageState extends State<RechercheServicesPage> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
-                  color: sel ? AppColors.primary : AppColors.surface,
+                  color: sel ? _brandColor : Colors.white,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: sel ? AppColors.primary : AppColors.border, width: 1.5),
+                    color: sel ? _brandColor : AppColors.border, width: 1.5),
                 ),
                 child: Text(type, style: TextStyle(fontSize: 12,
                     fontWeight: FontWeight.w700,
@@ -438,19 +451,19 @@ class _RechercheServicesPageState extends State<RechercheServicesPage> {
             return Container(
               margin: const EdgeInsets.only(bottom: 10),
               padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(color: AppColors.surface,
+              decoration: BoxDecoration(color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: AppColors.borderLight)),
               child: Row(children: [
                 Container(
                   width: 44, height: 44,
                   decoration: BoxDecoration(
-                    color: isPharmacie ? AppColors.primaryLight : AppColors.dangerLight,
+                    color: isPharmacie ? _brandColor.withOpacity(0.1) : AppColors.dangerLight,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
                     isPharmacie ? Icons.local_pharmacy_rounded : Icons.local_hospital_rounded,
-                    color: isPharmacie ? AppColors.primary : AppColors.danger, size: 22),
+                    color: isPharmacie ? _brandColor : AppColors.danger, size: 22),
                 ),
                 const SizedBox(width: 12),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -465,10 +478,10 @@ class _RechercheServicesPageState extends State<RechercheServicesPage> {
                   onTap: () => _ouvrirItineraire(e.latitude, e.longitude),
                   child: Container(
                     width: 38, height: 38,
-                    decoration: BoxDecoration(color: AppColors.primaryLight,
+                    decoration: BoxDecoration(color: _brandColor.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(10)),
-                    child: const Icon(Icons.directions_rounded,
-                        color: AppColors.primary, size: 20),
+                    child: Icon(Icons.directions_rounded,
+                        color: _brandColor, size: 20),
                   ),
                 ),
               ]),

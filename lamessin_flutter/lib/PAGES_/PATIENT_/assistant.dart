@@ -11,6 +11,8 @@ class AssistantPage extends StatefulWidget {
 }
 
 class _AssistantPageState extends State<AssistantPage> {
+  static const Color _brandColor = Color(0xFF00C2CB);
+  
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final List<Map<String, dynamic>> _messages = [];
@@ -67,7 +69,7 @@ class _AssistantPageState extends State<AssistantPage> {
         _isTyping = false;
         _messages.add({
           'role': 'bot',
-          'text': response ?? "Oups ! Connexion perdue.", // <- CORRIGÉ ICI
+          'text': response ?? "Oups ! Connexion perdue.",
         });
       });
       _scrollToBottom();
@@ -77,11 +79,11 @@ class _AssistantPageState extends State<AssistantPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
+        backgroundColor: Colors.white.withOpacity(0.95),
         elevation: 0,
-        iconTheme: const IconThemeData(color: AppColors.textPrimary),
+        iconTheme: const IconThemeData(color: _brandColor),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
           child: Container(height: 1, color: AppColors.borderLight),
@@ -92,7 +94,7 @@ class _AssistantPageState extends State<AssistantPage> {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: AppColors.primary,
+                color: _brandColor,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: const Icon(
@@ -149,33 +151,44 @@ class _AssistantPageState extends State<AssistantPage> {
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            )
-          : Column(
-              children: [
-                Expanded(
-                  child: _messages.isEmpty
-                      ? _buildEmptyState()
-                      : ListView.builder(
-                          controller: _scrollController,
-                          padding: const EdgeInsets.all(16),
-                          itemCount: _messages.length + (_isTyping ? 1 : 0),
-                          itemBuilder: (_, index) {
-                            if (_isTyping && index == _messages.length)
-                              return _buildTyping();
-                            final msg = _messages[index];
-                            return _buildBulle(
-                              msg['text'],
-                              msg['role'] == 'user',
-                            );
-                          },
-                        ),
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage("assets/images/fond_patient.jpg"),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: Container(
+          color: Colors.white.withOpacity(0.92),
+          child: _isLoading
+              ? const Center(
+                  child: CircularProgressIndicator(color: _brandColor),
+                )
+              : Column(
+                  children: [
+                    Expanded(
+                      child: _messages.isEmpty
+                          ? _buildEmptyState()
+                          : ListView.builder(
+                              controller: _scrollController,
+                              padding: const EdgeInsets.all(16),
+                              itemCount: _messages.length + (_isTyping ? 1 : 0),
+                              itemBuilder: (_, index) {
+                                if (_isTyping && index == _messages.length)
+                                  return _buildTyping();
+                                final msg = _messages[index];
+                                return _buildBulle(
+                                  msg['text'],
+                                  msg['role'] == 'user',
+                                );
+                              },
+                            ),
+                    ),
+                    _buildSaisie(),
+                  ],
                 ),
-                _buildSaisie(),
-              ],
-            ),
+        ),
+      ),
     );
   }
 
@@ -188,13 +201,13 @@ class _AssistantPageState extends State<AssistantPage> {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: AppColors.primaryLight,
+              color: _brandColor.withOpacity(0.1),
               borderRadius: BorderRadius.circular(20),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.smart_toy_rounded,
               size: 36,
-              color: AppColors.primary,
+              color: _brandColor,
             ),
           ),
           const SizedBox(height: 16),
@@ -236,17 +249,17 @@ class _AssistantPageState extends State<AssistantPage> {
                             vertical: 8,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.surface,
+                            color: Colors.white,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: AppColors.primary,
+                              color: _brandColor,
                               width: 1.5,
                             ),
                           ),
                           child: Text(
                             s,
-                            style: const TextStyle(
-                              color: AppColors.primary,
+                            style: TextStyle(
+                              color: _brandColor,
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                             ),
@@ -279,7 +292,7 @@ class _AssistantPageState extends State<AssistantPage> {
                 height: 28,
                 margin: const EdgeInsets.only(right: 8, bottom: 2),
                 decoration: BoxDecoration(
-                  color: AppColors.primary,
+                  color: _brandColor,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
@@ -296,7 +309,7 @@ class _AssistantPageState extends State<AssistantPage> {
                   vertical: 12,
                 ),
                 decoration: BoxDecoration(
-                  color: isUser ? AppColors.primary : AppColors.surface,
+                  color: isUser ? _brandColor : Colors.white,
                   borderRadius: BorderRadius.only(
                     topLeft: const Radius.circular(16),
                     topRight: const Radius.circular(16),
@@ -330,7 +343,7 @@ class _AssistantPageState extends State<AssistantPage> {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppColors.borderLight),
         ),
@@ -343,7 +356,7 @@ class _AssistantPageState extends State<AssistantPage> {
               width: 7,
               height: 7,
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.3 + i * 0.3),
+                color: _brandColor.withOpacity(0.3 + i * 0.3),
                 shape: BoxShape.circle,
               ),
             ),
@@ -361,9 +374,9 @@ class _AssistantPageState extends State<AssistantPage> {
         top: 12,
         bottom: MediaQuery.of(context).padding.bottom + 12,
       ),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(top: BorderSide(color: AppColors.borderLight)),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.95),
+        border: const Border(top: BorderSide(color: AppColors.borderLight)),
       ),
       child: Row(
         children: [
@@ -401,7 +414,7 @@ class _AssistantPageState extends State<AssistantPage> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: AppColors.primary,
+                color: _brandColor,
                 borderRadius: BorderRadius.circular(22),
               ),
               child: const Icon(

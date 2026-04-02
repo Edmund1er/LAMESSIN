@@ -10,6 +10,8 @@ class AssistantHistoriquePage extends StatefulWidget {
 }
 
 class _AssistantHistoriquePageState extends State<AssistantHistoriquePage> {
+  static const Color _brandColor = Color(0xFF00C2CB);
+  
   bool _isLoading = true;
   List<Message> _historique = [];
 
@@ -24,23 +26,39 @@ class _AssistantHistoriquePageState extends State<AssistantHistoriquePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppWidgets.appBar("Historique des échanges"),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
-          : _historique.isEmpty
-              ? _buildEmpty()
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _historique.length,
-                  itemBuilder: (_, index) {
-                    final msg = _historique[index];
-                    return _buildBulle(
-                        text: msg.contenuTexte,
-                        isUser: msg.envoyeParUtilisateur,
-                        date: msg.heureMessage);
-                  },
-                ),
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(
+        backgroundColor: Colors.white.withOpacity(0.95),
+        elevation: 0,
+        title: const Text("Historique des échanges", style: TextStyle(color: _brandColor, fontWeight: FontWeight.bold)),
+        iconTheme: const IconThemeData(color: _brandColor),
+      ),
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage("assets/images/fond_patient.jpg"),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: Container(
+          color: Colors.white.withOpacity(0.92),
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator(color: _brandColor))
+              : _historique.isEmpty
+                  ? _buildEmpty()
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: _historique.length,
+                      itemBuilder: (_, index) {
+                        final msg = _historique[index];
+                        return _buildBulle(
+                            text: msg.contenuTexte,
+                            isUser: msg.envoyeParUtilisateur,
+                            date: msg.heureMessage);
+                      },
+                    ),
+        ),
+      ),
     );
   }
 
@@ -53,7 +71,7 @@ class _AssistantHistoriquePageState extends State<AssistantHistoriquePage> {
         constraints:
             BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
         decoration: BoxDecoration(
-          color: isUser ? AppColors.primary : AppColors.surface,
+          color: isUser ? _brandColor : Colors.white,
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(16),
             topRight: const Radius.circular(16),
@@ -80,9 +98,9 @@ class _AssistantHistoriquePageState extends State<AssistantHistoriquePage> {
       child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
         Container(
           width: 72, height: 72,
-          decoration: BoxDecoration(color: AppColors.primaryLight,
+          decoration: BoxDecoration(color: _brandColor.withOpacity(0.1),
               borderRadius: BorderRadius.circular(20)),
-          child: const Icon(Icons.history_rounded, size: 36, color: AppColors.primary),
+          child: Icon(Icons.history_rounded, size: 36, color: _brandColor),
         ),
         const SizedBox(height: 16),
         const Text("Aucun échange enregistré",

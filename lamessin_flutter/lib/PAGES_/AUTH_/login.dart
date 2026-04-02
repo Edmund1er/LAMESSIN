@@ -15,18 +15,36 @@ class _LoginState extends State<Login> {
   bool _chargement = false;
   bool _obscure    = true;
 
-  void _clicConnexion() async {
+void _clicConnexion() async {
     if (_telephone.text.isEmpty || _password.text.isEmpty) {
       AppWidgets.showSnack(context, "Veuillez remplir tous les champs");
       return;
     }
+
     setState(() => _chargement = true);
+
     try {
-      String? token = await ApiService.login(
+// On récupère le rôle au lieu du token
+      String? role = await ApiService.login(
           _telephone.text.trim(), _password.text);
+
       if (!mounted) return;
-      if (token != null) {
-        Navigator.pushReplacementNamed(context, "/page_utilisateur");
+
+      if (role != null) {
+        // --- LOGIQUE DE REDIRECTION PAR RÔLE ---
+        switch (role) {
+          case 'PATIENT':
+            Navigator.pushReplacementNamed(context, "/page_utilisateur");
+            break;
+          case 'MEDECIN':
+            Navigator.pushReplacementNamed(context, "/accueil_medecin");
+            break;
+          case 'PHARMACIEN':
+            Navigator.pushReplacementNamed(context, "/accueil_pharmacien");
+            break;
+          default:
+            Navigator.pushReplacementNamed(context, "/page_utilisateur");
+        }
       } else {
         AppWidgets.showSnack(context, "Numéro ou mot de passe incorrect",
             color: AppColors.danger);
@@ -39,13 +57,12 @@ class _LoginState extends State<Login> {
       if (mounted) setState(() => _chargement = false);
     }
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
-          // 1. IMAGE DE FOND
+//IMAGE DE FOND
           Positioned.fill(
             child: Image.asset(
               'assets/images/login.jpeg',
@@ -53,8 +70,7 @@ class _LoginState extends State<Login> {
             ),
           ),
 
-          // 2. DEGRADÉ D'ASSOMBRISSEMENT (Pour faire ressortir le texte et le formulaire)
-          // Le haut est transparent pour voir l'image, le bas est sombre pour le contraste
+// Le haut est transparent pour voir l'image, le bas est sombre pour le contraste
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
@@ -62,15 +78,15 @@ class _LoginState extends State<Login> {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withOpacity(0.1), // Très léger en haut
-                    Colors.black.withOpacity(0.7), // Plus sombre en bas
+                    Colors.black.withOpacity(0.1), 
+                    Colors.black.withOpacity(0.7), 
                   ],
                 ),
               ),
             ),
           ),
 
-          // 3. CONTENU PRINCIPAL
+//CONTENU PRINCIPAL
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
@@ -80,7 +96,7 @@ class _LoginState extends State<Login> {
                   children: [
                     const SizedBox(height: 40),
 
-                    // --- LOGO (Chic et simple) ---
+// --- LOGO 
                     Container(
                       width: 80, height: 80,
                       decoration: BoxDecoration(
@@ -99,7 +115,7 @@ class _LoginState extends State<Login> {
                     ),
                     const SizedBox(height: 30),
 
-                    // --- TITRE (Marquant) ---
+// --- TITRE  ---
                     Text(
                       'Bienvenue sur LAMESSIN',
                       textAlign: TextAlign.center,
@@ -130,7 +146,7 @@ class _LoginState extends State<Login> {
 
                     const SizedBox(height: 60),
 
-                    // --- CARTE DE FORMULAIRE (EFFET VERRE / GLASSMORPHISM) ---
+// --- CARTE DE FORMULAIRE ---
                     ClipRRect(
                       borderRadius: BorderRadius.circular(30),
                       child: BackdropFilter(
@@ -138,7 +154,7 @@ class _LoginState extends State<Login> {
                         child: Container(
                           padding: const EdgeInsets.all(28),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2), // Blanc très transparent
+                            color: Colors.white.withOpacity(0.2), 
                             borderRadius: BorderRadius.circular(30),
                             border: Border.all(
                               color: Colors.white.withOpacity(0.4),
@@ -147,10 +163,10 @@ class _LoginState extends State<Login> {
                           ),
                           child: Column(
                             children: [
-                              // --- CHAMP TÉLÉPHONE ---
+// --- CHAMP TÉLÉPHONE ---
                               Container(
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.9), // Fond blanc pour la lisibilité
+                                  color: Colors.white.withOpacity(0.9), 
                                   borderRadius: BorderRadius.circular(15),
                                 ),
                                 child: TextField(
@@ -172,7 +188,7 @@ class _LoginState extends State<Login> {
                               ),
                               const SizedBox(height: 20),
 
-                              // --- CHAMP MOT DE PASSE ---
+// --- CHAMP MOT DE PASSE ---
                               Container(
                                 decoration: BoxDecoration(
                                   color: Colors.white.withOpacity(0.9),
@@ -204,7 +220,7 @@ class _LoginState extends State<Login> {
                               ),
                               const SizedBox(height: 12),
 
-                              // --- MOT DE PASSE OUBLIÉ ---
+// --- MOT DE PASSE OUBLIÉ ---
                               Align(
                                 alignment: Alignment.centerRight,
                                 child: TextButton(
@@ -215,7 +231,7 @@ class _LoginState extends State<Login> {
                               ),
                               const SizedBox(height: 16),
 
-                              // --- BOUTON CONNEXION ---
+// --- BOUTON CONNEXION ---
                               SizedBox(
                                 width: double.infinity,
                                 height: 55,
@@ -237,7 +253,7 @@ class _LoginState extends State<Login> {
                               ),
                               const SizedBox(height: 24),
 
-                              // --- LIEN INSCRIPTION ---
+// --- LIEN INSCRIPTION ---
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [

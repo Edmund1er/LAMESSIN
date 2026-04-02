@@ -16,27 +16,29 @@ class UtilisateurSerializer(serializers.ModelSerializer):
                   'est_un_compte_patient', 'est_un_compte_medecin', 'est_un_compte_pharmacien')
 
 
-# --- FIX LOGIN : NOUVEAU SERIALIZER ---
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
-    """
-    Ce serializer intercepte la requête de connexion.
-    Il attend une clé 'numero_telephone' au lieu de 'username' dans le JSON envoyé par Flutter.
-    """
-
+    
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # On ajoute un champ explicit pour 'numero_telephone'
         self.fields['numero_telephone'] = serializers.CharField()
-        # On retire le champ 'username' par défaut pour éviter la confusion dans l'API
         self.fields.pop('username', None)
 
     def validate(self, attrs):
-        # Astuce : On copie la valeur de 'numero_telephone' dans 'username'.
-        # Comme notre modèle Utilisateur a USERNAME_FIELD = 'numero_telephone',
-        # Django SimpleJWT va utiliser cette valeur pour chercher l'utilisateur.
+        # Utilisation du numéro de téléphone pour l'authentification
         attrs['username'] = attrs.get('numero_telephone')
-        return super().validate(attrs)
+        data = super().validate(attrs)
 
+        user = self.user
+        if user.est_un_compte_patient:
+            data['role'] = 'PATIENT'
+        elif user.est_un_compte_medecin:
+            data['role'] = 'MEDECIN'
+        elif user.est_un_compte_pharmacien:
+            data['role'] = 'PHARMACIEN'
+        else:
+            data['role'] = 'INCONNU'
+
+        return data
 
 class PatientSerializer(serializers.ModelSerializer):
     compte_utilisateur = UtilisateurSerializer(read_only=True)

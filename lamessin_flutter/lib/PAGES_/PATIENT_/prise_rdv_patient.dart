@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../SERVICES_/patient_service.dart'; // CORRECTION
+import '../../SERVICES_/patient_service.dart';
 import '../../WIDGETS_/menu_navigation.dart';
 import '../../MODELS_/utilisateur_model.dart';
 import '../../THEME_/app_theme.dart';
@@ -12,6 +12,8 @@ class RendezVousPage extends StatefulWidget {
 }
 
 class _RendezVousPageState extends State<RendezVousPage> {
+  static const Color _brandColor = Color(0xFF00C2CB); // Cyan
+  
   Medecin? _medecinSelectionne;
   int? _idHeureSelectionnee;
   DateTime? _dateChoisie;
@@ -33,27 +35,31 @@ class _RendezVousPageState extends State<RendezVousPage> {
   Future<void> _chargerMedecins() async {
     setState(() { _estEnTrainDeCharger = true; _messageErreur = null; });
     try {
-      List<Medecin> liste = await PatientService.getListeMedecins(); // CORRECTION
-      if (mounted) setState(() {
-        _medecinsDisponibles = liste;
-        _estEnTrainDeCharger = false;
-        if (liste.isEmpty) _messageErreur = "Aucun médecin trouvé.";
-      });
+      List<Medecin> liste = await PatientService.getListeMedecins();
+      if (mounted) {
+        setState(() {
+          _medecinsDisponibles = liste;
+          _estEnTrainDeCharger = false;
+          if (liste.isEmpty) { _messageErreur = "Aucun médecin trouvé."; }
+        });
+      }
     } catch (e) {
-      if (mounted) setState(() {
-        _estEnTrainDeCharger = false;
-        _messageErreur = "Erreur de connexion : $e";
-      });
+      if (mounted) {
+        setState(() {
+          _estEnTrainDeCharger = false;
+          _messageErreur = "Erreur de connexion : $e";
+        });
+      }
     }
   }
 
   Future<void> _chargerCreneauxDisponibles() async {
-    if (_medecinSelectionne == null || _dateChoisie == null) return;
+    if (_medecinSelectionne == null || _dateChoisie == null) { return; }
     setState(() => _chargementCreneaux = true);
     try {
       String dateStr = DateFormat('yyyy-MM-dd').format(_dateChoisie!);
       int idMed = _medecinSelectionne!.compteUtilisateur.id;
-      List<dynamic> data = await PatientService.getCreneaux(idMed, dateStr); // CORRECTION
+      List<dynamic> data = await PatientService.getCreneaux(idMed, dateStr);
       setState(() {
         _creneauxDisponibles = data;
         _idHeureSelectionnee = null;
@@ -82,18 +88,33 @@ class _RendezVousPageState extends State<RendezVousPage> {
       "motif_consultation": _motif.text.trim(),
       "statut_actuel_rdv": "en_attente",
     };
-    bool succes = await PatientService.creerRendezVous(rdv); // CORRECTION
-    if (!mounted) return;
+    bool succes = await PatientService.creerRendezVous(rdv);
+    if (!mounted) { return; }
     setState(() => _estEnTrainDeCharger = false);
     if (succes) {
       AppWidgets.showSnack(context, "Rendez-vous enregistré !", color: AppColors.success);
       Future.delayed(const Duration(milliseconds: 500), () {
-        if (!mounted) return;
+        if (!mounted) { return; }
         Navigator.pushNamedAndRemoveUntil(context, '/mes_rendez_vous_page',
             ModalRoute.withName('/page_utilisateur'));
       });
     } else {
       AppWidgets.showSnack(context, "Erreur lors de l'enregistrement.", color: AppColors.danger);
+    }
+  }
+
+  IconData _getIconForSpecialty(String spec) {
+    switch (spec.toLowerCase()) {
+      case 'cardiologie': return Icons.favorite;
+      case 'dentiste': return Icons.clean_hands;
+      case 'pédiatrie': return Icons.child_care;
+      case 'gynécologie': return Icons.woman;
+      case 'neurologie': return Icons.psychology;
+      case 'ophtalmologie': return Icons.visibility;
+      case 'généraliste': return Icons.medical_services;
+      case 'pneumologie': return Icons.air;
+      case 'dermatologie': return Icons.face;
+      default: return Icons.medication;
     }
   }
 
@@ -107,101 +128,187 @@ class _RendezVousPageState extends State<RendezVousPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Colors.transparent,
       drawer: const MenuNavigation(),
-      appBar: AppWidgets.appBar("Prendre un rendez-vous"),
-      body: _estEnTrainDeCharger && _medecinsDisponibles.isEmpty
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(18),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-
-                // Message d'erreur
-                if (_messageErreur != null)
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    margin: const EdgeInsets.only(bottom: 16),
-                    decoration: BoxDecoration(
-                      color: AppColors.warningLight,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(_messageErreur!,
-                        style: const TextStyle(color: Color(0xFFE65100))),
-                  ),
-
-                // ÉTAPE 1
-                AppWidgets.stepHeader("1", "Rechercher un praticien"),
-                if (_medecinsDisponibles.isNotEmpty) _buildFiltres(),
-                const SizedBox(height: 10),
-                _buildListeMedecins(),
-                const SizedBox(height: 22),
-
-                // ÉTAPE 2
-                AppWidgets.stepHeader("2", "Date de consultation"),
-                _buildSelecteurDate(),
-                const SizedBox(height: 22),
-
-                // ÉTAPE 3
-                AppWidgets.stepHeader("3", "Horaires disponibles"),
-                _buildCreneaux(),
-                const SizedBox(height: 22),
-
-                // ÉTAPE 4
-                AppWidgets.stepHeader("4", "Motif de consultation"),
-                _buildMotif(),
-                const SizedBox(height: 30),
-
-                AppWidgets.darkButton(
-                  label: "Confirmer le rendez-vous",
-                  onPressed: _estEnTrainDeCharger ? null : _validerRendezVous,
-                  loading: _estEnTrainDeCharger,
+      appBar: AppBar(
+        backgroundColor: Colors.white.withOpacity(0.95),
+        elevation: 0,
+        title: const Text("Prendre RDV", style: TextStyle(color: _brandColor, fontWeight: FontWeight.bold)),
+        iconTheme: const IconThemeData(color: _brandColor),
+      ),
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage("assets/images/fond_patient.jpg"),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: Column(
+          children: [
+            // --- 1. HEADER "STICKER" CYAN (CENTRÉ) ---
+            Center(
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 800),
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: _brandColor,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 20,
+                      spreadRadius: 5,
+                    )
+                  ]
                 ),
-                const SizedBox(height: 30),
-              ]),
+                padding: const EdgeInsets.all(20),
+                child: _buildTinyGrid(),
+              ),
             ),
+
+            const SizedBox(height: 10),
+
+            // --- 2. FOND TRANSPARENT (CONTENU) ---
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.92),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                ),
+                width: double.infinity,
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 800),
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+
+                        if (_messageErreur != null)
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            margin: const EdgeInsets.only(bottom: 16),
+                            decoration: BoxDecoration(
+                              color: Colors.red.shade50,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.red.shade200)
+                            ),
+                            child: Text(_messageErreur!, style: const TextStyle(color: Colors.red)),
+                          ),
+
+                        const Text("Médecins disponibles", 
+                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: _brandColor)),
+                        const SizedBox(height: 16),
+                        
+                        _buildListeMedecins(),
+                        
+                        const SizedBox(height: 24),
+                        
+                        _buildSectionTitle("Date de consultation"),
+                        const SizedBox(height: 12),
+                        _buildSelecteurDate(),
+                        
+                        const SizedBox(height: 20),
+
+                        _buildSectionTitle("Horaires"),
+                        const SizedBox(height: 12),
+                        _buildCreneaux(),
+                        
+                        const SizedBox(height: 20),
+
+                        _buildSectionTitle("Motif"),
+                        const SizedBox(height: 12),
+                        _buildMotif(),
+                        
+                        const SizedBox(height: 30),
+
+                        AppWidgets.primaryButton(
+                          label: "Confirmer le rendez-vous",
+                          onPressed: _estEnTrainDeCharger ? null : _validerRendezVous,
+                          loading: _estEnTrainDeCharger,
+                        ),
+                        const SizedBox(height: 30),
+                      ]),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _buildFiltres() {
-    return SizedBox(
-      height: 38,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        children: _categories.map((spec) {
-          bool sel = _specialiteFiltre == spec;
-          return Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: GestureDetector(
-              onTap: () => setState(() {
-                _specialiteFiltre = spec;
-                _medecinSelectionne = null;
-                _dateChoisie = null;
-                _creneauxDisponibles = [];
-              }),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                decoration: BoxDecoration(
-                  color: sel ? AppColors.primary : AppColors.surface,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: sel ? AppColors.primary : AppColors.border, width: 1.5),
-                ),
-                child: Text(spec, style: TextStyle(fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: sel ? Colors.white : AppColors.textSecondary)),
+  Widget _buildSectionTitle(String title) {
+    return Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: _brandColor));
+  }
+
+  Widget _buildTinyGrid() {
+    int cols = MediaQuery.of(context).size.width > 600 ? 8 : 4;
+    
+    return GridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: cols,
+      crossAxisSpacing: 8,
+      mainAxisSpacing: 8,
+      childAspectRatio: 1.0,
+      children: _categories.map((spec) {
+        bool isSelected = _specialiteFiltre == spec;
+        return GestureDetector(
+          onTap: () => setState(() {
+            _specialiteFiltre = spec;
+            _medecinSelectionne = null;
+            _dateChoisie = null;
+            _creneauxDisponibles = [];
+          }),
+          child: Container(
+            decoration: BoxDecoration(
+              color: isSelected ? Colors.white : Colors.white.withOpacity(0.0),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isSelected ? _brandColor : Colors.white.withOpacity(0.3),
+                width: 1,
               ),
             ),
-          );
-        }).toList(),
-      ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  spec == "Toutes" ? Icons.grid_view : _getIconForSpecialty(spec),
+                  color: isSelected ? _brandColor : Colors.white,
+                  size: 20,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  spec.length > 9 ? "${spec.substring(0,7)}.." : spec,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: isSelected ? _brandColor : Colors.white.withOpacity(0.9),
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 
   Widget _buildListeMedecins() {
     if (_medecinsAffiches.isEmpty) {
-      return AppWidgets.card(child: const Center(
-        child: Text("Aucun médecin disponible",
-            style: TextStyle(color: AppColors.textSecondary))));
+      return Container(
+        padding: const EdgeInsets.all(24),
+        margin: const EdgeInsets.only(bottom: 10),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: const Center(child: Text("Aucun médecin disponible", style: TextStyle(color: Colors.grey)))
+      );
     }
     return Column(
       children: _medecinsAffiches.map((med) {
@@ -213,35 +320,44 @@ class _RendezVousPageState extends State<RendezVousPage> {
             _creneauxDisponibles = [];
           }),
           child: Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.all(14),
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: sel ? AppColors.primaryLight : AppColors.surface,
-              borderRadius: BorderRadius.circular(14),
+              color: sel ? _brandColor.withOpacity(0.1) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: sel ? AppColors.primary : AppColors.borderLight,
-                width: sel ? 1.5 : 1),
+                color: sel ? _brandColor : Colors.grey.shade200,
+                width: sel ? 2 : 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.03),
+                  blurRadius: 10,
+                  spreadRadius: 1
+                )
+              ]
             ),
             child: Row(children: [
               Container(
-                width: 42, height: 42,
+                width: 50, height: 50,
                 decoration: BoxDecoration(
-                  color: sel ? AppColors.primary : AppColors.background,
-                  borderRadius: BorderRadius.circular(12),
+                  color: _brandColor.withOpacity(0.1),
+                  shape: BoxShape.circle,
                 ),
                 child: Icon(Icons.person_rounded,
-                    color: sel ? Colors.white : AppColors.textSecondary, size: 20),
+                    color: _brandColor, size: 26),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 16),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text("Dr ${med.compteUtilisateur.lastName}",
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800,
-                        color: sel ? AppColors.primary : AppColors.textPrimary)),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800,
+                        color: sel ? _brandColor : AppColors.textPrimary)),
+                const SizedBox(height: 4),
                 Text(med.specialiteMedicale,
-                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                    style: TextStyle(fontSize: 13, color: sel ? _brandColor : Colors.grey[600])),
               ])),
-              if (sel) const Icon(Icons.check_circle_rounded,
-                  color: AppColors.primary, size: 20),
+              if (sel) Icon(Icons.check_circle_rounded,
+                  color: _brandColor, size: 26),
             ]),
           ),
         );
@@ -264,7 +380,7 @@ class _RendezVousPageState extends State<RendezVousPage> {
           locale: const Locale('fr', 'FR'),
           builder: (context, child) => Theme(
             data: Theme.of(context).copyWith(
-                colorScheme: const ColorScheme.light(primary: AppColors.primary)),
+                colorScheme: ColorScheme.light(primary: _brandColor)),
             child: child!,
           ),
         );
@@ -274,27 +390,24 @@ class _RendezVousPageState extends State<RendezVousPage> {
         }
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: _dateChoisie != null ? AppColors.primary : AppColors.borderLight,
-            width: _dateChoisie != null ? 1.5 : 1),
+          border: Border.all(color: _dateChoisie != null ? _brandColor : Colors.grey.shade300, width: 1.5),
         ),
         child: Row(children: [
-          Icon(Icons.calendar_month_rounded,
-              color: _dateChoisie != null ? AppColors.primary : AppColors.textSecondary, size: 20),
+          Icon(Icons.calendar_today, color: _dateChoisie != null ? _brandColor : Colors.grey, size: 22),
           const SizedBox(width: 12),
-          Text(
-            _dateChoisie == null ? "Choisir une date"
-                : DateFormat('dd MMMM yyyy', 'fr_FR').format(_dateChoisie!),
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700,
-                color: _dateChoisie != null ? AppColors.primary : AppColors.textSecondary),
+          Expanded(
+            child: Text(
+              _dateChoisie == null ? "Choisir une date"
+                  : DateFormat('dd MMMM yyyy', 'fr_FR').format(_dateChoisie!),
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600,
+                  color: _dateChoisie != null ? _brandColor : Colors.black54),
+            ),
           ),
-          const Spacer(),
-          const Icon(Icons.chevron_right_rounded,
-              color: AppColors.textSecondary, size: 18),
+          if (_dateChoisie != null) const Icon(Icons.check, color: Colors.green, size: 22),
         ]),
       ),
     );
@@ -302,54 +415,52 @@ class _RendezVousPageState extends State<RendezVousPage> {
 
   Widget _buildCreneaux() {
     if (_chargementCreneaux)
-      return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+      return const Center(child: CircularProgressIndicator(color: _brandColor));
     if (_dateChoisie == null)
-      return AppWidgets.card(child: const Text("Sélectionnez d'abord une date",
-          style: TextStyle(color: AppColors.textSecondary, fontStyle: FontStyle.italic)));
+      return const Center(child: Text("Sélectionnez une date d'abord", style: TextStyle(color: Colors.grey)));
     if (_creneauxDisponibles.isEmpty)
-      return AppWidgets.card(child: const Text(
-          "Aucun créneau disponible. Vérifiez dans l'admin si des plages existent.",
-          style: TextStyle(color: AppColors.danger)));
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.surface, borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.borderLight)),
-      child: Wrap(
-        spacing: 8, runSpacing: 8,
-        children: _creneauxDisponibles.map((c) {
-          bool sel = _idHeureSelectionnee == c['id'];
-          return GestureDetector(
-            onTap: () => setState(() => _idHeureSelectionnee = sel ? null : c['id']),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: sel ? AppColors.primary : AppColors.background,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: sel ? AppColors.primary : AppColors.border, width: 1.5),
-              ),
-              child: Text(c['heure'], style: TextStyle(fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: sel ? Colors.white : AppColors.textPrimary)),
+      return Container(
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(12)),
+        child: const Text("Aucun créneau disponible", style: TextStyle(color: Colors.grey)),
+      );
+
+    return Wrap(
+      spacing: 10, runSpacing: 10,
+      children: _creneauxDisponibles.map((c) {
+        bool sel = _idHeureSelectionnee == c['id'];
+        return GestureDetector(
+          onTap: () => setState(() => _idHeureSelectionnee = sel ? null : c['id']),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+            decoration: BoxDecoration(
+              color: sel ? _brandColor : Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: sel ? _brandColor : Colors.grey.shade300, width: 1.5),
             ),
-          );
-        }).toList(),
-      ),
+            child: Text(c['heure'], style: TextStyle(fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: sel ? Colors.white : AppColors.textPrimary)),
+          ),
+        );
+      }).toList(),
     );
   }
 
   Widget _buildMotif() {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface, borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.borderLight)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade300, width: 1),
+      ),
       child: TextField(
         controller: _motif, maxLines: 3,
         style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
         decoration: const InputDecoration(
-          hintText: "Ex: Fièvre, consultation annuelle...",
+          hintText: "Décrivez vos symptômes...",
+          hintStyle: TextStyle(color: Colors.grey),
           border: InputBorder.none, contentPadding: EdgeInsets.zero),
       ),
     );
