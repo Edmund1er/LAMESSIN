@@ -45,8 +45,6 @@ urlpatterns = [
     path('traitements/<int:pk>/', patient_views.DetailTraitement.as_view(), name='detail_traitement'),
     path('traitements/valider-prise/<int:prise_id>/', patient_views.ValiderPriseMedicament.as_view(), name='valider_prise'),
     path('ordonnances/', patient_views.ListeOrdonnancesPatient.as_view(), name='liste_ordonnances'),
-    path('consultations/', patient_views.ListeConsultationsPatient.as_view(), name='liste_consultations'),
-
     # ====================================================================================================
     # PATIENT - COMMANDES & PAIEMENTS
     # ====================================================================================================

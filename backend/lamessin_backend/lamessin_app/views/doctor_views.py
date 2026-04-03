@@ -5,22 +5,18 @@ from rest_framework.permissions import IsAuthenticated
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+# Statistiques par mois
+from django.db.models import Count
+from django.db.models.functions import TruncMonth
 
-from lamessin_app.models import (
-    Medecin, Patient, RendezVous, Consultation, Ordonnance,
-    DetailOrdonnance, Medicament, PlageHoraire, Traitement, PriseMedicament
-)
-from lamessin_app.serializers import (
-    MedecinSerializer, RendezVousSerializer, ConsultationSerializer,
-    OrdonnanceSerializer, DetailOrdonnanceSerializer, PlageHoraireSerializer,
-    PatientSerializer, TraitementSerializer
-)
+from lamessin_app.models import *
+from lamessin_app.serializers import *
 
 
 # ==================== 1. TABLEAU DE BORD MÉDECIN ====================
 
 class DashboardMedecinView(APIView):
-    """Statistiques et résumé pour le tableau de bord médecin"""
+#Statistiques et résumé pour le tableau de bord médecin
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -31,29 +27,29 @@ class DashboardMedecinView(APIView):
 
         aujourdhui = timezone.now().date()
 
-        # Rendez-vous du jour
+# Rendez-vous du jour
         rdv_aujourdhui = RendezVous.objects.filter(
             medecin_concerne=medecin,
             date_rdv=aujourdhui
         ).exclude(statut_actuel_rdv='annulé')
 
-        # Rendez-vous à venir
+# Rendez-vous à venir
         rdv_a_venir = RendezVous.objects.filter(
             medecin_concerne=medecin,
             date_rdv__gt=aujourdhui
         ).exclude(statut_actuel_rdv='annulé')
 
-        # Consultations totales
+# Consultations totales
         consultations_total = Consultation.objects.filter(
             rdv__medecin_concerne=medecin
         ).count()
 
-        # Patients distincts
+# Patients distincts
         patients_uniques = RendezVous.objects.filter(
             medecin_concerne=medecin
         ).values('patient_demandeur').distinct().count()
 
-        # Prochains rendez-vous (5 prochains)
+# Prochains rendez-vous (5 prochains)
         prochains_rdv = RendezVous.objects.filter(
             medecin_concerne=medecin,
             date_rdv__gte=aujourdhui
@@ -71,7 +67,7 @@ class DashboardMedecinView(APIView):
 # ==================== 2. GESTION DES RENDEZ-VOUS ====================
 
 class MedecinRendezVousView(APIView):
-    """Liste des rendez-vous du médecin avec filtres"""
+#Liste des rendez-vous du médecin avec filtres
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -98,7 +94,7 @@ class MedecinRendezVousView(APIView):
 
 
 class UpdateRendezVousStatutView(APIView):
-    """Modifier le statut d'un rendez-vous"""
+#Modifier le statut d'un rendez-vous
     permission_classes = [IsAuthenticated]
 
     def patch(self, request, rdv_id):
@@ -125,7 +121,7 @@ class UpdateRendezVousStatutView(APIView):
 # ==================== 3. GESTION DES CONSULTATIONS ====================
 
 class CreerConsultationView(APIView):
-    """Créer une consultation après un rendez-vous"""
+#Créer une consultation après un rendez-vous
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -140,7 +136,7 @@ class CreerConsultationView(APIView):
 
         rdv = get_object_or_404(RendezVous, id=rdv_id, medecin_concerne=medecin)
 
-        # Vérifier si une consultation existe déjà
+# Vérifier si une consultation existe déjà
         if hasattr(rdv, 'consultation'):
             return Response({"error": "Une consultation existe déjà pour ce rendez-vous"}, status=400)
 
@@ -154,7 +150,7 @@ class CreerConsultationView(APIView):
         serializer = ConsultationSerializer(data=data)
         if serializer.is_valid():
             consultation = serializer.save()
-            # Mettre à jour le statut du rendez-vous
+# Mettre à jour le statut du rendez-vous
             rdv.statut_actuel_rdv = 'termine'
             rdv.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -163,7 +159,7 @@ class CreerConsultationView(APIView):
 
 
 class GetConsultationView(APIView):
-    """Détail d'une consultation"""
+#Détail d'une consultation
     permission_classes = [IsAuthenticated]
 
     def get(self, request, consultation_id):
@@ -182,7 +178,7 @@ class GetConsultationView(APIView):
 # ==================== 4. GESTION DES ORDONNANCES ====================
 
 class CreerOrdonnanceView(APIView):
-    """Prescrire une ordonnance"""
+#Prescrire une ordonnance
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -200,7 +196,7 @@ class CreerOrdonnanceView(APIView):
         consultation = get_object_or_404(Consultation, id=consultation_id, rdv__medecin_concerne=medecin)
         patient = get_object_or_404(Patient, id=patient_id)
 
-        # Générer un code de sécurité unique
+# Générer un code de sécurité unique
         import random
         import string
         code_securite = ''.join(random.choices(string.digits, k=10))
@@ -216,7 +212,7 @@ class CreerOrdonnanceView(APIView):
         if serializer.is_valid():
             ordonnance = serializer.save()
 
-            # Ajouter les détails (médicaments)
+# Ajouter les détails (médicaments)
             details = request.data.get('details', [])
             for detail in details:
                 DetailOrdonnance.objects.create(
@@ -233,7 +229,7 @@ class CreerOrdonnanceView(APIView):
 
 
 class OrdonnancesMedecinView(APIView):
-    """Liste des ordonnances prescrites par le médecin"""
+#Liste des ordonnances prescrites par le médecin
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -248,7 +244,7 @@ class OrdonnancesMedecinView(APIView):
 # ==================== 5. GESTION DES DISPONIBILITÉS ====================
 
 class GererPlagesHorairesView(APIView):
-    """CRUD des plages horaires du médecin"""
+#CRUD des plages horaires du médecin
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -287,13 +283,13 @@ class GererPlagesHorairesView(APIView):
 # ==================== 6. GESTION DES PATIENTS ====================
 
 class ListePatientsMedecinView(APIView):
-    """Liste des patients du médecin"""
+#Liste des patients du médecin
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         try:
             medecin = Medecin.objects.get(compte_utilisateur=request.user)
-            # Récupérer les patients uniques qui ont eu un RDV avec ce médecin
+# Récupérer les patients uniques qui ont eu un RDV avec ce médecin
             patients_ids = RendezVous.objects.filter(
                 medecin_concerne=medecin
             ).values_list('patient_demandeur', flat=True).distinct()
@@ -305,7 +301,7 @@ class ListePatientsMedecinView(APIView):
 
 
 class DossierPatientView(APIView):
-    """Consulter le dossier médical complet d'un patient"""
+#Consulter le dossier médical complet d'un patient
     permission_classes = [IsAuthenticated]
 
     def get(self, request, patient_id):
@@ -313,7 +309,7 @@ class DossierPatientView(APIView):
             medecin = Medecin.objects.get(compte_utilisateur=request.user)
             patient = get_object_or_404(Patient, id=patient_id)
 
-            # Vérifier que le patient a eu un RDV avec ce médecin
+# Vérifier que le patient a eu un RDV avec ce médecin
             rdv_existe = RendezVous.objects.filter(
                 medecin_concerne=medecin,
                 patient_demandeur=patient
@@ -322,7 +318,7 @@ class DossierPatientView(APIView):
             if not rdv_existe:
                 return Response({"error": "Non autorisé"}, status=403)
 
-            # Récupérer toutes les données du patient
+# Récupérer toutes les données du patient
             consultations = Consultation.objects.filter(rdv__patient_demandeur=patient)
             ordonnances = Ordonnance.objects.filter(patient_beneficiaire=patient)
             traitements = Traitement.objects.filter(patient_concerne=patient)
@@ -340,7 +336,7 @@ class DossierPatientView(APIView):
 # ==================== 7. STATISTIQUES ====================
 
 class StatistiquesMedecinView(APIView):
-    """Statistiques détaillées du médecin"""
+#Statistiques détaillées du médecin
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -349,9 +345,6 @@ class StatistiquesMedecinView(APIView):
         except Medecin.DoesNotExist:
             return Response({"error": "Médecin non trouvé"}, status=404)
 
-        # Statistiques par mois
-        from django.db.models import Count
-        from django.db.models.functions import TruncMonth
 
         consultations_par_mois = Consultation.objects.filter(
             rdv__medecin_concerne=medecin
@@ -374,3 +367,36 @@ class StatistiquesMedecinView(APIView):
             'consultations_par_mois': list(consultations_par_mois),
             'top_medicaments': list(top_medicaments),
         })
+
+class UploadDocumentMedicalView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            medecin = Medecin.objects.get(compte_utilisateur=request.user)
+        except Medecin.DoesNotExist:
+            return Response({"error": "Médecin non trouvé"}, status=404)
+
+        consultation_id = request.data.get('consultation_id')
+        if not consultation_id:
+            return Response({"error": "ID de consultation requis"}, status=400)
+
+        consultation = get_object_or_404(
+            Consultation,
+            id=consultation_id,
+            rdv__medecin_concerne=medecin
+        )
+
+        fichier = request.FILES.get('document')
+        if not fichier:
+            return Response({"error": "Aucun document fourni"}, status=400)
+
+        # Sauvegarder le document
+        consultation.document_joint = fichier
+        consultation.save()
+
+        return Response({
+            'success': True,
+            'message': 'Document uploadé avec succès',
+            'document_url': consultation.document_joint.url if consultation.document_joint else None
+        }, status=200)

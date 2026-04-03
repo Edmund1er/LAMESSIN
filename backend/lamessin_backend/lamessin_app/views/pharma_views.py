@@ -1,16 +1,20 @@
+# lamessin_app/views/pharma_views.py
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, generics
 from rest_framework.permissions import IsAuthenticated
 from django.db import transaction
+from django.db.models import Sum, Count, F
+from django.db.models.functions import TruncMonth
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
 from lamessin_app.models import (
     Pharmacien, Pharmacie, Medicament, Stock, Commande, LigneCommande,
-    Ordonnance, DetailOrdonnance, Patient
+    Ordonnance, DetailOrdonnance, Patient, EtablissementSante
 )
+
 from lamessin_app.serializers import (
     PharmacienSerializer, MedicamentSerializer, StockSerializer,
     CommandeSerializer, LigneCommandeSerializer, OrdonnanceSerializer,
@@ -27,7 +31,7 @@ class DashboardPharmacienView(APIView):
     def get(self, request):
         try:
             pharmacien = Pharmacien.objects.get(compte_utilisateur=request.user)
-            pharmacie = Pharmacie.objects.get(id=pharmacien.id)  # Pharmacien hérite de EtablissementSante
+            pharmacie = Pharmacie.objects.get(id=pharmacien.pk)  # Correction: utiliser pk au lieu de id
         except (Pharmacien.DoesNotExist, Pharmacie.DoesNotExist):
             return Response({"error": "Pharmacien ou pharmacie non trouvé"}, status=404)
 
@@ -35,7 +39,7 @@ class DashboardPharmacienView(APIView):
         stocks = Stock.objects.filter(pharmacie_detentrice=pharmacie)
         total_produits = stocks.count()
         produits_en_rupture = stocks.filter(quantite_actuelle_en_stock=0).count()
-        produits_alerte = stocks.filter(quantite_actuelle_en_stock__lte=models.F('seuil_alerte')).count()
+        produits_alerte = stocks.filter(quantite_actuelle_en_stock__lte=F('seuil_alerte')).count()
 
         # Commandes
         commandes_attente = Commande.objects.filter(
@@ -53,7 +57,7 @@ class DashboardPharmacienView(APIView):
             statut='PAYE'
         ).distinct()
 
-        ca_total = sum(c.total for c in commandes_payees)
+        ca_total = sum(float(c.total) for c in commandes_payees)
 
         # Commandes récentes
         commandes_recentes = Commande.objects.filter(
@@ -66,7 +70,7 @@ class DashboardPharmacienView(APIView):
             'produits_alerte': produits_alerte,
             'commandes_attente': commandes_attente,
             'commandes_total': commandes_total,
-            'ca_total': float(ca_total),
+            'ca_total': ca_total,
             'commandes_recentes': CommandeSerializer(commandes_recentes, many=True).data,
         })
 
@@ -80,7 +84,7 @@ class GererStockView(APIView):
     def get(self, request):
         try:
             pharmacien = Pharmacien.objects.get(compte_utilisateur=request.user)
-            pharmacie = Pharmacie.objects.get(id=pharmacien.id)
+            pharmacie = Pharmacie.objects.get(id=pharmacien.pk)
             stocks = Stock.objects.filter(pharmacie_detentrice=pharmacie)
             return Response(StockSerializer(stocks, many=True).data)
         except (Pharmacien.DoesNotExist, Pharmacie.DoesNotExist):
@@ -89,7 +93,7 @@ class GererStockView(APIView):
     def post(self, request):
         try:
             pharmacien = Pharmacien.objects.get(compte_utilisateur=request.user)
-            pharmacie = Pharmacie.objects.get(id=pharmacien.id)
+            pharmacie = Pharmacie.objects.get(id=pharmacien.pk)
         except (Pharmacien.DoesNotExist, Pharmacie.DoesNotExist):
             return Response({"error": "Pharmacien ou pharmacie non trouvé"}, status=404)
 
@@ -97,6 +101,9 @@ class GererStockView(APIView):
         quantite = request.data.get('quantite', 0)
         seuil_alerte = request.data.get('seuil_alerte', 10)
         date_peremption = request.data.get('date_peremption')
+
+        if not medicament_id:
+            return Response({"error": "medicament_id requis"}, status=400)
 
         medicament = get_object_or_404(Medicament, id=medicament_id)
 
@@ -126,7 +133,7 @@ class UpdateStockView(APIView):
     def patch(self, request, stock_id):
         try:
             pharmacien = Pharmacien.objects.get(compte_utilisateur=request.user)
-            pharmacie = Pharmacie.objects.get(id=pharmacien.id)
+            pharmacie = Pharmacie.objects.get(id=pharmacien.pk)
             stock = get_object_or_404(Stock, id=stock_id, pharmacie_detentrice=pharmacie)
         except (Pharmacien.DoesNotExist, Pharmacie.DoesNotExist):
             return Response({"error": "Non autorisé"}, status=403)
@@ -146,10 +153,10 @@ class AlertesStockView(APIView):
     def get(self, request):
         try:
             pharmacien = Pharmacien.objects.get(compte_utilisateur=request.user)
-            pharmacie = Pharmacie.objects.get(id=pharmacien.id)
+            pharmacie = Pharmacie.objects.get(id=pharmacien.pk)
             alertes = Stock.objects.filter(
                 pharmacie_detentrice=pharmacie,
-                quantite_actuelle_en_stock__lte=models.F('seuil_alerte')
+                quantite_actuelle_en_stock__lte=F('seuil_alerte')
             )
             return Response(StockSerializer(alertes, many=True).data)
         except (Pharmacien.DoesNotExist, Pharmacie.DoesNotExist):
@@ -165,7 +172,7 @@ class CommandesPharmacieView(APIView):
     def get(self, request):
         try:
             pharmacien = Pharmacien.objects.get(compte_utilisateur=request.user)
-            pharmacie = Pharmacie.objects.get(id=pharmacien.id)
+            pharmacie = Pharmacie.objects.get(id=pharmacien.pk)
         except (Pharmacien.DoesNotExist, Pharmacie.DoesNotExist):
             return Response({"error": "Pharmacien ou pharmacie non trouvé"}, status=404)
 
@@ -188,7 +195,7 @@ class DetailCommandePharmacieView(APIView):
     def get(self, request, commande_id):
         try:
             pharmacien = Pharmacien.objects.get(compte_utilisateur=request.user)
-            pharmacie = Pharmacie.objects.get(id=pharmacien.id)
+            pharmacie = Pharmacie.objects.get(id=pharmacien.pk)
             commande = get_object_or_404(
                 Commande,
                 id=commande_id,
@@ -206,7 +213,7 @@ class ValiderCommandeView(APIView):
     def post(self, request, commande_id):
         try:
             pharmacien = Pharmacien.objects.get(compte_utilisateur=request.user)
-            pharmacie = Pharmacie.objects.get(id=pharmacien.id)
+            pharmacie = Pharmacie.objects.get(id=pharmacien.pk)
             commande = get_object_or_404(
                 Commande,
                 id=commande_id,
@@ -309,7 +316,7 @@ class ValiderOrdonnanceView(APIView):
     def post(self, request, ordonnance_id):
         try:
             pharmacien = Pharmacien.objects.get(compte_utilisateur=request.user)
-            pharmacie = Pharmacie.objects.get(id=pharmacien.id)
+            pharmacie = Pharmacie.objects.get(id=pharmacien.pk)
             ordonnance = get_object_or_404(Ordonnance, id=ordonnance_id)
         except (Pharmacien.DoesNotExist, Pharmacie.DoesNotExist):
             return Response({"error": "Non autorisé"}, status=403)
@@ -343,14 +350,14 @@ class ValiderOrdonnanceView(APIView):
             commande = Commande.objects.create(
                 patient=ordonnance.patient_beneficiaire,
                 total=0,
-                statut='PAYE',  # Ordonnance validée = payée par la mutuelle/assurance
+                statut='PAYE',
                 methode_retrait='RETRAIT'
             )
 
             total_commande = 0
             for detail in details:
-                prix = detail.medicament.prix_vente
-                ligne = LigneCommande.objects.create(
+                prix = float(detail.medicament.prix_vente)
+                LigneCommande.objects.create(
                     commande=commande,
                     produit=detail.medicament,
                     pharmacie=pharmacie,
@@ -386,12 +393,9 @@ class StatistiquesPharmacieView(APIView):
     def get(self, request):
         try:
             pharmacien = Pharmacien.objects.get(compte_utilisateur=request.user)
-            pharmacie = Pharmacie.objects.get(id=pharmacien.id)
+            pharmacie = Pharmacie.objects.get(id=pharmacien.pk)
         except (Pharmacien.DoesNotExist, Pharmacie.DoesNotExist):
             return Response({"error": "Non autorisé"}, status=403)
-
-        from django.db.models import Sum, Count
-        from django.db.models.functions import TruncMonth
 
         # Ventes par mois
         ventes_par_mois = LigneCommande.objects.filter(
