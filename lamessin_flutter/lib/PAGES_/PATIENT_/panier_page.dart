@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../SERVICES_/patient_service.dart'; // CORRECTION
+import '../../SERVICES_/patient_service.dart';
 import '../../THEME_/app_theme.dart';
 
 class PanierItem {
@@ -27,6 +27,8 @@ class PanierPage extends StatefulWidget {
 }
 
 class _PanierPageState extends State<PanierPage> {
+  static const Color _brandColor = Color(0xFF00C2CB);
+  
   double get total =>
       widget.items.fold(0, (sum, item) => sum + (item.prix * item.quantite));
 
@@ -43,11 +45,11 @@ class _PanierPageState extends State<PanierPage> {
       context: context,
       barrierDismissible: false,
       builder: (_) => const Center(
-          child: CircularProgressIndicator(color: AppColors.primary)),
+          child: CircularProgressIndicator(color: _brandColor)),
     );
 
     try {
-      final resultat = await PatientService.creerCommandeMultiple(articlesJson); // CORRECTION
+      final resultat = await PatientService.creerCommandeMultiple(articlesJson);
       if (!mounted) return;
       Navigator.pop(context);
 
@@ -77,20 +79,36 @@ class _PanierPageState extends State<PanierPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppWidgets.appBar("Mon panier"),
-      body: widget.items.isEmpty
-          ? _buildEmpty()
-          : Column(children: [
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: widget.items.length,
-                  itemBuilder: (_, index) => _buildItem(index),
-                ),
-              ),
-              _buildRecap(),
-            ]),
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(
+        backgroundColor: Colors.white.withOpacity(0.85),
+        elevation: 0,
+        title: const Text("Mon panier", style: TextStyle(color: _brandColor, fontWeight: FontWeight.bold)),
+        iconTheme: const IconThemeData(color: _brandColor),
+      ),
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage("assets/images/fond_patient.jpg"),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: Container(
+          color: Colors.white.withOpacity(0.75),
+          child: widget.items.isEmpty
+              ? _buildEmpty()
+              : Column(children: [
+                  Expanded(
+                    child: ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: widget.items.length,
+                      itemBuilder: (_, index) => _buildItem(index),
+                    ),
+                  ),
+                  _buildRecap(),
+                ]),
+        ),
+      ),
     );
   }
 
@@ -100,7 +118,7 @@ class _PanierPageState extends State<PanierPage> {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white.withOpacity(0.85),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.borderLight),
       ),
@@ -108,9 +126,9 @@ class _PanierPageState extends State<PanierPage> {
         Container(
           width: 44, height: 44,
           decoration: BoxDecoration(
-            color: AppColors.primaryLight, borderRadius: BorderRadius.circular(12)),
-          child: const Icon(Icons.medication_rounded,
-              color: AppColors.primary, size: 22),
+            color: _brandColor.withOpacity(0.15), borderRadius: BorderRadius.circular(12)),
+          child: Icon(Icons.medication_rounded,
+              color: _brandColor, size: 22),
         ),
         const SizedBox(width: 12),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -156,16 +174,16 @@ class _PanierPageState extends State<PanierPage> {
         left: 20, right: 20, top: 16,
         bottom: MediaQuery.of(context).padding.bottom + 16,
       ),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(top: BorderSide(color: AppColors.borderLight)),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.85),
+        border: const Border(top: BorderSide(color: AppColors.borderLight)),
       ),
       child: Column(children: [
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           const Text("Total à payer :", style: TextStyle(fontSize: 16,
               fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
-          Text("${total.toInt()} FCFA", style: const TextStyle(
-              fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.primary)),
+          Text("${total.toInt()} FCFA", style: TextStyle(
+              fontSize: 18, fontWeight: FontWeight.w900, color: _brandColor)),
         ]),
         const SizedBox(height: 14),
         AppWidgets.darkButton(
@@ -180,10 +198,10 @@ class _PanierPageState extends State<PanierPage> {
   Widget _buildEmpty() {
     return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
       Container(width: 72, height: 72,
-          decoration: BoxDecoration(color: AppColors.primaryLight,
+          decoration: BoxDecoration(color: _brandColor.withOpacity(0.15),
               borderRadius: BorderRadius.circular(20)),
-          child: const Icon(Icons.shopping_cart_outlined,
-              size: 36, color: AppColors.primary)),
+          child: Icon(Icons.shopping_cart_outlined,
+              size: 36, color: _brandColor)),
       const SizedBox(height: 16),
       const Text("Votre panier est vide", style: TextStyle(fontSize: 16,
           fontWeight: FontWeight.w700, color: AppColors.textPrimary)),

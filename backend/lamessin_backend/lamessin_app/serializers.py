@@ -1,7 +1,8 @@
+# lamessin_app/serializers.py
+
 from rest_framework import serializers
 from .models import *
 from django.utils import timezone
-# IMPORT IMPORTANT POUR LE LOGIN CUSTOM
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 
@@ -17,14 +18,12 @@ class UtilisateurSerializer(serializers.ModelSerializer):
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
-    
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['numero_telephone'] = serializers.CharField()
         self.fields.pop('username', None)
 
     def validate(self, attrs):
-        # Utilisation du numéro de téléphone pour l'authentification
         attrs['username'] = attrs.get('numero_telephone')
         data = super().validate(attrs)
 
@@ -39,6 +38,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             data['role'] = 'INCONNU'
 
         return data
+
 
 class PatientSerializer(serializers.ModelSerializer):
     compte_utilisateur = UtilisateurSerializer(read_only=True)
@@ -81,23 +81,25 @@ class InscriptionSerializer(serializers.ModelSerializer):
                   'photo_profil')
 
     def validate(self, data):
-        # FIX INSCRIPTION : On force en minuscule pour gérer 'PATIENT', 'Patient', etc.
         type_compte = data.get('type_compte', '').lower()
-
         errors = {}
+
         if type_compte == 'medecin':
-            if not data.get('specialite_medicale'): errors['specialite_medicale'] = "Requis pour médecin."
-            if not data.get('numero_licence'): errors['numero_licence'] = "Requis pour médecin."
+            if not data.get('specialite_medicale'):
+                errors['specialite_medicale'] = "Requis pour médecin."
+            if not data.get('numero_licence'):
+                errors['numero_licence'] = "Requis pour médecin."
         elif type_compte == 'pharmacien' and not data.get('numero_licence'):
             errors['numero_licence'] = "Requis pour pharmacien."
         elif type_compte == 'patient' and not data.get('date_naissance'):
             errors['date_naissance'] = "Date de naissance requise."
 
-        if errors: raise serializers.ValidationError(errors)
+        if errors:
+            raise serializers.ValidationError(errors)
         return data
 
     def create(self, validated_data):
-        type_compte = validated_data.pop('type_compte').lower()  # On récupère en minuscule
+        type_compte = validated_data.pop('type_compte').lower()
         spec = validated_data.pop('specialite_medicale', None)
         licence = validated_data.pop('numero_licence', None)
         naissance = validated_data.pop('date_naissance', None)
@@ -108,18 +110,39 @@ class InscriptionSerializer(serializers.ModelSerializer):
 
         if type_compte == 'patient':
             user.est_un_compte_patient = True
-            Patient.objects.create(compte_utilisateur=user, date_naissance=naissance, groupe_sanguin=sang,
-                                   photo_profil=photo)
+            Patient.objects.create(
+                compte_utilisateur=user,
+                date_naissance=naissance,
+                groupe_sanguin=sang,
+                photo_profil=photo
+            )
         elif type_compte == 'medecin':
             user.est_un_compte_medecin = True
-            Medecin.objects.create(compte_utilisateur=user, specialite_medicale=spec, numero_licence=licence,
-                                   photo_profil=photo)
+            Medecin.objects.create(
+                compte_utilisateur=user,
+                specialite_medicale=spec,
+                numero_licence=licence,
+                photo_profil=photo
+            )
         elif type_compte == 'pharmacien':
             user.est_un_compte_pharmacien = True
-            Pharmacien.objects.create(compte_utilisateur=user, numero_licence=licence)
+            Pharmacien.objects.create(
+                compte_utilisateur=user,
+                numero_licence=licence
+            )
 
         user.save()
         return user
+
+
+# ====================================================================================================
+# SERIALIZERS MÉDECIN (PLAGES HORAIRES)
+# ====================================================================================================
+
+class PlageHoraireSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PlageHoraire
+        fields = ('id', 'medecin', 'date', 'heure_debut', 'heure_fin', 'duree_consultation')
 
 
 # ====================================================================================================
@@ -149,8 +172,8 @@ class ConsultationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Consultation
-        fields = ('id', 'rdv', 'diagnostic', 'actes_effectues', 'notes_medecin', 'date_consultation', 'ordonnances',
-                  'document_joint')
+        fields = ('id', 'rdv', 'diagnostic', 'actes_effectues', 'notes_medecin', 'date_consultation',
+                  'ordonnances', 'document_joint')
 
 
 # ====================================================================================================
@@ -200,12 +223,9 @@ class CommandeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Commande
         fields = ('id', 'patient_nom', 'date_creation', 'statut', 'methode_retrait', 'lignes', 'total',
-                  'estimation_retrait',
-                  'transaction_id'
-                  )
+                  'estimation_retrait', 'transaction_id')
 
     def get_estimation_retrait(self, obj):
-        # Logique métier pour le scénario : estimation de retrait
         if obj.methode_retrait == "LIVRAISON":
             return "Estimation : 1h à 2h"
         return "Prêt pour retrait dans 30 min"
@@ -232,7 +252,7 @@ class TraitementSerializer(serializers.ModelSerializer):
 class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification
-        fields = ['id', 'message', 'heure_envoi', 'type_notification']
+        fields = ['id', 'message', 'heure_envoi', 'type_notification', 'lu']
 
 
 class MessageSerializer(serializers.ModelSerializer):
@@ -244,6 +264,7 @@ class MessageSerializer(serializers.ModelSerializer):
 # ====================================================================================================
 # SERIALIZERS ÉTABLISSEMENTS
 # ====================================================================================================
+
 class EtablissementSanteSerializer(serializers.ModelSerializer):
     type_etablissement = serializers.SerializerMethodField()
     pharmacie_est_garde = serializers.SerializerMethodField()
@@ -261,7 +282,9 @@ class EtablissementSanteSerializer(serializers.ModelSerializer):
         return "general"
 
     def get_pharmacie_est_garde(self, obj):
-        return obj.pharmacie.pharmacie_est_garde if hasattr(obj, 'pharmacie') else False
+        if hasattr(obj, 'pharmacie') and obj.pharmacie:
+            return obj.pharmacie.pharmacie_est_garde
+        return False
 
 
 # ====================================================================================================

@@ -12,7 +12,7 @@ class RendezVousPage extends StatefulWidget {
 }
 
 class _RendezVousPageState extends State<RendezVousPage> {
-  static const Color _brandColor = Color(0xFF00C2CB); // Cyan
+  static const Color _brandColor = Color(0xFF00C2CB);
   
   Medecin? _medecinSelectionne;
   int? _idHeureSelectionnee;
@@ -131,7 +131,7 @@ class _RendezVousPageState extends State<RendezVousPage> {
       backgroundColor: Colors.transparent,
       drawer: const MenuNavigation(),
       appBar: AppBar(
-        backgroundColor: Colors.white.withOpacity(0.95),
+        backgroundColor: Colors.white.withOpacity(0.85),
         elevation: 0,
         title: const Text("Prendre RDV", style: TextStyle(color: _brandColor, fontWeight: FontWeight.bold)),
         iconTheme: const IconThemeData(color: _brandColor),
@@ -155,7 +155,7 @@ class _RendezVousPageState extends State<RendezVousPage> {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
+                      color: Colors.black.withOpacity(0.15),
                       blurRadius: 20,
                       spreadRadius: 5,
                     )
@@ -168,11 +168,11 @@ class _RendezVousPageState extends State<RendezVousPage> {
 
             const SizedBox(height: 10),
 
-            // --- 2. FOND TRANSPARENT (CONTENU) ---
+            // --- 2. FOND PLUS TRANSPARENT (CONTENU) ---
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.92),
+                  color: Colors.white.withOpacity(0.75),
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
                 ),
                 width: double.infinity,
@@ -243,6 +243,7 @@ class _RendezVousPageState extends State<RendezVousPage> {
     return Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: _brandColor));
   }
 
+  // GRILLES PLUS TRANSPARENTES
   Widget _buildTinyGrid() {
     int cols = MediaQuery.of(context).size.width > 600 ? 8 : 4;
     
@@ -264,10 +265,10 @@ class _RendezVousPageState extends State<RendezVousPage> {
           }),
           child: Container(
             decoration: BoxDecoration(
-              color: isSelected ? Colors.white : Colors.white.withOpacity(0.0),
+              color: isSelected ? Colors.white.withOpacity(0.9) : Colors.white.withOpacity(0.2),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: isSelected ? _brandColor : Colors.white.withOpacity(0.3),
+                color: isSelected ? _brandColor : Colors.white.withOpacity(0.5),
                 width: 1,
               ),
             ),
@@ -303,7 +304,7 @@ class _RendezVousPageState extends State<RendezVousPage> {
         padding: const EdgeInsets.all(24),
         margin: const EdgeInsets.only(bottom: 10),
         decoration: BoxDecoration(
-          color: Colors.grey.shade50,
+          color: Colors.white.withOpacity(0.7),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: Colors.grey.shade200),
         ),
@@ -323,7 +324,7 @@ class _RendezVousPageState extends State<RendezVousPage> {
             margin: const EdgeInsets.only(bottom: 12),
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: sel ? _brandColor.withOpacity(0.1) : Colors.white,
+              color: sel ? _brandColor.withOpacity(0.15) : Colors.white.withOpacity(0.8),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: sel ? _brandColor : Colors.grey.shade200,
@@ -341,7 +342,7 @@ class _RendezVousPageState extends State<RendezVousPage> {
               Container(
                 width: 50, height: 50,
                 decoration: BoxDecoration(
-                  color: _brandColor.withOpacity(0.1),
+                  color: _brandColor.withOpacity(0.15),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(Icons.person_rounded,
@@ -392,7 +393,7 @@ class _RendezVousPageState extends State<RendezVousPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Colors.white.withOpacity(0.85),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: _dateChoisie != null ? _brandColor : Colors.grey.shade300, width: 1.5),
         ),
@@ -421,7 +422,7 @@ class _RendezVousPageState extends State<RendezVousPage> {
     if (_creneauxDisponibles.isEmpty)
       return Container(
         padding: const EdgeInsets.all(15),
-        decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(12)),
+        decoration: BoxDecoration(color: Colors.white.withOpacity(0.7), borderRadius: BorderRadius.circular(12)),
         child: const Text("Aucun créneau disponible", style: TextStyle(color: Colors.grey)),
       );
 
@@ -434,7 +435,7 @@ class _RendezVousPageState extends State<RendezVousPage> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
             decoration: BoxDecoration(
-              color: sel ? _brandColor : Colors.white,
+              color: sel ? _brandColor : Colors.white.withOpacity(0.85),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: sel ? _brandColor : Colors.grey.shade300, width: 1.5),
             ),
@@ -451,7 +452,7 @@ class _RendezVousPageState extends State<RendezVousPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Colors.white.withOpacity(0.85),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.grey.shade300, width: 1),
       ),

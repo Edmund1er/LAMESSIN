@@ -81,7 +81,7 @@ class _AssistantPageState extends State<AssistantPage> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        backgroundColor: Colors.white.withOpacity(0.95),
+        backgroundColor: Colors.white.withOpacity(0.85),
         elevation: 0,
         iconTheme: const IconThemeData(color: _brandColor),
         bottom: PreferredSize(
@@ -159,7 +159,7 @@ class _AssistantPageState extends State<AssistantPage> {
           ),
         ),
         child: Container(
-          color: Colors.white.withOpacity(0.92),
+          color: Colors.white.withOpacity(0.75),
           child: _isLoading
               ? const Center(
                   child: CircularProgressIndicator(color: _brandColor),
@@ -201,7 +201,7 @@ class _AssistantPageState extends State<AssistantPage> {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: _brandColor.withOpacity(0.1),
+              color: _brandColor.withOpacity(0.15),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Icon(
@@ -249,7 +249,7 @@ class _AssistantPageState extends State<AssistantPage> {
                             vertical: 8,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: Colors.white.withOpacity(0.85),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
                               color: _brandColor,
@@ -309,7 +309,7 @@ class _AssistantPageState extends State<AssistantPage> {
                   vertical: 12,
                 ),
                 decoration: BoxDecoration(
-                  color: isUser ? _brandColor : Colors.white,
+                  color: isUser ? _brandColor : Colors.white.withOpacity(0.85),
                   borderRadius: BorderRadius.only(
                     topLeft: const Radius.circular(16),
                     topRight: const Radius.circular(16),
@@ -343,7 +343,7 @@ class _AssistantPageState extends State<AssistantPage> {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Colors.white.withOpacity(0.85),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppColors.borderLight),
         ),
@@ -375,7 +375,7 @@ class _AssistantPageState extends State<AssistantPage> {
         bottom: MediaQuery.of(context).padding.bottom + 12,
       ),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.95),
+        color: Colors.white.withOpacity(0.85),
         border: const Border(top: BorderSide(color: AppColors.borderLight)),
       ),
       child: Row(
@@ -383,7 +383,7 @@ class _AssistantPageState extends State<AssistantPage> {
           Expanded(
             child: Container(
               decoration: BoxDecoration(
-                color: AppColors.background,
+                color: AppColors.background.withOpacity(0.9),
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(color: AppColors.border),
               ),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../SERVICES_/api_service.dart'; // Gardé pour mediaBaseUrl
-import '../../SERVICES_/patient_service.dart'; // CORRECTION
+import '../../SERVICES_/api_service.dart';
+import '../../SERVICES_/patient_service.dart';
 import '../../MODELS_/traitement_model.dart';
 import '../../MODELS_/consultation_model.dart';
 import '../../THEME_/app_theme.dart';
@@ -13,6 +13,7 @@ class SuiviTraitementsPage extends StatefulWidget {
 }
 
 class _SuiviTraitementsPageState extends State<SuiviTraitementsPage> {
+  static const Color _brandColor = Color(0xFF00C2CB);
   List<dynamic> _donnees = [];
   bool _chargement = true;
 
@@ -21,8 +22,8 @@ class _SuiviTraitementsPageState extends State<SuiviTraitementsPage> {
 
   Future<void> _chargerDonnees() async {
     setState(() => _chargement = true);
-    final traitements   = await PatientService.getTraitements(); // CORRECTION
-    final consultations = await PatientService.getMesConsultations(); // CORRECTION
+    final traitements   = await PatientService.getTraitements();
+    final consultations = await PatientService.getMesConsultations();
     if (mounted) setState(() {
       _donnees = [...consultations, ...traitements];
       _chargement = false;
@@ -32,26 +33,42 @@ class _SuiviTraitementsPageState extends State<SuiviTraitementsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppWidgets.appBar("Mon dossier médical"),
-      body: _chargement
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
-          : RefreshIndicator(
-              onRefresh: _chargerDonnees,
-              color: AppColors.primary,
-              child: _donnees.isEmpty
-                  ? _buildEmpty()
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: _donnees.length,
-                      itemBuilder: (_, index) {
-                        final item = _donnees[index];
-                        if (item is Consultation) return _buildConsultationCard(item);
-                        if (item is Traitement)   return _buildTraitementCard(item);
-                        return const SizedBox.shrink();
-                      },
-                    ),
-            ),
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(
+        backgroundColor: Colors.white.withOpacity(0.85),
+        elevation: 0,
+        title: const Text("Mon dossier médical", style: TextStyle(color: _brandColor, fontWeight: FontWeight.bold)),
+        iconTheme: const IconThemeData(color: _brandColor),
+      ),
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage("assets/images/fond_patient.jpg"),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: Container(
+          color: Colors.white.withOpacity(0.75),
+          child: _chargement
+              ? const Center(child: CircularProgressIndicator(color: _brandColor))
+              : RefreshIndicator(
+                  onRefresh: _chargerDonnees,
+                  color: _brandColor,
+                  child: _donnees.isEmpty
+                      ? _buildEmpty()
+                      : ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: _donnees.length,
+                          itemBuilder: (_, index) {
+                            final item = _donnees[index];
+                            if (item is Consultation) return _buildConsultationCard(item);
+                            if (item is Traitement)   return _buildTraitementCard(item);
+                            return const SizedBox.shrink();
+                          },
+                        ),
+                ),
+        ),
+      ),
     );
   }
 
@@ -59,7 +76,7 @@ class _SuiviTraitementsPageState extends State<SuiviTraitementsPage> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: AppColors.surface, borderRadius: BorderRadius.circular(18),
+        color: Colors.white.withOpacity(0.85), borderRadius: BorderRadius.circular(18),
         border: Border.all(color: AppColors.borderLight)),
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
@@ -67,10 +84,10 @@ class _SuiviTraitementsPageState extends State<SuiviTraitementsPage> {
           tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           leading: Container(
             width: 40, height: 40,
-            decoration: BoxDecoration(color: AppColors.primaryLight,
+            decoration: BoxDecoration(color: _brandColor.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(11)),
-            child: const Icon(Icons.description_rounded,
-                color: AppColors.primary, size: 20),
+            child: Icon(Icons.description_rounded,
+                color: _brandColor, size: 20),
           ),
           title: Text(s.diagnostic, style: const TextStyle(
               fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
@@ -80,7 +97,7 @@ class _SuiviTraitementsPageState extends State<SuiviTraitementsPage> {
             Container(
               margin: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
               padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(color: AppColors.background,
+              decoration: BoxDecoration(color: AppColors.background.withOpacity(0.7),
                   borderRadius: BorderRadius.circular(12)),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 const Text("Notes du médecin :",
@@ -99,8 +116,8 @@ class _SuiviTraitementsPageState extends State<SuiviTraitementsPage> {
                     icon: const Icon(Icons.file_present_rounded, size: 18),
                     label: const Text("Voir le document joint"),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryLight,
-                      foregroundColor: AppColors.primary,
+                      backgroundColor: _brandColor.withOpacity(0.15),
+                      foregroundColor: _brandColor,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10)),
@@ -124,7 +141,7 @@ class _SuiviTraitementsPageState extends State<SuiviTraitementsPage> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: AppColors.surface, borderRadius: BorderRadius.circular(18),
+        color: Colors.white.withOpacity(0.85), borderRadius: BorderRadius.circular(18),
         border: Border.all(color: AppColors.borderLight)),
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
@@ -147,7 +164,7 @@ class _SuiviTraitementsPageState extends State<SuiviTraitementsPage> {
               borderRadius: BorderRadius.circular(4),
               child: LinearProgressIndicator(
                 value: progress, backgroundColor: AppColors.background,
-                color: AppColors.primary, minHeight: 5),
+                color: _brandColor, minHeight: 5),
             ),
             const SizedBox(height: 2),
             Text("$faites/$total prises effectuées",
@@ -170,14 +187,14 @@ class _SuiviTraitementsPageState extends State<SuiviTraitementsPage> {
       margin: const EdgeInsets.only(bottom: 8),
       child: InkWell(
         onTap: done ? null : () async {
-          bool ok = await PatientService.validerPriseMedicament(p.id); // CORRECTION
+          bool ok = await PatientService.validerPriseMedicament(p.id);
           if (ok) _chargerDonnees();
         },
         borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: done ? AppColors.successLight : AppColors.background,
+            color: done ? AppColors.successLight : AppColors.background.withOpacity(0.7),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: done ? const Color(0xFFC0DDBA) : AppColors.borderLight)),
@@ -193,7 +210,7 @@ class _SuiviTraitementsPageState extends State<SuiviTraitementsPage> {
             if (!done)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(color: AppColors.primary,
+                decoration: BoxDecoration(color: _brandColor,
                     borderRadius: BorderRadius.circular(8)),
                 child: const Text("Valider", style: TextStyle(color: Colors.white,
                     fontSize: 11, fontWeight: FontWeight.w700)),
@@ -212,9 +229,9 @@ class _SuiviTraitementsPageState extends State<SuiviTraitementsPage> {
   Widget _buildEmpty() {
     return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
       Container(width: 72, height: 72,
-          decoration: BoxDecoration(color: AppColors.primaryLight,
+          decoration: BoxDecoration(color: _brandColor.withOpacity(0.15),
               borderRadius: BorderRadius.circular(20)),
-          child: const Icon(Icons.folder_open_rounded, size: 36, color: AppColors.primary)),
+          child: Icon(Icons.folder_open_rounded, size: 36, color: _brandColor)),
       const SizedBox(height: 16),
       const Text("Aucune donnée médicale",
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700,

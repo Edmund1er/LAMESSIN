@@ -7,8 +7,9 @@ class EtablissementSante {
   final double longitude;
   final String plageHoraire;
   final String? imageEtablissement;
-  final bool? pharmacieEstGarde; 
-  final String? typeUrgences;    
+  final bool? pharmacieEstGarde;
+  final String? typeUrgences;
+  final String? typeEtablissement;  
 
   EtablissementSante({
     required this.id,
@@ -21,6 +22,7 @@ class EtablissementSante {
     this.imageEtablissement,
     this.pharmacieEstGarde,
     this.typeUrgences,
+    this.typeEtablissement,
   });
 
   factory EtablissementSante.fromJson(Map<String, dynamic> json) {
@@ -29,7 +31,6 @@ class EtablissementSante {
       nom: json['nom'] ?? 'Sans nom',
       adresse: json['adresse'] ?? '',
       contact: json['contact'] ?? '',
-      // Sécurité anti-crash
       latitude: (json['coordonnee_latitude_gps'] != null) 
           ? double.parse(json['coordonnee_latitude_gps'].toString()) 
           : 0.0,
@@ -40,6 +41,13 @@ class EtablissementSante {
       imageEtablissement: json['image_etablissement'],
       pharmacieEstGarde: json['pharmacie_est_garde'],
       typeUrgences: json['type_urgences'],
+      typeEtablissement: json['type_etablissement'] ?? 'general',
     );
   }
+
+  // Getter pour savoir si c'est une pharmacie
+  bool get estPharmacie => typeEtablissement == 'pharmacie';
+  
+  // Getter pour savoir si c'est un hôpital
+  bool get estHopital => typeEtablissement == 'hopital';
 }

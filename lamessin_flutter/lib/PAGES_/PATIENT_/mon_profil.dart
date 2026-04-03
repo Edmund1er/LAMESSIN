@@ -72,7 +72,6 @@ class _ProfilPatientPageState extends State<ProfilPatientPage> {
                 pinned: true,
                 backgroundColor: const Color(0xFF00C2CB),
                 iconTheme: const IconThemeData(color: Colors.white),
-                // actions supprimé - plus d'icône settings
                 flexibleSpace: FlexibleSpaceBar(
                   background: Container(
                     color: const Color(0xFF00C2CB),
@@ -111,10 +110,10 @@ class _ProfilPatientPageState extends State<ProfilPatientPage> {
                 ),
               ),
 
-              // ── CONTENU TRANSPARENT ──
+              // ── CONTENU PLUS TRANSPARENT ──
               SliverToBoxAdapter(
                 child: Container(
-                  color: Colors.white.withOpacity(0.92),
+                  color: Colors.white.withOpacity(0.75),
                   child: Padding(
                     padding: const EdgeInsets.all(18),
                     child: Column(children: [
@@ -122,7 +121,7 @@ class _ProfilPatientPageState extends State<ProfilPatientPage> {
                       _sectionLabel("Informations personnelles"),
                       const SizedBox(height: 10),
                       Container(
-                        decoration: BoxDecoration(color: Colors.white,
+                        decoration: BoxDecoration(color: Colors.white.withOpacity(0.85),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(color: AppColors.borderLight)),
                         child: Column(children: [
@@ -136,7 +135,7 @@ class _ProfilPatientPageState extends State<ProfilPatientPage> {
                       _sectionLabel("Dossier médical"),
                       const SizedBox(height: 10),
                       Container(
-                        decoration: BoxDecoration(color: Colors.white,
+                        decoration: BoxDecoration(color: Colors.white.withOpacity(0.85),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(color: AppColors.borderLight)),
                         child: Padding(
@@ -234,7 +233,7 @@ class _ProfilPatientPageState extends State<ProfilPatientPage> {
         child: Row(children: [
           Container(
             width: 38, height: 38,
-            decoration: BoxDecoration(color: const Color(0xFF00C2CB).withOpacity(0.1),
+            decoration: BoxDecoration(color: const Color(0xFF00C2CB).withOpacity(0.15),
                 borderRadius: BorderRadius.circular(10)),
             child: Icon(icon, color: const Color(0xFF00C2CB), size: 18),
           ),

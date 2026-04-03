@@ -110,9 +110,6 @@ class PatientService {
         headers: await ApiService.getHeaders(),
       );
 
-      debugPrint("STATUS: ${response.statusCode}");
-      debugPrint("BODY: ${response.body}");
-
       if (response.statusCode == 200) {
         List data = json.decode(utf8.decode(response.bodyBytes));
         return data.map((item) => Medicament.fromJson(item)).toList();
@@ -147,8 +144,7 @@ class PatientService {
     }
   }
 
-  static Future<Map<String, dynamic>?> obtenirLienPaiement(
-      int commandeId) async {
+  static Future<Map<String, dynamic>?> obtenirLienPaiement(int commandeId) async {
     try {
       final response = await http.post(
         Uri.parse('${ApiService.baseUrl}/commandes/$commandeId/genererLien/'),
@@ -157,10 +153,8 @@ class PatientService {
 
       if (response.statusCode == 200) {
         return json.decode(utf8.decode(response.bodyBytes));
-      } else {
-        debugPrint("Erreur paiement: ${response.statusCode}");
-        return null;
       }
+      return null;
     } catch (e) {
       debugPrint("Erreur obtenirLienPaiement: $e");
       return null;

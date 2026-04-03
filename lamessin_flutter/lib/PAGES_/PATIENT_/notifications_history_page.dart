@@ -11,7 +11,7 @@ class NotificationHistoryPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        backgroundColor: Colors.white.withOpacity(0.95),
+        backgroundColor: Colors.white.withOpacity(0.85),
         elevation: 0,
         title: const Text("Historique des notifications", style: TextStyle(color: Color(0xFF00C2CB), fontWeight: FontWeight.bold)),
         iconTheme: const IconThemeData(color: Color(0xFF00C2CB)),
@@ -24,7 +24,7 @@ class NotificationHistoryPage extends StatelessWidget {
           ),
         ),
         child: Container(
-          color: Colors.white.withOpacity(0.92),
+          color: Colors.white.withOpacity(0.75),
           child: FutureBuilder<List<NotificationModel>>(
             future: ApiService.getNotifications(),
             builder: (context, snapshot) {
@@ -50,7 +50,7 @@ class NotificationHistoryPage extends StatelessWidget {
                 return Center(child: Column(
                     mainAxisAlignment: MainAxisAlignment.center, children: [
                   Container(width: 72, height: 72,
-                      decoration: BoxDecoration(color: const Color(0xFF00C2CB).withOpacity(0.1),
+                      decoration: BoxDecoration(color: const Color(0xFF00C2CB).withOpacity(0.15),
                           borderRadius: BorderRadius.circular(20)),
                       child: const Icon(Icons.notifications_off_outlined,
                           size: 36, color: Color(0xFF00C2CB))),
@@ -80,7 +80,7 @@ class NotificationHistoryPage extends StatelessWidget {
                   return Container(
                     margin: const EdgeInsets.only(bottom: 10),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Colors.white.withOpacity(0.85),
                       borderRadius: BorderRadius.circular(14),
                       border: Border(left: BorderSide(color: couleur, width: 4)),
                     ),
@@ -90,7 +90,7 @@ class NotificationHistoryPage extends StatelessWidget {
                       leading: Container(
                         width: 38, height: 38,
                         decoration: BoxDecoration(
-                          color: couleur.withOpacity(0.1),
+                          color: couleur.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Icon(icone, size: 18, color: couleur),

@@ -83,11 +83,18 @@ class ListeEtablissements(APIView):
 
     def get(self, request):
         type_filtre = request.query_params.get('type')
-        etablissements = EtablissementSante.objects.filter(
-            type_etablissement=type_filtre) if type_filtre else EtablissementSante.objects.all()
+
+        if type_filtre == 'pharmacie':
+# Récupérons uniquement les pharmacies
+            etablissements = Pharmacie.objects.all()
+        elif type_filtre == 'hopital':
+# Récupérons uniquement les hôpitaux
+            etablissements = Hopital.objects.all()
+        else:
+# Récupérons tous les établissements
+            etablissements = EtablissementSante.objects.all()
+
         return Response(EtablissementSanteSerializer(etablissements, many=True).data)
-
-
 # ====================================================================================================
 # RENDEZ-VOUS
 # ====================================================================================================

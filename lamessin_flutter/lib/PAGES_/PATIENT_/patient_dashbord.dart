@@ -14,6 +14,7 @@ class PageUtilisateur extends StatefulWidget {
 }
 
 class _PageUtilisateurState extends State<PageUtilisateur> {
+  static const Color _brandColor = Color(0xFF00C2CB);
   String _nomAffichage = "Chargement...";
   List<NotificationModel> _notifications = [];
   bool _chargement = true;
@@ -44,7 +45,7 @@ class _PageUtilisateurState extends State<PageUtilisateur> {
       if (mounted) {
         AppWidgets.showSnack(context,
             "${msg.notification?.title ?? 'Alerte'}: ${msg.notification?.body ?? ''}",
-            color: AppColors.primary);
+            color: _brandColor);
       }
     });
   }
@@ -91,47 +92,26 @@ class _PageUtilisateurState extends State<PageUtilisateur> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.transparent,
       drawer: const MenuNavigation(),
       body: _chargement
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
-          : Stack(
-              children: [
-                // 1. IMAGE DE FOND
-                Positioned.fill(
-                  child: Image.asset(
-                    'assets/images/fond_patient.jpg',
-                    fit: BoxFit.cover,
-                  ),
+          ? const Center(child: CircularProgressIndicator(color: _brandColor))
+          : Container(
+              decoration: const BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage("assets/images/fond_patient.jpg"),
+                  fit: BoxFit.cover,
                 ),
-                
-                // 2. GRADIENT (VOILE ALLÉGÉ)
-                Positioned.fill(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        stops: const [0.0, 0.35, 0.45, 1.0],
-                        colors: [
-                          Colors.black.withOpacity(0.35),
-                          Colors.black.withOpacity(0.15),
-                          Colors.white.withOpacity(0.0),
-                          Colors.white.withOpacity(0.0),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-
-                // 3. CONTENU
-                RefreshIndicator(
-                  onRefresh: _chargerDonneesProfil,
-                  color: AppColors.primary,
-                  child: CustomScrollView(
-                    slivers: [
-                      _buildSliverHeader(),
-                      SliverToBoxAdapter(
+              ),
+              child: RefreshIndicator(
+                onRefresh: _chargerDonneesProfil,
+                color: _brandColor,
+                child: CustomScrollView(
+                  slivers: [
+                    _buildSliverHeader(),
+                    SliverToBoxAdapter(
+                      child: Container(
+                        color: Colors.white.withOpacity(0.75),
                         child: Padding(
                           padding: const EdgeInsets.all(18),
                           child: Column(
@@ -146,16 +126,16 @@ class _PageUtilisateurState extends State<PageUtilisateur> {
                               const SizedBox(height: 24),
                               _sectionTitle("Nos Services"),
                               const SizedBox(height: 14),
-                              _buildGrilleServices(), // Grille compacte
+                              _buildGrilleServices(),
                               const SizedBox(height: 20),
                             ],
                           ),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
     );
   }
@@ -224,15 +204,15 @@ class _PageUtilisateurState extends State<PageUtilisateur> {
   Widget _buildNotifCard(NotificationModel notif) {
     final String type = notif.typeNotification ?? "GENERAL";
     IconData icone = Icons.notifications_rounded;
-    Color couleur  = AppColors.primary;
-    if (type.contains('ORDONNANCE')) { icone = Icons.description_rounded; couleur = AppColors.primary; }
+    Color couleur  = _brandColor;
+    if (type.contains('ORDONNANCE')) { icone = Icons.description_rounded; couleur = _brandColor; }
     else if (type.contains('RENDEZ_VOUS')) { icone = Icons.event_rounded; couleur = AppColors.warning; }
     else if (type.contains('COMMANDE')) { icone = Icons.shopping_bag_rounded; couleur = AppColors.accent; }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Colors.white.withOpacity(0.85),
         borderRadius: BorderRadius.circular(14),
         border: Border(left: BorderSide(color: couleur, width: 4)),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5)],
@@ -243,7 +223,7 @@ class _PageUtilisateurState extends State<PageUtilisateur> {
         leading: Container(
           width: 38, height: 38,
           decoration: BoxDecoration(
-            color: couleur.withOpacity(0.1),
+            color: couleur.withOpacity(0.15),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(icone, size: 18, color: couleur),
@@ -266,7 +246,7 @@ class _PageUtilisateurState extends State<PageUtilisateur> {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Colors.white.withOpacity(0.85),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.borderLight),
       ),
@@ -280,54 +260,51 @@ class _PageUtilisateurState extends State<PageUtilisateur> {
     );
   }
 
-  // --- GRILLES TRES COMPACTES (PROFESSIONNEL) ---
   Widget _buildGrilleServices() {
     final services = [
-      {'label':'Pharmacies','icon':Icons.local_pharmacy_rounded,'route':'/recherches_services_medicaux','color':AppColors.primary,'bg':AppColors.primaryLight},
+      {'label':'Pharmacies','icon':Icons.local_pharmacy_rounded,'route':'/recherches_services_medicaux','color':_brandColor,'bg':_brandColor.withOpacity(0.15)},
       {'label':'Traitements','icon':Icons.medication_rounded,'route':'/suivi_traitements','color':const Color(0xFF22863A),'bg':AppColors.successLight},
       {'label':'Rendez-vous','icon':Icons.calendar_month_rounded,'route':'/mes_rendez_vous_page','color':const Color(0xFFE65100),'bg':AppColors.warningLight},
       {'label':'Commandes','icon':Icons.shopping_bag_rounded,'route':'/mes_commandes','color':AppColors.accent,'bg':AppColors.dangerLight},
-      {'label':'Assistant IA','icon':Icons.smart_toy_rounded,'route':'/assistant','color':const Color(0xFF1A6FE8),'bg':const Color(0xFFE1F0FF)},
-      {'label':'Mon Profil','icon':Icons.account_circle_rounded,'route':'/profil_patient','color':const Color(0xFF6B3BDB),'bg':const Color(0xFFF3EEFF)},
+      {'label':'Assistant IA','icon':Icons.smart_toy_rounded,'route':'/assistant','color':_brandColor,'bg':_brandColor.withOpacity(0.15)},
+      {'label':'Mon Profil','icon':Icons.account_circle_rounded,'route':'/profil_patient','color':_brandColor,'bg':_brandColor.withOpacity(0.15)},
     ];
 
-    // FIX : Force 3 colonnes pour des blocs plus fins (Compact)
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 3, // 3 Colonnes
+      crossAxisCount: 3,
       crossAxisSpacing: 6, 
       mainAxisSpacing: 6,
-      childAspectRatio: 1.0, // Carré parfait pour compacité
+      childAspectRatio: 1.0,
       children: services.map((s) {
         return GestureDetector(
           onTap: () => Navigator.pushNamed(context, s['route'] as String),
           child: Container(
-            padding: const EdgeInsets.all(6), // Padding réduit
+            padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(10), // Coins plus petits
+              color: Colors.white.withOpacity(0.85),
+              borderRadius: BorderRadius.circular(10),
               border: Border.all(color: Colors.grey.shade200, width: 1),
               boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 3)],
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Icônes et Conteneur Réduits
                 Container(
-                  width: 30, height: 30, // Taille réduite
+                  width: 30, height: 30,
                   decoration: BoxDecoration(
                     color: s['bg'] as Color,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(s['icon'] as IconData,
-                      color: s['color'] as Color, size: 16), // Icône réduite
+                      color: s['color'] as Color, size: 16),
                 ),
                 const SizedBox(height: 4),
                 Text(s['label'] as String,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 9, // Texte très petit
+                    style: const TextStyle(fontSize: 9,
                         fontWeight: FontWeight.w700,
                         color: AppColors.textPrimary)),
               ],
@@ -382,7 +359,7 @@ class _PageUtilisateurState extends State<PageUtilisateur> {
         actions: [
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
+              backgroundColor: _brandColor,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10)),
             ),

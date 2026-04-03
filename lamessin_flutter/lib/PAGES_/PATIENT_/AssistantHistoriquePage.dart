@@ -28,7 +28,7 @@ class _AssistantHistoriquePageState extends State<AssistantHistoriquePage> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        backgroundColor: Colors.white.withOpacity(0.95),
+        backgroundColor: Colors.white.withOpacity(0.85),
         elevation: 0,
         title: const Text("Historique des échanges", style: TextStyle(color: _brandColor, fontWeight: FontWeight.bold)),
         iconTheme: const IconThemeData(color: _brandColor),
@@ -41,7 +41,7 @@ class _AssistantHistoriquePageState extends State<AssistantHistoriquePage> {
           ),
         ),
         child: Container(
-          color: Colors.white.withOpacity(0.92),
+          color: Colors.white.withOpacity(0.75),
           child: _isLoading
               ? const Center(child: CircularProgressIndicator(color: _brandColor))
               : _historique.isEmpty
@@ -71,7 +71,7 @@ class _AssistantHistoriquePageState extends State<AssistantHistoriquePage> {
         constraints:
             BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
         decoration: BoxDecoration(
-          color: isUser ? _brandColor : Colors.white,
+          color: isUser ? _brandColor : Colors.white.withOpacity(0.85),
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(16),
             topRight: const Radius.circular(16),
@@ -98,7 +98,7 @@ class _AssistantHistoriquePageState extends State<AssistantHistoriquePage> {
       child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
         Container(
           width: 72, height: 72,
-          decoration: BoxDecoration(color: _brandColor.withOpacity(0.1),
+          decoration: BoxDecoration(color: _brandColor.withOpacity(0.15),
               borderRadius: BorderRadius.circular(20)),
           child: Icon(Icons.history_rounded, size: 36, color: _brandColor),
         ),
