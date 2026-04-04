@@ -18,42 +18,17 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="8e356f46-c8da-4d1a-b87d-04439b7b4b95" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/backend/lamessin_backend/seed_data.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.name" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.name" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/lamessin.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/lamessin.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/deviceManager.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/deviceManager.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/lamessin_backend/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/backend/lamessin_backend/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/lamessin_backend/lamessin_app/admin.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/lamessin_backend/lamessin_app/admin.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/lamessin_backend/lamessin_app/apps.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/lamessin_backend/lamessin_app/apps.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/lamessin_backend/lamessin_app/migrations/0001_initial.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/lamessin_backend/lamessin_app/migrations/0002_alter_rendezvous_options.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/lamessin_backend/lamessin_app/migrations/0003_alter_medicament_options_and_more.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/lamessin_backend/lamessin_app/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/lamessin_backend/lamessin_app/models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/lamessin_backend/lamessin_app/serializers.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/lamessin_backend/lamessin_app/serializers.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/lamessin_backend/lamessin_app/signals.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/lamessin_backend/lamessin_app/signals.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/lamessin_backend/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/backend/lamessin_backend/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/lamessin_backend/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/backend/lamessin_backend/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/lamessin_backend/lamessin_app/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/lamessin_backend/lamessin_app/urls.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/lamessin_backend/lamessin_app/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/lamessin_backend/lamessin_app/views.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/lamessin_backend/lamessin_backend/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/lamessin_backend/lamessin_backend/settings.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/lamessin_backend/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/backend/lamessin_backend/requirements.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lamessin_flutter/android/app/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/lamessin_flutter/android/app/build.gradle.kts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lamessin_flutter/android/app/src/main/AndroidManifest.xml" beforeDir="false" afterPath="$PROJECT_DIR$/lamessin_flutter/android/app/src/main/AndroidManifest.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lamessin_flutter/android/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/lamessin_flutter/android/build.gradle.kts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lamessin_flutter/android/gradle.properties" beforeDir="false" afterPath="$PROJECT_DIR$/lamessin_flutter/android/gradle.properties" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lamessin_flutter/lib/PAGES_/AUTH_/login.dart" beforeDir="false" afterPath="$PROJECT_DIR$/lamessin_flutter/lib/PAGES_/AUTH_/login.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lamessin_flutter/lib/PAGES_/AUTH_/register.dart" beforeDir="false" afterPath="$PROJECT_DIR$/lamessin_flutter/lib/PAGES_/AUTH_/register.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lamessin_flutter/lib/PAGES_/PATIENT_/assistant.dart" beforeDir="false" afterPath="$PROJECT_DIR$/lamessin_flutter/lib/PAGES_/PATIENT_/assistant.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lamessin_flutter/lib/PAGES_/PATIENT_/patient_dashbord.dart" beforeDir="false" afterPath="$PROJECT_DIR$/lamessin_flutter/lib/PAGES_/PATIENT_/patient_dashbord.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lamessin_flutter/lib/PAGES_/PATIENT_/recherches_services_medicaux.dart" beforeDir="false" afterPath="$PROJECT_DIR$/lamessin_flutter/lib/PAGES_/PATIENT_/recherches_services_medicaux.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lamessin_flutter/lib/PAGES_/PATIENT_/suivi_traitements.dart" beforeDir="false" afterPath="$PROJECT_DIR$/lamessin_flutter/lib/PAGES_/PATIENT_/suivi_traitements.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lamessin_flutter/lib/SERVICES_/api_service.dart" beforeDir="false" afterPath="$PROJECT_DIR$/lamessin_flutter/lib/SERVICES_/api_service.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/lamessin_backend/lamessin_app/views/patient_views.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/lamessin_backend/lamessin_app/views/patient_views.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lamessin_flutter/lib/PAGES_/PATIENT_/mes_commandes.dart" beforeDir="false" afterPath="$PROJECT_DIR$/lamessin_flutter/lib/PAGES_/PATIENT_/mes_commandes.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lamessin_flutter/lib/PAGES_/PATIENT_/panier_page.dart" beforeDir="false" afterPath="$PROJECT_DIR$/lamessin_flutter/lib/PAGES_/PATIENT_/panier_page.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lamessin_flutter/lib/SERVICES_/patient_service.dart" beforeDir="false" afterPath="$PROJECT_DIR$/lamessin_flutter/lib/SERVICES_/patient_service.dart" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lamessin_flutter/lib/main.dart" beforeDir="false" afterPath="$PROJECT_DIR$/lamessin_flutter/lib/main.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lamessin_flutter/macos/Flutter/GeneratedPluginRegistrant.swift" beforeDir="false" afterPath="$PROJECT_DIR$/lamessin_flutter/macos/Flutter/GeneratedPluginRegistrant.swift" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lamessin_flutter/pubspec.lock" beforeDir="false" afterPath="$PROJECT_DIR$/lamessin_flutter/pubspec.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lamessin_flutter/pubspec.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/lamessin_flutter/pubspec.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lamessin_flutter/web/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/lamessin_flutter/web/index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lamessin_flutter/windows/flutter/generated_plugin_registrant.cc" beforeDir="false" afterPath="$PROJECT_DIR$/lamessin_flutter/windows/flutter/generated_plugin_registrant.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lamessin_flutter/windows/flutter/generated_plugins.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/lamessin_flutter/windows/flutter/generated_plugins.cmake" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

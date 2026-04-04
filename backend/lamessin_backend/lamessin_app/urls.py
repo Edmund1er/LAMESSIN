@@ -46,12 +46,15 @@ urlpatterns = [
     path('traitements/valider-prise/<int:prise_id>/', patient_views.ValiderPriseMedicament.as_view(), name='valider_prise'),
     path('ordonnances/', patient_views.ListeOrdonnancesPatient.as_view(), name='liste_ordonnances'),
     # ====================================================================================================
-    # PATIENT - COMMANDES & PAIEMENTS
+    # PATIENT - COMMANDES
     # ====================================================================================================
     path('commandes/', patient_views.MesCommandesView.as_view(), name='mes_commandes'),
-    path('commandes/creerEtPayer/', patient_views.CreerCommandeMultiple.as_view(), name='creer_paiement'),
-    path('commandes/<int:commande_id>/genererLien/', patient_views.GenererLienPaiement.as_view(), name='generer_lien'),
-    path('cinetpay/webhook/', patient_views.cinetpay_webhook, name='cinetpay_webhook'),
+    path('commandes/creer/', patient_views.CreerCommandeMultiple.as_view(), name='creer_paiement'),
+    # ====================================================================================================
+    # PAIEMENT MOBILE MONEY (PAYGATE)
+    # ====================================================================================================
+    path('paiement/initier/', patient_views.InitierPaiementMobileMoney.as_view(), name='initier_paiement'),
+    path('paiement/verifier/<int:commande_id>/', patient_views.VerifierStatutPaiement.as_view(), name='verifier_paiement'),
 
     # ====================================================================================================
     # PATIENT - ASSISTANT IA
@@ -114,4 +117,6 @@ urlpatterns = [
     # Scan d'ordonnance
     path('pharmacien/ordonnance/scanner/<str:code_securite>/', pharma_views.ScannerOrdonnanceView.as_view(), name='scanner_ordonnance'),
     path('pharmacien/ordonnance/<int:ordonnance_id>/valider/', pharma_views.ValiderOrdonnanceView.as_view(), name='valider_ordonnance'),
+
+
 ]

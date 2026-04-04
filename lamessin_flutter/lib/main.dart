@@ -28,6 +28,8 @@ import 'PAGES_/PATIENT_/mon_profil.dart';
 import 'PAGES_/PATIENT_/mes_rendez_vous_page.dart';
 import 'PAGES_/PATIENT_/AssistantHistoriquePage.dart';
 import 'PAGES_/PATIENT_/notifications_history_page.dart';
+import 'PAGES_/PATIENT_/paiement_page.dart';
+
 
 import 'MODELS_/utilisateur_model.dart';
 
@@ -100,6 +102,7 @@ class MyApp extends StatelessWidget {
         "/historique_chatbot": (context) => const AssistantHistoriquePage(),
         "/historique_notifications": (context) =>
             const NotificationHistoryPage(),
+        "/paiement": (context) => const PaiementPage(commandeId: 0, montant: 0),
       },
     );
   }

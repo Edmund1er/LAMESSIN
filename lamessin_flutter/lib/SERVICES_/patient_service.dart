@@ -121,45 +121,76 @@ class PatientService {
     }
   }
 
-  static Future<Map<String, dynamic>?> creerCommandeMultiple(
-    List<Map<String, dynamic>> articles, {
-    String methodeRetrait = "RETRAIT",
-  }) async {
-    try {
-      final response = await http.post(
-        Uri.parse('${ApiService.baseUrl}/commandes/creerEtPayer/'),
-        headers: await ApiService.getHeaders(),
-        body: jsonEncode({
-          'articles': articles,
-          'methode_retrait': methodeRetrait,
-        }),
-      );
+  // Remplacer la méthode existante par celle-ci :
 
-      return (response.statusCode == 200 || response.statusCode == 201)
-          ? json.decode(response.body)
-          : null;
-    } catch (e) {
-      debugPrint("Erreur creerCommandeMultiple: $e");
-      return null;
+static Future<Map<String, dynamic>?> creerCommandeMultiple(
+  List<Map<String, dynamic>> articles, {
+  String methodeRetrait = "RETRAIT",
+}) async {
+  try {
+    final response = await http.post(
+      Uri.parse('${ApiService.baseUrl}/commandes/creer/'),  // Changé de 'creerEtPayer' à 'creer'
+      headers: await ApiService.getHeaders(),
+      body: jsonEncode({
+        'articles': articles,
+        'methode_retrait': methodeRetrait,
+      }),
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return json.decode(response.body);
     }
+    return null;
+  } catch (e) {
+    debugPrint("Erreur creerCommandeMultiple: $e");
+    return null;
   }
+}
 
-  static Future<Map<String, dynamic>?> obtenirLienPaiement(int commandeId) async {
-    try {
-      final response = await http.post(
-        Uri.parse('${ApiService.baseUrl}/commandes/$commandeId/genererLien/'),
-        headers: await ApiService.getHeaders(),
-      );
+// ========================= PAIEMENT PAYGATE =========================
 
-      if (response.statusCode == 200) {
-        return json.decode(utf8.decode(response.bodyBytes));
-      }
-      return null;
-    } catch (e) {
-      debugPrint("Erreur obtenirLienPaiement: $e");
-      return null;
+static Future<Map<String, dynamic>?> initierPaiementMobileMoney({
+  required int commandeId,
+  required String telephone,
+  required String operateur,
+}) async {
+  try {
+    final response = await http.post(
+      Uri.parse('${ApiService.baseUrl}/paiement/initier/'),
+      headers: await ApiService.getHeaders(),
+      body: jsonEncode({
+        'commande_id': commandeId,
+        'telephone': telephone,
+        'operateur': operateur,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
     }
+    return null;
+  } catch (e) {
+    debugPrint("Erreur initierPaiementMobileMoney: $e");
+    return null;
   }
+}
+
+static Future<Map<String, dynamic>?> verifierStatutPaiement(int commandeId) async {
+  try {
+    final response = await http.get(
+      Uri.parse('${ApiService.baseUrl}/paiement/verifier/$commandeId/'),
+      headers: await ApiService.getHeaders(),
+    );
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    }
+    return null;
+  } catch (e) {
+    debugPrint("Erreur verifierStatutPaiement: $e");
+    return null;
+  }
+}
 
   static Future<List<Commande>> getMesCommandes() async {
     try {

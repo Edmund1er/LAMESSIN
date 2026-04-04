@@ -4,6 +4,7 @@ import '../../SERVICES_/patient_service.dart';
 import '../../WIDGETS_/menu_navigation.dart';
 import '../../MODELS_/commande_model.dart';
 import '../../THEME_/app_theme.dart';
+import 'paiement_page.dart';
 
 class MesCommandesPage extends StatefulWidget {
   const MesCommandesPage({super.key});
@@ -49,24 +50,16 @@ class _MesCommandesPageState extends State<MesCommandesPage>
     }
   }
 
-  Future<void> _relancerPaiement(int commandeId) async {
-    AppWidgets.showSnack(context, "Ouverture du portail de paiement...");
-    try {
-      final resultat = await PatientService.obtenirLienPaiement(commandeId);
-      if (resultat != null && resultat['payment_url'] != null) {
-        final Uri uri = Uri.parse(resultat['payment_url']);
-        if (await canLaunchUrl(uri)) {
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-        } else {
-          AppWidgets.showSnack(context, "Impossible d'ouvrir le lien", color: AppColors.danger);
-        }
-      } else {
-        AppWidgets.showSnack(context,
-            "Impossible de générer le lien de paiement.", color: AppColors.danger);
-      }
-    } catch (e) {
-      AppWidgets.showSnack(context, "Erreur lors du paiement", color: AppColors.danger);
-    }
+  Future<void> _relancerPaiement(int commandeId, double montant) async {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PaiementPage(
+          commandeId: commandeId,
+          montant: montant,
+        ),
+      ),
+    );
   }
 
   @override
@@ -162,7 +155,6 @@ class _MesCommandesPageState extends State<MesCommandesPage>
             ),
           ]),
           const SizedBox(height: 8),
-          // Afficher le nombre d'articles
           Text("${c.lignes.length} article(s)", 
               style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
           if (!estPaye) ...[
@@ -170,7 +162,7 @@ class _MesCommandesPageState extends State<MesCommandesPage>
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: () => _relancerPaiement(c.id),
+                onPressed: () => _relancerPaiement(c.id, c.total),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _brandColor,
                   foregroundColor: Colors.white,

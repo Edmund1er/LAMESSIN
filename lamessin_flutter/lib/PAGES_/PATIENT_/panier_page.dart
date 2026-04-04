@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../SERVICES_/patient_service.dart';
 import '../../THEME_/app_theme.dart';
+import 'paiement_page.dart';
 
 class PanierItem {
   final int idMedoc;
@@ -37,37 +38,41 @@ class _PanierPageState extends State<PanierPage> {
 
     List<Map<String, dynamic>> articlesJson = widget.items.map((item) => {
       'id': item.idMedoc,
-      'qte': item.quantite,
       'pharmacie_id': item.idPharmacie,
+      'qte': item.quantite,
     }).toList();
 
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (_) => const Center(
-          child: CircularProgressIndicator(color: _brandColor)),
+        child: CircularProgressIndicator(color: _brandColor),
+      ),
     );
 
     try {
       final resultat = await PatientService.creerCommandeMultiple(articlesJson);
+      
       if (!mounted) return;
       Navigator.pop(context);
 
-      if (resultat != null && resultat['payment_url'] != null) {
-        final Uri url = Uri.parse(resultat['payment_url']);
-        if (await canLaunchUrl(url)) {
-          await launchUrl(url, mode: LaunchMode.externalApplication);
-          setState(() => widget.items.clear());
-          AppWidgets.showSnack(context,
-              "Commande créée ! Redirection vers le paiement...",
-              color: AppColors.success);
-          Future.delayed(const Duration(seconds: 1), () {
-            if (mounted) Navigator.pop(context);
-          });
-        }
+      if (resultat != null && resultat['success'] == true) {
+        // Rediriger vers la page de paiement
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PaiementPage(
+              commandeId: resultat['commande_id'],
+              montant: resultat['total'].toDouble(),
+            ),
+          ),
+        );
+        // Vider le panier
+        setState(() => widget.items.clear());
       } else {
-        AppWidgets.showSnack(context,
-            "Impossible de générer le lien de paiement.", color: AppColors.danger);
+        AppWidgets.showSnack(context, 
+          resultat?['error'] ?? "Erreur lors de la création de la commande", 
+          color: AppColors.danger);
       }
     } catch (e) {
       if (mounted) Navigator.pop(context);
