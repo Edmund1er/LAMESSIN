@@ -87,7 +87,7 @@ class ApiService {
 
   // ========================= AUTH =========================
 
-static Future<String?> login(String telephone, String password) async {
+  static Future<String?> login(String telephone, String password) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/login/'),
@@ -95,10 +95,7 @@ static Future<String?> login(String telephone, String password) async {
           "Content-Type": "application/json",
           "ngrok-skip-browser-warning": "true",
         },
-        body: jsonEncode({
-          "numero_telephone": telephone,
-          "password": password
-        }),
+        body: jsonEncode({"numero_telephone": telephone, "password": password}),
       );
 
       if (response.statusCode == 200) {
@@ -107,12 +104,12 @@ static Future<String?> login(String telephone, String password) async {
 
         await prefs.setString('access_token', data['access']);
         await prefs.setString('refresh_token', data['refresh']);
-        
-// Sauvegarde du rôle pour une utilisation future dans l'app
+
+        // Sauvegarde du rôle pour une utilisation future dans l'app
         String role = data['role'] ?? 'INCONNU';
         await prefs.setString('user_role', role);
 
-        return role; 
+        return role;
       }
 
       print("Erreur Login: ${response.body}");
@@ -123,28 +120,28 @@ static Future<String?> login(String telephone, String password) async {
     }
   }
 
-static Future<bool> inscription(Map<String, dynamic> donnees) async {
-  try {
-    final response = await http.post(
-      Uri.parse('$baseUrl/inscription/'),
-      headers: {
-        "Content-Type": "application/json",
-        "ngrok-skip-browser-warning": "true",
-      },
-      body: jsonEncode(donnees),
-    );
+  static Future<bool> inscription(Map<String, dynamic> donnees) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/inscription/'),
+        headers: {
+          "Content-Type": "application/json",
+          "ngrok-skip-browser-warning": "true",
+        },
+        body: jsonEncode(donnees),
+      );
 
-    if (response.statusCode == 201) {
-      return true;
-    } else {
-      print("DÉTAIL ERREUR DJANGO : ${response.body}");
+      if (response.statusCode == 201) {
+        return true;
+      } else {
+        print("DÉTAIL ERREUR DJANGO : ${response.body}");
+        return false;
+      }
+    } catch (e) {
+      print("ERREUR RÉSEAU : $e");
       return false;
     }
-  } catch (e) {
-    print("ERREUR RÉSEAU : $e");
-    return false;
   }
-}
 
   static Future<dynamic> getProfil() async {
     try {
@@ -216,9 +213,7 @@ static Future<bool> inscription(Map<String, dynamic> donnees) async {
 
       if (response.statusCode == 200) {
         List data = json.decode(utf8.decode(response.bodyBytes));
-        return data
-            .map((item) => NotificationModel.fromJson(item))
-            .toList();
+        return data.map((item) => NotificationModel.fromJson(item)).toList();
       }
       return [];
     } catch (e) {

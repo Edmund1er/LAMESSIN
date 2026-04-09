@@ -11,11 +11,11 @@ class Login extends StatefulWidget {
 
 class _LoginState extends State<Login> {
   final _telephone = TextEditingController();
-  final _password  = TextEditingController();
+  final _password = TextEditingController();
   bool _chargement = false;
-  bool _obscure    = true;
+  bool _obscure = true;
 
-void _clicConnexion() async {
+  void _clicConnexion() async {
     if (_telephone.text.isEmpty || _password.text.isEmpty) {
       AppWidgets.showSnack(context, "Veuillez remplir tous les champs");
       return;
@@ -24,9 +24,11 @@ void _clicConnexion() async {
     setState(() => _chargement = true);
 
     try {
-// On récupère le rôle au lieu du token
+      // On récupère le rôle au lieu du token
       String? role = await ApiService.login(
-          _telephone.text.trim(), _password.text);
+        _telephone.text.trim(),
+        _password.text,
+      );
 
       if (!mounted) return;
 
@@ -37,7 +39,7 @@ void _clicConnexion() async {
             Navigator.pushReplacementNamed(context, "/page_utilisateur");
             break;
           case 'MEDECIN':
-            Navigator.pushReplacementNamed(context, "/accueil_medecin");
+            Navigator.pushReplacementNamed(context, "/dashboard_medecin");
             break;
           case 'PHARMACIEN':
             Navigator.pushReplacementNamed(context, "/accueil_pharmacien");
@@ -46,31 +48,35 @@ void _clicConnexion() async {
             Navigator.pushReplacementNamed(context, "/page_utilisateur");
         }
       } else {
-        AppWidgets.showSnack(context, "Numéro ou mot de passe incorrect",
-            color: AppColors.danger);
+        AppWidgets.showSnack(
+          context,
+          "Numéro ou mot de passe incorrect",
+          color: AppColors.danger,
+        );
       }
     } catch (e) {
       if (!mounted) return;
-      AppWidgets.showSnack(context, "Erreur de connexion au serveur",
-          color: AppColors.danger);
+      AppWidgets.showSnack(
+        context,
+        "Erreur de connexion au serveur",
+        color: AppColors.danger,
+      );
     } finally {
       if (mounted) setState(() => _chargement = false);
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
-//IMAGE DE FOND
+          //IMAGE DE FOND
           Positioned.fill(
-            child: Image.asset(
-              'assets/images/login.jpeg',
-              fit: BoxFit.cover,
-            ),
+            child: Image.asset('assets/images/login.jpeg', fit: BoxFit.cover),
           ),
 
-// Le haut est transparent pour voir l'image, le bas est sombre pour le contraste
+          // Le haut est transparent pour voir l'image, le bas est sombre pour le contraste
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
@@ -78,15 +84,15 @@ void _clicConnexion() async {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withOpacity(0.1), 
-                    Colors.black.withOpacity(0.7), 
+                    Colors.black.withOpacity(0.1),
+                    Colors.black.withOpacity(0.7),
                   ],
                 ),
               ),
             ),
           ),
 
-//CONTENU PRINCIPAL
+          //CONTENU PRINCIPAL
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
@@ -96,9 +102,10 @@ void _clicConnexion() async {
                   children: [
                     const SizedBox(height: 40),
 
-// --- LOGO 
+                    // --- LOGO
                     Container(
-                      width: 80, height: 80,
+                      width: 80,
+                      height: 80,
                       decoration: BoxDecoration(
                         color: Colors.white,
                         shape: BoxShape.circle,
@@ -107,15 +114,18 @@ void _clicConnexion() async {
                             color: Colors.black.withOpacity(0.2),
                             blurRadius: 20,
                             spreadRadius: 5,
-                          )
+                          ),
                         ],
                       ),
-                      child: Icon(Icons.local_hospital_rounded,
-                          color: AppColors.primary, size: 40),
+                      child: Icon(
+                        Icons.local_hospital_rounded,
+                        color: AppColors.primary,
+                        size: 40,
+                      ),
                     ),
                     const SizedBox(height: 30),
 
-// --- TITRE  ---
+                    // --- TITRE  ---
                     Text(
                       'Bienvenue sur LAMESSIN',
                       textAlign: TextAlign.center,
@@ -129,8 +139,8 @@ void _clicConnexion() async {
                             color: Colors.black.withOpacity(0.3),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
-                          )
-                        ]
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -146,7 +156,7 @@ void _clicConnexion() async {
 
                     const SizedBox(height: 60),
 
-// --- CARTE DE FORMULAIRE ---
+                    // --- CARTE DE FORMULAIRE ---
                     ClipRRect(
                       borderRadius: BorderRadius.circular(30),
                       child: BackdropFilter(
@@ -154,7 +164,7 @@ void _clicConnexion() async {
                         child: Container(
                           padding: const EdgeInsets.all(28),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2), 
+                            color: Colors.white.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(30),
                             border: Border.all(
                               color: Colors.white.withOpacity(0.4),
@@ -163,32 +173,38 @@ void _clicConnexion() async {
                           ),
                           child: Column(
                             children: [
-// --- CHAMP TÉLÉPHONE ---
+                              // --- CHAMP TÉLÉPHONE ---
                               Container(
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.9), 
+                                  color: Colors.white.withOpacity(0.9),
                                   borderRadius: BorderRadius.circular(15),
                                 ),
                                 child: TextField(
                                   controller: _telephone,
                                   keyboardType: TextInputType.phone,
                                   style: const TextStyle(
-                                    fontSize: 15, 
+                                    fontSize: 15,
                                     fontWeight: FontWeight.w600,
-                                    color: AppColors.textPrimary
+                                    color: AppColors.textPrimary,
                                   ),
                                   decoration: const InputDecoration(
                                     hintText: 'Numéro de téléphone',
                                     hintStyle: TextStyle(color: Colors.grey),
-                                    prefixIcon: Icon(Icons.phone_rounded, color: AppColors.primary),
+                                    prefixIcon: Icon(
+                                      Icons.phone_rounded,
+                                      color: AppColors.primary,
+                                    ),
                                     border: InputBorder.none,
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                                    contentPadding: EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                      vertical: 18,
+                                    ),
                                   ),
                                 ),
                               ),
                               const SizedBox(height: 20),
 
-// --- CHAMP MOT DE PASSE ---
+                              // --- CHAMP MOT DE PASSE ---
                               Container(
                                 decoration: BoxDecoration(
                                   color: Colors.white.withOpacity(0.9),
@@ -198,40 +214,57 @@ void _clicConnexion() async {
                                   controller: _password,
                                   obscureText: _obscure,
                                   style: const TextStyle(
-                                    fontSize: 15, 
+                                    fontSize: 15,
                                     fontWeight: FontWeight.w600,
-                                    color: AppColors.textPrimary
+                                    color: AppColors.textPrimary,
                                   ),
                                   decoration: InputDecoration(
                                     hintText: 'Mot de passe',
-                                    hintStyle: const TextStyle(color: Colors.grey),
-                                    prefixIcon: const Icon(Icons.lock_rounded, color: AppColors.primary),
+                                    hintStyle: const TextStyle(
+                                      color: Colors.grey,
+                                    ),
+                                    prefixIcon: const Icon(
+                                      Icons.lock_rounded,
+                                      color: AppColors.primary,
+                                    ),
                                     suffixIcon: IconButton(
                                       icon: Icon(
-                                        _obscure ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                                        _obscure
+                                            ? Icons.visibility_off_rounded
+                                            : Icons.visibility_rounded,
                                         color: AppColors.textSecondary,
                                       ),
-                                      onPressed: () => setState(() => _obscure = !_obscure),
+                                      onPressed: () =>
+                                          setState(() => _obscure = !_obscure),
                                     ),
                                     border: InputBorder.none,
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                      vertical: 18,
+                                    ),
                                   ),
                                 ),
                               ),
                               const SizedBox(height: 12),
 
-// --- MOT DE PASSE OUBLIÉ ---
+                              // --- MOT DE PASSE OUBLIÉ ---
                               Align(
                                 alignment: Alignment.centerRight,
                                 child: TextButton(
                                   onPressed: () {},
-                                  child: const Text('Mot de passe oublié ?',
-                                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+                                  child: const Text(
+                                    'Mot de passe oublié ?',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13,
+                                    ),
+                                  ),
                                 ),
                               ),
                               const SizedBox(height: 16),
 
-// --- BOUTON CONNEXION ---
+                              // --- BOUTON CONNEXION ---
                               SizedBox(
                                 width: double.infinity,
                                 height: 55,
@@ -246,28 +279,52 @@ void _clicConnexion() async {
                                     shadowColor: Colors.black.withOpacity(0.2),
                                   ),
                                   child: _chargement
-                                      ? const SizedBox(width: 25, height: 25, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
-                                      : const Text('Se connecter',
-                                          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+                                      ? const SizedBox(
+                                          width: 25,
+                                          height: 25,
+                                          child: CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 3,
+                                          ),
+                                        )
+                                      : const Text(
+                                          'Se connecter',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w800,
+                                            letterSpacing: 0.5,
+                                          ),
+                                        ),
                                 ),
                               ),
                               const SizedBox(height: 24),
 
-// --- LIEN INSCRIPTION ---
+                              // --- LIEN INSCRIPTION ---
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Text('Pas encore de compte ? ',
-                                      style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 14)),
+                                  Text(
+                                    'Pas encore de compte ? ',
+                                    style: TextStyle(
+                                      color: Colors.white.withOpacity(0.8),
+                                      fontSize: 14,
+                                    ),
+                                  ),
                                   GestureDetector(
-                                    onTap: () => Navigator.pushNamed(context, "/register"),
-                                    child: const Text("S'inscrire",
-                                        style: TextStyle(
-                                          color: Colors.white, 
-                                          fontWeight: FontWeight.w800, 
-                                          fontSize: 14,
-                                          decoration: TextDecoration.underline
-                                        )),
+                                    onTap: () => Navigator.pushNamed(
+                                      context,
+                                      "/register",
+                                    ),
+                                    child: const Text(
+                                      "S'inscrire",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 14,
+                                        decoration: TextDecoration.underline,
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),

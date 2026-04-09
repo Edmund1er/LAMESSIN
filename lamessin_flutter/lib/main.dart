@@ -29,7 +29,9 @@ import 'PAGES_/PATIENT_/mes_rendez_vous_page.dart';
 import 'PAGES_/PATIENT_/AssistantHistoriquePage.dart';
 import 'PAGES_/PATIENT_/notifications_history_page.dart';
 import 'PAGES_/PATIENT_/paiement_page.dart';
-
+import 'PAGES_/MEDECIN_/medecin_dashboard_page.dart';
+import 'PAGES_/MEDECIN_/medecin_profil_page.dart';
+import 'PAGES_/MEDECIN_/medecin_rendezvous_page.dart';
 
 import 'MODELS_/utilisateur_model.dart';
 
@@ -103,6 +105,7 @@ class MyApp extends StatelessWidget {
         "/historique_notifications": (context) =>
             const NotificationHistoryPage(),
         "/paiement": (context) => const PaiementPage(commandeId: 0, montant: 0),
+        "/dashboard_medecin": (context) => const MedecinDashboardPage(),
       },
     );
   }

@@ -12,7 +12,7 @@ class AssistantPage extends StatefulWidget {
 
 class _AssistantPageState extends State<AssistantPage> {
   static const Color _brandColor = Color(0xFF00C2CB);
-  
+
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final List<Map<String, dynamic>> _messages = [];
@@ -204,11 +204,7 @@ class _AssistantPageState extends State<AssistantPage> {
               color: _brandColor.withOpacity(0.15),
               borderRadius: BorderRadius.circular(20),
             ),
-            child: Icon(
-              Icons.smart_toy_rounded,
-              size: 36,
-              color: _brandColor,
-            ),
+            child: Icon(Icons.smart_toy_rounded, size: 36, color: _brandColor),
           ),
           const SizedBox(height: 16),
           const Text(
@@ -251,10 +247,7 @@ class _AssistantPageState extends State<AssistantPage> {
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.85),
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: _brandColor,
-                              width: 1.5,
-                            ),
+                            border: Border.all(color: _brandColor, width: 1.5),
                           ),
                           child: Text(
                             s,

@@ -23,7 +23,14 @@ class _RegisterState extends State<Register> {
 
   String? _groupeSanguinChoisi;
   final List<String> _groupes = [
-    "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-",
+    "A+",
+    "A-",
+    "B+",
+    "B-",
+    "AB+",
+    "AB-",
+    "O+",
+    "O-",
   ];
   DateTime? _dateNaissance;
   String _roleChoisi = "patient";
@@ -70,18 +77,20 @@ class _RegisterState extends State<Register> {
 
     setState(() => _isLoading = true);
 
-  Map<String, dynamic> monColis = {
-    "username": _telephone.text.trim(),
-    "numero_telephone": _telephone.text.trim(),
-    "email": _email.text.trim(),
-    "password": _password.text,
-    "first_name": _prenom.text.trim(),
-    "last_name": _nom.text.trim(),
-    "type_compte": _roleChoisi.toLowerCase(), 
-  };
+    Map<String, dynamic> monColis = {
+      "username": _telephone.text.trim(),
+      "numero_telephone": _telephone.text.trim(),
+      "email": _email.text.trim(),
+      "password": _password.text,
+      "first_name": _prenom.text.trim(),
+      "last_name": _nom.text.trim(),
+      "type_compte": _roleChoisi.toLowerCase(),
+    };
 
     if (_roleChoisi == "patient") {
-      monColis["date_naissance"] = _dateNaissance?.toIso8601String().split('T')[0];
+      monColis["date_naissance"] = _dateNaissance?.toIso8601String().split(
+        'T',
+      )[0];
       monColis["groupe_sanguin"] = _groupeSanguinChoisi;
     } else {
       monColis["specialite_medicale"] = _specialite.text.trim();
@@ -90,7 +99,7 @@ class _RegisterState extends State<Register> {
 
     try {
       bool succes = await ApiService.inscription(monColis);
-      
+
       if (mounted) setState(() => _isLoading = false);
 
       if (succes) {
@@ -110,7 +119,11 @@ class _RegisterState extends State<Register> {
       }
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
-      AppWidgets.showSnack(context, "Erreur réseau : $e", color: AppColors.danger);
+      AppWidgets.showSnack(
+        context,
+        "Erreur réseau : $e",
+        color: AppColors.danger,
+      );
     }
   }
 
@@ -133,8 +146,12 @@ class _RegisterState extends State<Register> {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withOpacity(0.2), // Le haut reste clair pour voir l'image
-                    Colors.black.withOpacity(0.75), // Le bas s'assombrit pour le formulaire
+                    Colors.black.withOpacity(
+                      0.2,
+                    ), // Le haut reste clair pour voir l'image
+                    Colors.black.withOpacity(
+                      0.75,
+                    ), // Le bas s'assombrit pour le formulaire
                   ],
                 ),
               ),
@@ -161,9 +178,14 @@ class _RegisterState extends State<Register> {
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.2),
                             shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white.withOpacity(0.3)),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.3),
+                            ),
                           ),
-                          child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+                          child: const Icon(
+                            Icons.arrow_back_ios_new_rounded,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ),
@@ -182,8 +204,8 @@ class _RegisterState extends State<Register> {
                             color: Colors.black.withOpacity(0.3),
                             blurRadius: 10,
                             offset: const Offset(0, 3),
-                          )
-                        ]
+                          ),
+                        ],
                       ),
                     ),
                     Text(
@@ -206,7 +228,9 @@ class _RegisterState extends State<Register> {
                         child: Container(
                           padding: const EdgeInsets.all(25),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.15), // Fond transparent
+                            color: Colors.white.withOpacity(
+                              0.15,
+                            ), // Fond transparent
                             borderRadius: BorderRadius.circular(30),
                             border: Border.all(
                               color: Colors.white.withOpacity(0.3),
@@ -219,7 +243,14 @@ class _RegisterState extends State<Register> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 // SÉLECTEUR DE RÔLE
-                                const Text("Je suis un...", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+                                const Text(
+                                  "Je suis un...",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 15,
+                                  ),
+                                ),
                                 const SizedBox(height: 10),
                                 Container(
                                   padding: const EdgeInsets.all(4),
@@ -230,15 +261,27 @@ class _RegisterState extends State<Register> {
                                   child: Row(
                                     children: [
                                       Expanded(
-                                        child: _roleButton('Patient', Icons.person, 'patient'),
+                                        child: _roleButton(
+                                          'Patient',
+                                          Icons.person,
+                                          'patient',
+                                        ),
                                       ),
                                       const SizedBox(width: 5),
                                       Expanded(
-                                        child: _roleButton('Médecin', Icons.medical_services, 'medecin'),
+                                        child: _roleButton(
+                                          'Médecin',
+                                          Icons.medical_services,
+                                          'medecin',
+                                        ),
                                       ),
                                       const SizedBox(width: 5),
                                       Expanded(
-                                        child: _roleButton('Pharma', Icons.local_pharmacy, 'pharmacien'),
+                                        child: _roleButton(
+                                          'Pharma',
+                                          Icons.local_pharmacy,
+                                          'pharmacien',
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -248,19 +291,42 @@ class _RegisterState extends State<Register> {
                                 // CHAMPS NOM & PRÉNOM
                                 Row(
                                   children: [
-                                    Expanded(child: _buildField(_nom, "Nom", Icons.person)),
+                                    Expanded(
+                                      child: _buildField(
+                                        _nom,
+                                        "Nom",
+                                        Icons.person,
+                                      ),
+                                    ),
                                     const SizedBox(width: 12),
-                                    Expanded(child: _buildField(_prenom, "Prénom", Icons.person_outline)),
+                                    Expanded(
+                                      child: _buildField(
+                                        _prenom,
+                                        "Prénom",
+                                        Icons.person_outline,
+                                      ),
+                                    ),
                                   ],
                                 ),
                                 const SizedBox(height: 12),
 
                                 // TÉLÉPHONE
-                                _buildField(_telephone, "Téléphone", Icons.phone_android_rounded, type: TextInputType.phone),
+                                _buildField(
+                                  _telephone,
+                                  "Téléphone",
+                                  Icons.phone_android_rounded,
+                                  type: TextInputType.phone,
+                                ),
                                 const SizedBox(height: 12),
 
                                 // EMAIL
-                                _buildField(_email, "Email", Icons.email_outlined, type: TextInputType.emailAddress, isEmail: true),
+                                _buildField(
+                                  _email,
+                                  "Email",
+                                  Icons.email_outlined,
+                                  type: TextInputType.emailAddress,
+                                  isEmail: true,
+                                ),
                                 const SizedBox(height: 12),
 
                                 // MOT DE PASSE
@@ -269,17 +335,39 @@ class _RegisterState extends State<Register> {
 
                                 // CHAMPS CONDITIONNELS
                                 if (_roleChoisi == "patient") ...[
-                                  const Text("Informations de santé", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                                  const Text(
+                                    "Informations de santé",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15,
+                                    ),
+                                  ),
                                   const SizedBox(height: 10),
                                   _buildDatePicker(),
                                   const SizedBox(height: 12),
                                   _buildBloodSelector(),
                                 ] else ...[
-                                  const Text("Informations professionnelles", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                                  const Text(
+                                    "Informations professionnelles",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15,
+                                    ),
+                                  ),
                                   const SizedBox(height: 10),
-                                  _buildField(_specialite, "Spécialité", Icons.workspace_premium_outlined),
+                                  _buildField(
+                                    _specialite,
+                                    "Spécialité",
+                                    Icons.workspace_premium_outlined,
+                                  ),
                                   const SizedBox(height: 12),
-                                  _buildField(_licence, "N° Licence", Icons.verified_user_outlined),
+                                  _buildField(
+                                    _licence,
+                                    "N° Licence",
+                                    Icons.verified_user_outlined,
+                                  ),
                                 ],
 
                                 const SizedBox(height: 25),
@@ -289,15 +377,32 @@ class _RegisterState extends State<Register> {
                                   width: double.infinity,
                                   height: 50,
                                   child: ElevatedButton(
-                                    onPressed: _isLoading ? null : _lancerInscription,
+                                    onPressed: _isLoading
+                                        ? null
+                                        : _lancerInscription,
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: AppColors.primary,
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(15),
+                                      ),
                                       elevation: 5,
                                     ),
                                     child: _isLoading
-                                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
-                                        : const Text("CRÉER MON COMPTE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+                                        ? const SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: CircularProgressIndicator(
+                                              color: Colors.white,
+                                              strokeWidth: 3,
+                                            ),
+                                          )
+                                        : const Text(
+                                            "CRÉER MON COMPTE",
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                          ),
                                   ),
                                 ),
                                 const SizedBox(height: 15),
@@ -306,8 +411,14 @@ class _RegisterState extends State<Register> {
                                 Center(
                                   child: GestureDetector(
                                     onTap: () => Navigator.pop(context),
-                                    child: Text("Vous avez déjà un compte ? Se connecter",
-                                        style: TextStyle(color: Colors.white.withOpacity(0.9), fontWeight: FontWeight.w600, fontSize: 13)),
+                                    child: Text(
+                                      "Vous avez déjà un compte ? Se connecter",
+                                      style: TextStyle(
+                                        color: Colors.white.withOpacity(0.9),
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 13,
+                                      ),
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(height: 10),
@@ -343,9 +454,20 @@ class _RegisterState extends State<Register> {
         ),
         child: Column(
           children: [
-            Icon(icon, color: isSelected ? Colors.white : Colors.white70, size: 20),
+            Icon(
+              icon,
+              color: isSelected ? Colors.white : Colors.white70,
+              size: 20,
+            ),
             const SizedBox(height: 4),
-            Text(label, style: TextStyle(color: isSelected ? Colors.white : Colors.white70, fontSize: 11, fontWeight: FontWeight.bold)),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : Colors.white70,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ],
         ),
       ),
@@ -369,16 +491,24 @@ class _RegisterState extends State<Register> {
       child: TextFormField(
         controller: ctrl,
         keyboardType: type,
-        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textPrimary,
+        ),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+          labelStyle: const TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 13,
+          ),
           prefixIcon: Icon(icon, color: AppColors.primary, size: 20),
           border: InputBorder.none,
         ),
         validator: (value) {
           if (value == null || value.isEmpty) return "Requis";
-          if (isEmail && !RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+          if (isEmail &&
+              !RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
             return "Email invalide";
           }
           return null;
@@ -397,13 +527,27 @@ class _RegisterState extends State<Register> {
       child: TextFormField(
         controller: _password,
         obscureText: _obscure,
-        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textPrimary,
+        ),
         decoration: InputDecoration(
           labelText: "Mot de passe",
-          labelStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
-          prefixIcon: const Icon(Icons.lock_outline, color: AppColors.primary, size: 20),
+          labelStyle: const TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 13,
+          ),
+          prefixIcon: const Icon(
+            Icons.lock_outline,
+            color: AppColors.primary,
+            size: 20,
+          ),
           suffixIcon: IconButton(
-            icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility, color: AppColors.textSecondary),
+            icon: Icon(
+              _obscure ? Icons.visibility_off : Icons.visibility,
+              color: AppColors.textSecondary,
+            ),
             onPressed: () => setState(() => _obscure = !_obscure),
           ),
           border: InputBorder.none,
@@ -435,8 +579,11 @@ class _RegisterState extends State<Register> {
                   ? "Date de naissance"
                   : "Né(e) le : ${_dateNaissance!.day}/${_dateNaissance!.month}/${_dateNaissance!.year}",
               style: TextStyle(
-                color: _dateNaissance == null ? AppColors.textSecondary : AppColors.textPrimary,
-                fontSize: 14, fontWeight: FontWeight.w600,
+                color: _dateNaissance == null
+                    ? AppColors.textSecondary
+                    : AppColors.textPrimary,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ],
@@ -456,13 +603,24 @@ class _RegisterState extends State<Register> {
         child: DropdownButtonFormField<String>(
           value: _groupeSanguinChoisi,
           icon: const Icon(Icons.arrow_drop_down, color: AppColors.primary),
-          style: const TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w600),
+          style: const TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
           dropdownColor: Colors.white,
           decoration: InputDecoration(
             labelText: "Groupe Sanguin",
-            labelStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+            labelStyle: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 13,
+            ),
             border: InputBorder.none,
-            prefixIcon: const Icon(Icons.bloodtype_outlined, color: AppColors.primary, size: 20),
+            prefixIcon: const Icon(
+              Icons.bloodtype_outlined,
+              color: AppColors.primary,
+              size: 20,
+            ),
           ),
           items: _groupes.map((String g) {
             return DropdownMenuItem(value: g, child: Text(g));

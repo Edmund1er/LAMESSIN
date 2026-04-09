@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../THEME_/app_theme.dart';
 import '../../SERVICES_/api_service.dart';
+import '../../SERVICES_/doctor_service.dart';
 import '../../MODELS_/utilisateur_model.dart';
 import '../../MODELS_/rendezvous_model.dart';
 import '../../MODELS_/notification_model.dart';
 import 'medecin_rendezvous_page.dart';
 import 'medecin_profil_page.dart';
-import '../../SERVICES_/doctor_service.dart';
 
 class MedecinDashboardPage extends StatefulWidget {
   const MedecinDashboardPage({super.key});
@@ -30,7 +30,7 @@ class _MedecinDashboardPageState extends State<MedecinDashboardPage> {
   Future<void> _chargerDonnees() async {
     setState(() => _chargement = true);
     try {
-      final profil = await DoctorService.getProfil();
+      final profil = await ApiService.getProfil();
       final notifs = await DoctorService.getNotifications();
       final rdvData = await DoctorService.getMesRendezVousMedecin();
 
@@ -312,7 +312,7 @@ class _MedecinDashboardPageState extends State<MedecinDashboardPage> {
             child: const Icon(
               Icons.person_rounded,
               color: AppColors.primary,
-              size: 22, 
+              size: 22,
             ),
           ),
           const SizedBox(width: 12),
