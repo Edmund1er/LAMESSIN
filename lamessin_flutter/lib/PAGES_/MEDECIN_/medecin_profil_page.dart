@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../THEME_/app_theme.dart';
 import '../../SERVICES_/api_service.dart';
+import '../../SERVICES_/doctor_service.dart';
 import '../../MODELS_/utilisateur_model.dart';
-import 'medecin_dashboard_page.dart';
+import 'medecin_dashboard.dart';
 import 'medecin_rendezvous_page.dart';
 
 class MedecinProfilPage extends StatefulWidget {
@@ -22,7 +23,7 @@ class _MedecinProfilPageState extends State<MedecinProfilPage> {
   }
 
   Future<void> _chargerProfil() async {
-    final data = await ApiService.getProfil();
+    final data = await DoctorService.getProfil();
     if (mounted) setState(() { _user = data; _chargement = false; });
   }
 
@@ -65,7 +66,6 @@ class _MedecinProfilPageState extends State<MedecinProfilPage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const SizedBox(height: 50),
-                      // Photo
                       Container(
                         width: 84, height: 84,
                         decoration: BoxDecoration(
@@ -105,7 +105,6 @@ class _MedecinProfilPageState extends State<MedecinProfilPage> {
               child: Padding(
                 padding: const EdgeInsets.all(18),
                 child: Column(children: [
-                  // Infos de contact
                   _sectionLabel("Informations de contact"),
                   const SizedBox(height: 10),
                   Container(
@@ -122,7 +121,6 @@ class _MedecinProfilPageState extends State<MedecinProfilPage> {
                   ),
                   const SizedBox(height: 20),
 
-                  // Disponibilités
                   _sectionLabel("Mes disponibilités"),
                   const SizedBox(height: 10),
                   Container(
@@ -142,7 +140,6 @@ class _MedecinProfilPageState extends State<MedecinProfilPage> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Bouton modifier
                   AppWidgets.primaryButton(
                     label: "Modifier mon profil",
                     icon: Icons.edit_rounded,
@@ -154,7 +151,6 @@ class _MedecinProfilPageState extends State<MedecinProfilPage> {
                   ),
                   const SizedBox(height: 12),
 
-                  // Déconnexion
                   SizedBox(
                     width: double.infinity, height: 50,
                     child: OutlinedButton.icon(
@@ -247,7 +243,7 @@ class _MedecinProfilPageState extends State<MedecinProfilPage> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           decoration: BoxDecoration(
-            color: dispo ? AppColors.successLight : AppColors.surfaceVariant,
+            color: dispo ? AppColors.successLight : AppColors.background,
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text(horaire,
@@ -274,13 +270,9 @@ class _MedecinProfilPageState extends State<MedecinProfilPage> {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _navItem(Icons.dashboard_rounded, "Accueil", 0, index,
-                  () => Navigator.pushReplacement(context,
-                      MaterialPageRoute(
-                          builder: (_) => const MedecinDashboardPage()))),
+                  () => Navigator.pushReplacementNamed(context, '/dashboard_medecin')),
               _navItem(Icons.calendar_month_rounded, "Rendez-vous", 1, index,
-                  () => Navigator.pushReplacement(context,
-                      MaterialPageRoute(
-                          builder: (_) => const MedecinRendezVousPage()))),
+                  () => Navigator.pushReplacementNamed(context, '/medecin_rendezvous')),
               _navItem(Icons.account_circle_rounded, "Profil", 2, index, () {}),
             ],
           ),

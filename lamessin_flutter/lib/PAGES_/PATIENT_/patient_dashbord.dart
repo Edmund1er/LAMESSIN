@@ -122,12 +122,12 @@ class _PageUtilisateurState extends State<PageUtilisateur> {
                               if (_notifications.isEmpty)
                                 _buildEmptyNotif()
                               else
-                                ..._notifications.take(5).map(_buildNotifCard),
+                                ..._notifications.take(2).map(_buildNotifCard),
                               const SizedBox(height: 24),
                               _sectionTitle("Nos Services"),
                               const SizedBox(height: 14),
                               _buildGrilleServices(),
-                              const SizedBox(height: 20),
+                              const SizedBox(height: 10),
                             ],
                           ),
                         ),
@@ -186,7 +186,7 @@ class _PageUtilisateurState extends State<PageUtilisateur> {
                   style: TextStyle(
                       color: Colors.white.withOpacity(0.9), fontSize: 15)),
               const SizedBox(height: 4),
-              Text("M. $_nomAffichage 👋",
+              Text("M. $_nomAffichage ",
                   style: const TextStyle(
                       color: Colors.white, fontSize: 26,
                       fontWeight: FontWeight.w900)),
@@ -292,7 +292,7 @@ class _PageUtilisateurState extends State<PageUtilisateur> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  width: 30, height: 30,
+                  width: 20, height: 20,
                   decoration: BoxDecoration(
                     color: s['bg'] as Color,
                     borderRadius: BorderRadius.circular(8),

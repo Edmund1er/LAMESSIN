@@ -41,18 +41,17 @@ class _RechercheServicesPageState extends State<RechercheServicesPage> {
     super.dispose(); 
   }
 
-  // Appliquer le filtre selon le type sélectionné
   void _appliquerFiltre() {
     setState(() {
       if (filtreType == "Tous") {
         etablissementsFiltres = List.from(etablissements);
       } else if (filtreType == "Pharmacie") {
-        // Ne garder que les pharmacies (typeEtablissement == 'pharmacie')
+// on ne garder que les pharmacies 
         etablissementsFiltres = etablissements.where((e) => 
           e.estPharmacie
         ).toList();
       } else if (filtreType == "Hôpital") {
-        // Ne garder que les hôpitaux (typeEtablissement == 'hopital')
+//on ne garder que les hôpitaux
         etablissementsFiltres = etablissements.where((e) => 
           e.estHopital
         ).toList();
@@ -61,7 +60,7 @@ class _RechercheServicesPageState extends State<RechercheServicesPage> {
       }
     });
   }
-
+//pour la localisation
   Future<void> _initialiserLocalisationEtDonnees() async {
     try {
       LocationPermission permission = await Geolocator.checkPermission();
@@ -76,7 +75,7 @@ class _RechercheServicesPageState extends State<RechercheServicesPage> {
       await _chargerEtTrierEtablissements();
     }
   }
-
+//l'itineraire dans maps apres la géolocalisation 
   Future<void> _ouvrirItineraire(double lat, double lng) async {
     final Uri uri = Uri.parse(
         "https://www.google.com/maps/search/?api=1&query=$lat,$lng");
@@ -91,7 +90,7 @@ class _RechercheServicesPageState extends State<RechercheServicesPage> {
           color: AppColors.danger);
     }
   }
-
+//pour rechercher les medicaments
   void _rechercherMedicament(String query) async {
     if (query.length < 2) { 
       setState(() => resultatsMedicaments = []); 
@@ -120,6 +119,7 @@ class _RechercheServicesPageState extends State<RechercheServicesPage> {
       debugPrint("Erreur recherche médicament: $e");
     }
   }
+//on affiche les etablissements rechercher 
 
   Future<void> _chargerEtTrierEtablissements() async {
     setState(() => chargementEtablissements = true);
@@ -287,7 +287,7 @@ class _RechercheServicesPageState extends State<RechercheServicesPage> {
       ),
     );
   }
-
+//la fonction qui permettras d'ajouter un produit au panier 
   void _ajouterAuPanier(Medicament medoc, int qte, int pharmacieId) {
     setState(() {
       int index = _panier.indexWhere(
@@ -343,7 +343,7 @@ class _RechercheServicesPageState extends State<RechercheServicesPage> {
           ),
         ),
         child: Column(children: [
-          // ── HEADER CYAN ──
+//l'en tete en couleur cyan
           Container(
             color: _brandColor,
             padding: EdgeInsets.only(
@@ -407,7 +407,7 @@ class _RechercheServicesPageState extends State<RechercheServicesPage> {
             ]),
           ),
 
-          // ── CONTENU AVEC FOND TRANSPARENT ──
+//le contenu gerant les affichages avec un fond transparent
           Expanded(
             child: Container(
               color: Colors.white.withOpacity(0.75),
@@ -610,14 +610,14 @@ class _RechercheServicesPageState extends State<RechercheServicesPage> {
         }).toList()),
       ),
 
-      // Liste des établissements filtrés
+//la liste des établissements filtrés
       Expanded(
         child: ListView.builder(
           padding: const EdgeInsets.fromLTRB(14, 0, 14, 80),
           itemCount: etablissementsFiltres.length,
           itemBuilder: (_, index) {
             final e = etablissementsFiltres[index];
-            // Déterminer si c'est une pharmacie ou un hôpital
+// Déterminer si c'est une pharmacie ou un hôpital
             final bool isPharmacie = e.estPharmacie;
             final bool isHopital = e.estHopital;
 

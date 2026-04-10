@@ -1,320 +1,227 @@
+# seed_data.py
+
 import os
 import django
 import random
 from datetime import date, time, timedelta
 from django.utils import timezone
 
-# 1. Configuration Django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'lamessin_backend.settings')
 django.setup()
 
 from lamessin_app.models import (
     Utilisateur, Patient, Medecin, Pharmacien, Pharmacie, Hopital,
     Medicament, Stock, PlageHoraire, Notification, Chatbot,
-    Traitement, Commande, LigneCommande, RendezVous, Consultation, Ordonnance, DetailOrdonnance, PriseMedicament
+    Traitement, Commande, LigneCommande, RendezVous, Consultation, 
+    Ordonnance, DetailOrdonnance, PriseMedicament
 )
 
 
 def run_seed():
-    print("--- Début du Seed Complet LAMESSIN ---")
+    print("=" * 50)
+    print("SEED LAMESSIN")
+    print("=" * 50)
 
-    # --- 1. NETTOYAGE (Optionnel : Décommente pour tout effacer avant de commencer) ---
+    # 1. Nettoyage
+    print("\nNettoyage...")
     RendezVous.objects.all().delete()
     PlageHoraire.objects.all().delete()
     Consultation.objects.all().delete()
     Commande.objects.all().delete()
+    LigneCommande.objects.all().delete()
     Traitement.objects.all().delete()
+    PriseMedicament.objects.all().delete()
     Ordonnance.objects.all().delete()
-    print("Nettoyage des anciennes données de test (si activé)...")
+    DetailOrdonnance.objects.all().delete()  # CORRECTION ICI
+    Notification.objects.all().delete()
+    print("OK")
 
-    # --- 2. UTILISATEURS & PROFILS ---
-    print("Création des utilisateurs (Patients, Médecins, Pharmaciens)...")
-
-    # A. Patient Essodon (Utilisateur principal)
-    essodon_user, _ = Utilisateur.objects.get_or_create(
+    # 2. Patient
+    print("\nCreation patient...")
+    patient_user, _ = Utilisateur.objects.get_or_create(
         numero_telephone="91770761",
         defaults={
-            'username': 'essodon',
+            'username': 'patient_sessou',
             'email': 'essodon@lamessin.tg',
             'first_name': 'Essodon',
             'last_name': 'SESSOU',
-            'est_un_compte_patient': True,
-            'password': 'romaric12345'  # Note: set_password est mieux fait après
+            'est_un_compte_patient': True
         }
     )
-    essodon_user.set_password("Romaric12345")
-    essodon_user.save()
-    patient_essodon, _ = Patient.objects.get_or_create(
-        compte_utilisateur=essodon_user,
+    patient_user.set_password("Romaric12345")
+    patient_user.save()
+    
+    patient, _ = Patient.objects.get_or_create(
+        compte_utilisateur=patient_user,
         defaults={'groupe_sanguin': 'O+', 'date_naissance': date(1995, 5, 15)}
     )
-    Chatbot.objects.get_or_create(utilisateur=essodon_user)
+    Chatbot.objects.get_or_create(utilisateur=patient_user)
+    print(f"Patient: {patient_user.last_name} - Tel: {patient_user.numero_telephone} - Mdp: Romaric12345")
 
-    # B. Création de 3 Médecins (Pour tester les filtres et RDV)
+    # 3. Medecins
+    print("\nCreation medecins...")
     medecins_data = [
-        ("Koffi", "Mawuli", "Cardiologie", "LIC-001"),
-        ("Adjovi", "Komi", "Généraliste", "LIC-002"),
-        ("Mensa", "Akossiwa", "Pédiatrie", "LIC-003"),
+        {"tel": "90000001", "user": "dr_koffi", "nom": "Koffi", "prenom": "Mawuli", "specialite": "Cardiologie", "licence": "MED001"},
+        {"tel": "90000002", "user": "dr_adjovi", "nom": "Adjovi", "prenom": "Komi", "specialite": "Generaliste", "licence": "MED002"},
+        {"tel": "90000003", "user": "dr_mensa", "nom": "Mensa", "prenom": "Akossiwa", "specialite": "Pediatrie", "licence": "MED003"},
     ]
-    medecins_obj = []
-    for nom, prenom, specialite, licence in medecins_data:
+    
+    medecins = []
+    for data in medecins_data:
         user, _ = Utilisateur.objects.get_or_create(
-            username=f"dr_{nom.lower()}",
+            numero_telephone=data["tel"],
             defaults={
-                'email': f"dr.{nom.lower()}@lamessin.tg",
-                'numero_telephone': f"9900{random.randint(10000, 99999)}",
-                'first_name': prenom,
-                'last_name': nom,
+                'username': data["user"],
+                'email': f"{data['user']}@lamessin.tg",
+                'first_name': data["prenom"],
+                'last_name': data["nom"],
                 'est_un_compte_medecin': True
             }
         )
         user.set_password("doctor123")
         user.save()
-
+        
         med, _ = Medecin.objects.get_or_create(
             compte_utilisateur=user,
-            defaults={'specialite_medicale': specialite, 'numero_licence': licence}
-        )
-        medecins_obj.append(med)
-
-    # C. Pharmaciens (Liés aux pharmacies)
-    pharmaciens_obj = []
-    # On va créer les pharmaciens dans la section Pharmacie pour lier les objets
-
-    # --- 3. ÉTABLISSEMENTS (Hôpitaux & Pharmacies) ---
-    print("Création des établissements...")
-
-    hopitaux_data = [
-        ("CHR Lomé-Commune", "Lomé, Togo", "22210001", 6.13, 1.22),
-        ("CHU Sylvanus Olympio", "Lomé, Tokoin", "22213451", 6.14, 1.23),
-    ]
-    for nom, adr, tel, lat, lon in hopitaux_data:
-        Hopital.objects.get_or_create(
-            nom=nom, defaults={
-                'adresse': adr, 'contact': tel,
-                'coordonnee_latitude_gps': lat, 'coordonnee_longitude_gps': lon,
-                'plage_horaire_ouverture': "24h/24", 'type_urgences': "Générales",
-                'liste_services': "Scanner, Radio, Chirurgie"
-            }
-        )
-
-    pharmacies_data = [
-        ("Pharmacie de la Paix", "Lomé, Deckon", "90112233", 6.131, 1.222),
-        ("Pharmacie de l'Amitié", "Lomé, Assivito", "90445566", 6.132, 1.223),
-    ]
-    pharmacies_obj = []
-    for nom, adr, tel, lat, lon in pharmacies_data:
-        p, _ = Pharmacie.objects.get_or_create(
-            nom=nom, defaults={
-                'adresse': adr, 'contact': tel,
-                'coordonnee_latitude_gps': lat, 'coordonnee_longitude_gps': lon,
-                'plage_horaire_ouverture': "08h-22h", 'numero_paiement': tel, 'reseau_paiement': 'tmoney'
-            }
-        )
-        pharmacies_obj.append(p)
-
-        # Création d'un compte pharmacien pour cette pharmacie
-        user_pharma, _ = Utilisateur.objects.get_or_create(
-            username=f"pharma_{nom.split()[1].lower()}",
             defaults={
-                'email': f"contact.{nom.split()[1].lower()}@pharma.tg",
-                'numero_telephone': tel,
-                'first_name': "Pharmacien",
-                'last_name': nom.split()[1],
-                'est_un_compte_pharmacien': True
+                'specialite_medicale': data["specialite"],
+                'numero_licence': data["licence"]
             }
         )
-        Pharmacien.objects.get_or_create(compte_utilisateur=user_pharma,
-                                         defaults={'numero_licence': f"PH-{random.randint(100, 999)}"})
+        medecins.append(med)
+        print(f"Dr {user.last_name} - Tel: {user.numero_telephone} - Mdp: doctor123")
 
-    # --- 4. MÉDICAMENTS & STOCKS ---
-    print("Génération des médicaments et stocks...")
-    meds_data = [
-        ("Paracétamol 500mg", "Douleurs et fièvre", "1 comprimé 3 fois/jour", 150.00),
-        ("Amoxicilline 1g", "Antibiotique large spectre", "1 gélule matin et soir", 3500.00),
-        ("Artemether/Lumefantrine", "Traitement paludisme simple", "6 doses à 12h d'intervalle", 4500.00),
-        ("Sirop Toux Enfant", "Toux grasse", "1 cuillère matin/midi/soir", 2800.00),
-        ("Vitamines C 1000mg", "Fatigue", "1 comprimé le matin", 1200.00),
+    # 4. Pharmacies
+    print("\nCreation pharmacies...")
+    pharmacies_data = [
+        {"nom": "Pharmacie Centrale", "tel": "90000101", "adresse": "Lome, Be", "lat": 6.131, "lon": 1.222, "garde": True},
+        {"nom": "Pharmacie de la Paix", "tel": "90000102", "adresse": "Lome, Deckon", "lat": 6.132, "lon": 1.223, "garde": False},
     ]
-    medicaments_obj = []
-    for nom, desc, poso, prix in meds_data:
-        m, _ = Medicament.objects.get_or_create(
-            nom_commercial=nom, defaults={'description': desc, 'posologie_standard': poso, 'prix_vente': prix}
+    
+    pharmacies = []
+    for data in pharmacies_data:
+        pharm, _ = Pharmacie.objects.get_or_create(
+            nom=data["nom"],
+            defaults={
+                'adresse': data["adresse"],
+                'contact': data["tel"],
+                'coordonnee_latitude_gps': data["lat"],
+                'coordonnee_longitude_gps': data["lon"],
+                'plage_horaire_ouverture': "08h-22h",
+                'pharmacie_est_garde': data["garde"],
+                'numero_paiement': data["tel"],
+                'reseau_paiement': 'tmoney'
+            }
         )
-        medicaments_obj.append(m)
+        pharmacies.append(pharm)
+        print(f"{pharm.nom}")
 
-        # Ajouter du stock dans chaque pharmacie
-        for phar in pharmacies_obj:
+    # 5. Medicaments
+    print("\nCreation medicaments...")
+    medicaments_data = [
+        {"nom": "Paracetamol 500mg", "prix": 150, "desc": "Douleurs et fievre"},
+        {"nom": "Amoxicilline 1g", "prix": 3500, "desc": "Antibiotique"},
+        {"nom": "Vitamine C 1000mg", "prix": 1200, "desc": "Immunite"},
+        {"nom": "Ibuprofene 400mg", "prix": 800, "desc": "Anti-inflammatoire"},
+    ]
+    
+    medicaments = []
+    for data in medicaments_data:
+        m, _ = Medicament.objects.get_or_create(
+            nom_commercial=data["nom"],
+            defaults={
+                'description': data["desc"],
+                'posologie_standard': "Selon prescription",
+                'prix_vente': data["prix"]
+            }
+        )
+        medicaments.append(m)
+        
+        for pharm in pharmacies:
             Stock.objects.get_or_create(
-                produit_concerne=m, pharmacie_detentrice=phar,
-                defaults={'quantite_actuelle_en_stock': random.randint(20, 100), 'seuil_alerte': 10,
-                          'date_peremption': date(2027, 12, 31)}
+                produit_concerne=m,
+                pharmacie_detentrice=pharm,
+                defaults={
+                    'quantite_actuelle_en_stock': random.randint(20, 100),
+                    'seuil_alerte': 10,
+                    'date_peremption': date(2027, 12, 31)
+                }
             )
+        print(f"{m.nom_commercial} - {data['prix']} FCFA")
 
-    # --- 5. PLAGES HORAIRES (CRITIQUE POUR LA PRISE DE RDV) ---
-    print("Création des plages horaires (Disponibilités)...")
-    demain = date.today() + timedelta(days=1)
-    apres_demain = date.today() + timedelta(days=2)
+    # 6. Plages horaires
+    print("\nCreation plages horaires...")
+    aujourdhui = date.today()
+    demain = aujourdhui + timedelta(days=1)
+    apres_demain = aujourdhui + timedelta(days=2)
 
-    # Plages pour Dr Koffi (Cardiologie)
-    PlageHoraire.objects.get_or_create(
-        medecin=medecins_obj[0], date=demain, heure_debut=time(8, 0), heure_fin=time(12, 0),
-        defaults={'duree_consultation': 30}
-    )
-    PlageHoraire.objects.get_or_create(
-        medecin=medecins_obj[0], date=apres_demain, heure_debut=time(14, 0), heure_fin=time(18, 0),
-        defaults={'duree_consultation': 30}
-    )
+    plages_config = [
+        (medecins[0], demain, time(8, 0), time(12, 0), 30),
+        (medecins[0], apres_demain, time(14, 0), time(18, 0), 30),
+        (medecins[1], demain, time(9, 0), time(13, 0), 20),
+        (medecins[2], demain, time(10, 0), time(14, 0), 25),
+    ]
+    
+    for med, d, debut, fin, duree in plages_config:
+        PlageHoraire.objects.get_or_create(
+            medecin=med, date=d, heure_debut=debut, heure_fin=fin,
+            defaults={'duree_consultation': duree}
+        )
+    print(f"{len(plages_config)} plages horaires creees")
 
-    # Plages pour Dr Adjovi (Généraliste)
-    PlageHoraire.objects.get_or_create(
-        medecin=medecins_obj[1], date=demain, heure_debut=time(9, 0), heure_fin=time(13, 0),
-        defaults={'duree_consultation': 15}
-    )
-
-    # --- 6. RENDEZ-VOUS (Passé & Futur) ---
-    print("Création de rendez-vous (Historique et Futur)...")
-
-    # RDV Futur (Demain avec Dr Koffi)
+    # 7. Rendez-vous
+    print("\nCreation rendez-vous...")
+    
     rdv_futur, _ = RendezVous.objects.get_or_create(
-        patient_demandeur=patient_essodon,
-        medecin_concerne=medecins_obj[0],
+        patient_demandeur=patient,
+        medecin_concerne=medecins[0],
         date_rdv=demain,
-        heure_rdv=time(9, 30),  # Doit être dans la plage 08:00-12:00
-        defaults={'motif_consultation': "Douleur thoracique", 'statut_actuel_rdv': "en_attente"}
+        heure_rdv=time(9, 30),
+        defaults={'motif_consultation': "Douleur thoracique", 'statut_actuel_rdv': "confirme"}
     )
-
-    # RDV Passé (Hier avec Dr Mensah)
-    hier = date.today() - timedelta(days=1)
+    
+    hier = aujourdhui - timedelta(days=1)
     rdv_passe, _ = RendezVous.objects.get_or_create(
-        patient_demandeur=patient_essodon,
-        medecin_concerne=medecins_obj[2],
+        patient_demandeur=patient,
+        medecin_concerne=medecins[2],
         date_rdv=hier,
         heure_rdv=time(10, 0),
-        defaults={'motif_consultation': "Bilan annuel", 'statut_actuel_rdv': "termine"}
+        defaults={'motif_consultation': "Consultation pediatrique", 'statut_actuel_rdv': "termine"}
     )
+    
+    print("3 rendez-vous crees")
 
-    # --- 7. CONSULTATION & ORDONNANCE (Lier au RDV Passé) ---
-    print("Création d'ordonnances et consultations...")
+    # 8. Consultation
+    print("\nCreation consultation...")
     consultation, _ = Consultation.objects.get_or_create(
         rdv=rdv_passe,
         defaults={
-            'diagnostic': "Etat de santé général satisfaisant, légère fatigue.",
-            'actes_effectues': "Auscultation, Prise de tension",
-            'notes_medecin': "Revoir dans 6 mois."
+            'diagnostic': "Examen pediatrique de routine. Enfant en bonne sante.",
+            'actes_effectues': "Auscultation, pesee, mesure taille",
+            'notes_medecin': "Aucune anomalie detectee."
         }
     )
+    print("Consultation creee")
 
-    ordonnance, _ = Ordonnance.objects.get_or_create(
-        consultation=consultation,
-        medecin_prescripteur=medecins_obj[2],
-        patient_beneficiaire=patient_essodon,
-        defaults={'code_securite': 'ORD-2026-X7'}
-    )
-
-    # Ajouter des médicaments à l'ordonnance
-    DetailOrdonnance.objects.get_or_create(
-        ordonnance=ordonnance,
-        medicament=medicaments_obj[3],  # Sirop Toux
-        defaults={
-            'quantite_boites': 1, 'posologie_specifique': "1 cuillère le soir si toux", 'duree_traitement_jours': 5
-        }
-    )
-    DetailOrdonnance.objects.get_or_create(
-        ordonnance=ordonnance,
-        medicament=medicaments_obj[4],  # Vitamines
-        defaults={
-            'quantite_boites': 2, 'posologie_specifique': "1 le matin", 'duree_traitement_jours': 30
-        }
-    )
-
-    # --- 8. TRAITEMENTS ---
-    print("Création de traitements en cours...")
-    # Traitement lié à l'ordonnance
-    t1, _ = Traitement.objects.get_or_create(
-        patient_concerne=patient_essodon,
-        nom_du_traitement="Cure Vitamine C",
-        defaults={
-            'ordonnance_origine': ordonnance,
-            'date_debut_traitement': date.today(),
-            'date_fin_traitement': date.today() + timedelta(days=30)
-        }
-    )
-    # Créer des prises pour ce traitement
-    PriseMedicament.objects.get_or_create(
-        traitement=t1, heure_prise_prevue=time(8, 0),
-        defaults={'prise_effectuee': True, 'date_prise_reelle': date.today()}
-    )
-    PriseMedicament.objects.get_or_create(
-        traitement=t1, heure_prise_prevue=time(8, 0),
-        # Pour le lendemain, pas encore pris
-        defaults={'prise_effectuee': False, 'date_prise_reelle': None}
-    )
-
-    # Traitement sans ordonnance directe
-    Traitement.objects.get_or_create(
-        patient_concerne=patient_essodon,
-        nom_du_traitement="Surveillance tension",
-        defaults={
-            'date_debut_traitement': date.today() - timedelta(days=10),
-            'date_fin_traitement': date.today() + timedelta(days=20)
-        }
-    )
-
-    # --- 9. COMMANDES ---
-    print("Création de commandes...")
-    cmd_payee, created = Commande.objects.get_or_create(
-        patient=patient_essodon,
-        statut='PAYE',
-        defaults={
-            'total': 5150.00,
-            'methode_retrait': 'RETRAIT',
-            'transaction_id': 'CINET-PAY-8877',
-            'date_creation': timezone.now() - timedelta(days=2)
-        }
-    )
-    if created:
-        LigneCommande.objects.create(
-            commande=cmd_payee, produit=medicaments_obj[0],
-            pharmacie=pharmacies_obj[0], quantite=1, prix_unitaire=150.00
-        )
-        LigneCommande.objects.create(
-            commande=cmd_payee, produit=medicaments_obj[1],
-            pharmacie=pharmacies_obj[0], quantite=1, prix_unitaire=5000.00
-        )
-
-    # Commande en attente
-    cmd_attente, _ = Commande.objects.get_or_create(
-        patient=patient_essodon,
-        statut='EN_ATTENTE',
-        defaults={
-            'total': 2800.00,
-            'methode_retrait': 'LIVRAISON',
-            'transaction_id': None
-        }
-    )
-    if created:
-        LigneCommande.objects.create(
-            commande=cmd_attente, produit=medicaments_obj[3],
-            pharmacie=pharmacies_obj[1], quantite=1, prix_unitaire=2800.00
-        )
-
-    # --- 10. NOTIFICATIONS ---
-    print("Création de notifications...")
+    # 9. Notifications
+    print("\nCreation notifications...")
     Notification.objects.get_or_create(
-        destinataire=essodon_user,
-        message="Votre rendez-vous de demain à 09h30 est confirmé.",
+        destinataire=patient_user,
+        message="Votre rendez-vous de demain a 09h30 avec Dr Koffi est confirme.",
         defaults={'type_notification': 'RENDEZ_VOUS', 'lu': False}
     )
-    Notification.objects.get_or_create(
-        destinataire=essodon_user,
-        message="Votre commande #CINET-PAY-8877 a été livrée.",
-        defaults={'type_notification': 'COMMANDE', 'lu': True}
-    )
+    print("Notifications creees")
 
-    print("--- Seed Terminé avec Succès ! ---")
-    print(f"Connecte-toi avec : 91770761 / Romaric12345")
-    print(f"Tu devrais voir {medecins_obj.count} médecins et des créneaux disponibles pour {demain}.")
+    # 10. Resume
+    print("\n" + "=" * 50)
+    print("SEED TERMINE AVEC SUCCES !")
+    print("=" * 50)
+    print("\nCOMPTES DE TEST:")
+    print("   PATIENT - Tel: 91770761 | Mdp: Romaric12345")
+    print("   MEDECIN - Tel: 90000001 | Mdp: doctor123 (Cardiologie)")
+    print("   MEDECIN - Tel: 90000002 | Mdp: doctor123 (Generaliste)")
+    print("   MEDECIN - Tel: 90000003 | Mdp: doctor123 (Pediatrie)")
+    print("=" * 50)
 
 
 if __name__ == "__main__":

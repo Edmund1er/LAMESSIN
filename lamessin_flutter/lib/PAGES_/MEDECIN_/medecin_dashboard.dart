@@ -30,7 +30,7 @@ class _MedecinDashboardPageState extends State<MedecinDashboardPage> {
   Future<void> _chargerDonnees() async {
     setState(() => _chargement = true);
     try {
-      final profil = await ApiService.getProfil();
+      final profil = await DoctorService.getProfil();
       final notifs = await DoctorService.getNotifications();
       final rdvData = await DoctorService.getMesRendezVousMedecin();
 
@@ -51,7 +51,6 @@ class _MedecinDashboardPageState extends State<MedecinDashboardPage> {
     }
   }
 
-  // Stats calculées
   int get _rdvAujourdhui {
     final today = DateTime.now();
     return _rdv.where((r) {

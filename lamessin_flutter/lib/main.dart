@@ -29,7 +29,7 @@ import 'PAGES_/PATIENT_/mes_rendez_vous_page.dart';
 import 'PAGES_/PATIENT_/AssistantHistoriquePage.dart';
 import 'PAGES_/PATIENT_/notifications_history_page.dart';
 import 'PAGES_/PATIENT_/paiement_page.dart';
-import 'PAGES_/MEDECIN_/medecin_dashboard_page.dart';
+import 'PAGES_/MEDECIN_/medecin_dashboard.dart';
 import 'PAGES_/MEDECIN_/medecin_profil_page.dart';
 import 'PAGES_/MEDECIN_/medecin_rendezvous_page.dart';
 
@@ -69,7 +69,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'LAMESSIN',
-      theme: AppTheme.theme, // ← Nouveau thème global
+      theme: AppTheme.theme,
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
@@ -105,7 +105,11 @@ class MyApp extends StatelessWidget {
         "/historique_notifications": (context) =>
             const NotificationHistoryPage(),
         "/paiement": (context) => const PaiementPage(commandeId: 0, montant: 0),
+        
+        // Routes Médecin
         "/dashboard_medecin": (context) => const MedecinDashboardPage(),
+        "/medecin_rendezvous": (context) => const MedecinRendezVousPage(),
+        "/medecin_profil": (context) => const MedecinProfilPage(),
       },
     );
   }

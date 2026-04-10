@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:lamessin_flutter/SERVICES_/doctor_service.dart';
+import '../../SERVICES_/doctor_service.dart';
 import '../../THEME_/app_theme.dart';
 import '../../SERVICES_/api_service.dart';
 import '../../MODELS_/rendezvous_model.dart';
-import 'medecin_dashboard_page.dart';
+import 'medecin_dashboard.dart';
 import 'medecin_profil_page.dart';
 
 class MedecinRendezVousPage extends StatefulWidget {
@@ -40,7 +40,7 @@ class _MedecinRendezVousPageState extends State<MedecinRendezVousPage> {
   }
 
   Future<void> _confirmerRdv(int id) async {
-    final ok = await DoctorService.confirmerRendezVous(id);
+    final ok = await DoctorService.updateRendezVousStatut(id, 'confirme');
     if (ok) {
       AppWidgets.showSnack(
         context,
@@ -58,7 +58,7 @@ class _MedecinRendezVousPageState extends State<MedecinRendezVousPage> {
   }
 
   Future<void> _refuserRdv(int id) async {
-    final ok = await DoctorService.annulerRendezVous(id);
+    final ok = await DoctorService.updateRendezVousStatut(id, 'annule');
     if (ok) {
       AppWidgets.showSnack(
         context,
@@ -83,7 +83,7 @@ class _MedecinRendezVousPageState extends State<MedecinRendezVousPage> {
       return _tousRdv
           .where(
             (r) =>
-                r.statutActuelRdv == 'confirmé' ||
+                r.statutActuelRdv == 'confirme' ||
                 r.statutActuelRdv == 'validé',
           )
           .toList();
@@ -491,12 +491,7 @@ class _MedecinRendezVousPageState extends State<MedecinRendezVousPage> {
                 "Accueil",
                 0,
                 index,
-                () => Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const MedecinDashboardPage(),
-                  ),
-                ),
+                () => Navigator.pushReplacementNamed(context, '/dashboard_medecin'),
               ),
               _navItem(
                 Icons.calendar_month_rounded,
@@ -510,10 +505,7 @@ class _MedecinRendezVousPageState extends State<MedecinRendezVousPage> {
                 "Profil",
                 2,
                 index,
-                () => Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => const MedecinProfilPage()),
-                ),
+                () => Navigator.pushReplacementNamed(context, '/medecin_profil'),
               ),
             ],
           ),
