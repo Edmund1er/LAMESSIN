@@ -15,7 +15,7 @@ class _RendezVousPageState extends State<RendezVousPage> {
   static const Color _brandColor = Color(0xFF00C2CB);
   
   Medecin? _medecinSelectionne;
-  int? _idHeureSelectionnee;
+  String? _heureSelectionnee;
   DateTime? _dateChoisie;
   String _specialiteFiltre = "Toutes";
   final _motif = TextEditingController();
@@ -58,21 +58,29 @@ class _RendezVousPageState extends State<RendezVousPage> {
     setState(() => _chargementCreneaux = true);
     try {
       String dateStr = DateFormat('yyyy-MM-dd').format(_dateChoisie!);
+      // Récupérer l'ID du médecin (compte_utilisateur.id)
       int idMed = _medecinSelectionne!.compteUtilisateur.id;
+      
+      print("🔍 Chargement créneaux - Medecin ID: $idMed, Date: $dateStr");
+      
       List<dynamic> data = await PatientService.getCreneaux(idMed, dateStr);
+      
+      print("📋 Créneaux reçus: $data");
+      
       setState(() {
         _creneauxDisponibles = data;
-        _idHeureSelectionnee = null;
+        _heureSelectionnee = null;
         _chargementCreneaux = false;
       });
     } catch (e) {
+      print("❌ Erreur: $e");
       AppWidgets.showSnack(context, "Erreur créneaux : $e", color: AppColors.danger);
       setState(() => _chargementCreneaux = false);
     }
   }
 
   void _validerRendezVous() async {
-    if (_medecinSelectionne == null || _dateChoisie == null || _idHeureSelectionnee == null) {
+    if (_medecinSelectionne == null || _dateChoisie == null || _heureSelectionnee == null) {
       AppWidgets.showSnack(context, "Veuillez remplir tous les champs.", color: AppColors.warning);
       return;
     }
@@ -80,17 +88,23 @@ class _RendezVousPageState extends State<RendezVousPage> {
       AppWidgets.showSnack(context, "Merci de préciser le motif.", color: AppColors.warning);
       return;
     }
+    
     setState(() => _estEnTrainDeCharger = true);
+    
     Map<String, dynamic> rdv = {
       "medecin_concerne": _medecinSelectionne!.compteUtilisateur.id,
       "date_rdv": DateFormat('yyyy-MM-dd').format(_dateChoisie!),
-      "heure_rdv": _idHeureSelectionnee,
+      "heure_rdv": _heureSelectionnee,
       "motif_consultation": _motif.text.trim(),
       "statut_actuel_rdv": "en_attente",
     };
+    
+    print("📤 Envoi RDV: $rdv");
+    
     bool succes = await PatientService.creerRendezVous(rdv);
     if (!mounted) { return; }
     setState(() => _estEnTrainDeCharger = false);
+    
     if (succes) {
       AppWidgets.showSnack(context, "Rendez-vous enregistré !", color: AppColors.success);
       Future.delayed(const Duration(milliseconds: 500), () {
@@ -145,7 +159,7 @@ class _RendezVousPageState extends State<RendezVousPage> {
         ),
         child: Column(
           children: [
-            // --- 1. HEADER "STICKER" CYAN (CENTRÉ) ---
+            // HEADER CYAN
             Center(
               child: Container(
                 constraints: const BoxConstraints(maxWidth: 800),
@@ -168,7 +182,7 @@ class _RendezVousPageState extends State<RendezVousPage> {
 
             const SizedBox(height: 10),
 
-            // --- 2. FOND PLUS TRANSPARENT (CONTENU) ---
+            // CONTENU
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
@@ -182,7 +196,6 @@ class _RendezVousPageState extends State<RendezVousPage> {
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.all(20),
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-
                         if (_messageErreur != null)
                           Container(
                             padding: const EdgeInsets.all(12),
@@ -243,7 +256,6 @@ class _RendezVousPageState extends State<RendezVousPage> {
     return Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: _brandColor));
   }
 
-  // GRILLES PLUS TRANSPARENTES
   Widget _buildTinyGrid() {
     int cols = MediaQuery.of(context).size.width > 600 ? 8 : 4;
     
@@ -429,9 +441,9 @@ class _RendezVousPageState extends State<RendezVousPage> {
     return Wrap(
       spacing: 10, runSpacing: 10,
       children: _creneauxDisponibles.map((c) {
-        bool sel = _idHeureSelectionnee == c['id'];
+        bool sel = _heureSelectionnee == c['heure'];
         return GestureDetector(
-          onTap: () => setState(() => _idHeureSelectionnee = sel ? null : c['id']),
+          onTap: () => setState(() => _heureSelectionnee = sel ? null : c['heure']),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
             decoration: BoxDecoration(

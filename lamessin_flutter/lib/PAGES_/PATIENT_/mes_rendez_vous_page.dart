@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../SERVICES_/patient_service.dart'; // CORRECTION
+import '../../SERVICES_/patient_service.dart';
 import '../../WIDGETS_/menu_navigation.dart';
 import '../../MODELS_/rendezvous_model.dart';
 import '../../MODELS_/utilisateur_model.dart';
 import '../../THEME_/app_theme.dart';
+import 'detail_rdv_page.dart';
 
 class MesRendezVousPage extends StatefulWidget {
   const MesRendezVousPage({super.key});
@@ -12,6 +13,7 @@ class MesRendezVousPage extends StatefulWidget {
 }
 
 class _MesRendezVousPageState extends State<MesRendezVousPage> {
+  static const Color _brandColor = Color(0xFF00C2CB);
   List<RendezVous> _tousMesRDV = [];
   bool _chargement = true;
 
@@ -21,7 +23,7 @@ class _MesRendezVousPageState extends State<MesRendezVousPage> {
   Future<void> _recupererRendezVous() async {
     setState(() => _chargement = true);
     try {
-      final List<RendezVous> data = await PatientService.getMesRendezVous(); // CORRECTION
+      final List<RendezVous> data = await PatientService.getMesRendezVous();
       setState(() { _tousMesRDV = data; _chargement = false; });
     } catch (e) {
       setState(() => _chargement = false);
@@ -30,9 +32,18 @@ class _MesRendezVousPageState extends State<MesRendezVousPage> {
   }
 
   Future<void> _annulerRDV(int id) async {
-    bool succes = await PatientService.annulerRendezVous(id); // CORRECTION
+    bool succes = await PatientService.annulerRendezVous(id);
     if (succes) { _msg("Rendez-vous annulé", AppColors.warning); _recupererRendezVous(); }
     else _msg("Erreur lors de l'annulation", AppColors.danger);
+  }
+
+  void _voirDetails(RendezVous rdv) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DetailRdvPage(rendezVous: rdv),
+      ),
+    );
   }
 
   List<RendezVous> get _rdvFuturs {
@@ -56,21 +67,21 @@ class _MesRendezVousPageState extends State<MesRendezVousPage> {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: Colors.transparent,
         drawer: const MenuNavigation(),
         appBar: AppBar(
-          backgroundColor: AppColors.surface,
+          backgroundColor: Colors.white.withOpacity(0.85),
           elevation: 0,
           centerTitle: true,
-          iconTheme: const IconThemeData(color: AppColors.textPrimary),
+          iconTheme: const IconThemeData(color: _brandColor),
           title: const Text("Mes rendez-vous",
               style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800,
-                  color: AppColors.textPrimary)),
+                  color: Color(0xFF00C2CB))),
           bottom: TabBar(
-            labelColor: AppColors.primary,
+            labelColor: _brandColor,
             unselectedLabelColor: AppColors.textSecondary,
             labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-            indicatorColor: AppColors.primary,
+            indicatorColor: _brandColor,
             indicatorWeight: 3,
             indicatorSize: TabBarIndicatorSize.label,
             dividerColor: AppColors.borderLight,
@@ -80,15 +91,26 @@ class _MesRendezVousPageState extends State<MesRendezVousPage> {
             ],
           ),
         ),
-        body: _chargement
-            ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
-            : TabBarView(children: [
-                _buildListe(_rdvFuturs, estAncien: false),
-                _buildListe(_rdvPassesOuAnnules, estAncien: true),
-              ]),
+        body: Container(
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage("assets/images/rdv.jpeg"),
+              fit: BoxFit.cover,
+            ),
+          ),
+          child: Container(
+            color: Colors.white.withOpacity(0.75),
+            child: _chargement
+                ? const Center(child: CircularProgressIndicator(color: _brandColor))
+                : TabBarView(children: [
+                    _buildListe(_rdvFuturs, estAncien: false),
+                    _buildListe(_rdvPassesOuAnnules, estAncien: true),
+                  ]),
+          ),
+        ),
         floatingActionButton: FloatingActionButton.extended(
           onPressed: () => Navigator.pushNamed(context, '/rendez_vous_page'),
-          backgroundColor: AppColors.primary,
+          backgroundColor: _brandColor,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           label: const Text("Prendre rendez-vous",
               style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
@@ -102,7 +124,7 @@ class _MesRendezVousPageState extends State<MesRendezVousPage> {
     if (liste.isEmpty) return _buildEmpty(estAncien);
     return RefreshIndicator(
       onRefresh: _recupererRendezVous,
-      color: AppColors.primary,
+      color: _brandColor,
       child: ListView.builder(
         padding: const EdgeInsets.only(left: 16, right: 16, top: 20, bottom: 100),
         itemCount: liste.length,
@@ -121,7 +143,7 @@ class _MesRendezVousPageState extends State<MesRendezVousPage> {
       child: Container(
         margin: const EdgeInsets.only(bottom: 14),
         decoration: BoxDecoration(
-          color: estAVenir ? AppColors.primary : AppColors.surface,
+          color: estAVenir ? _brandColor : Colors.white.withOpacity(0.85),
           borderRadius: BorderRadius.circular(20),
           border: estAVenir ? null
               : Border.all(color: AppColors.borderLight, width: 1),
@@ -134,11 +156,11 @@ class _MesRendezVousPageState extends State<MesRendezVousPage> {
                 width: 44, height: 44,
                 decoration: BoxDecoration(
                   color: estAVenir
-                      ? Colors.white.withOpacity(0.2) : AppColors.primaryLight,
+                      ? Colors.white.withOpacity(0.2) : _brandColor.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(Icons.person_rounded,
-                    color: estAVenir ? Colors.white : AppColors.primary,
+                    color: estAVenir ? Colors.white : _brandColor,
                     size: 22),
               ),
               const SizedBox(width: 12),
@@ -160,7 +182,7 @@ class _MesRendezVousPageState extends State<MesRendezVousPage> {
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: estAVenir
-                    ? Colors.white.withOpacity(0.12) : AppColors.background,
+                    ? Colors.white.withOpacity(0.12) : AppColors.background.withOpacity(0.7),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Row(children: [
@@ -201,16 +223,16 @@ class _MesRendezVousPageState extends State<MesRendezVousPage> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () => _voirDetails(rdv),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
-                      foregroundColor: AppColors.primary,
+                      foregroundColor: _brandColor,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10)),
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       elevation: 0,
                     ),
-                    child: const Text("Check in",
+                    child: const Text("Voir",
                         style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
                   ),
                 ),
@@ -228,11 +250,11 @@ class _MesRendezVousPageState extends State<MesRendezVousPage> {
         Container(
           width: 72, height: 72,
           decoration: BoxDecoration(
-            color: AppColors.primaryLight,
+            color: _brandColor.withOpacity(0.15),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Icon(estAncien ? Icons.folder_open_rounded : Icons.event_busy_rounded,
-              size: 36, color: AppColors.primary),
+              size: 36, color: _brandColor),
         ),
         const SizedBox(height: 16),
         Text(estAncien ? "Historique vide" : "Aucun rendez-vous à venir",
