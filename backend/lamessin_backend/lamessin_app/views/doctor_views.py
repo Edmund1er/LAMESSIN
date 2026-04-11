@@ -244,7 +244,6 @@ class OrdonnancesMedecinView(APIView):
 # ==================== 5. GESTION DES DISPONIBILITÉS ====================
 
 class GererPlagesHorairesView(APIView):
-#CRUD des plages horaires du médecin
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -262,8 +261,7 @@ class GererPlagesHorairesView(APIView):
             return Response({"error": "Médecin non trouvé"}, status=404)
 
         data = request.data.copy()
-        data['medecin'] = medecin.id
-
+        data['medecin'] = medecin.pk  # 
         serializer = PlageHoraireSerializer(data=data)
         if serializer.is_valid():
             serializer.save()

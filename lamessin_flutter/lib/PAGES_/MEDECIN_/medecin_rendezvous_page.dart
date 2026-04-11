@@ -491,7 +491,10 @@ class _MedecinRendezVousPageState extends State<MedecinRendezVousPage> {
                 "Accueil",
                 0,
                 index,
-                () => Navigator.pushReplacementNamed(context, '/dashboard_medecin'),
+                () => Navigator.pushReplacementNamed(
+                  context,
+                  '/dashboard_medecin',
+                ),
               ),
               _navItem(
                 Icons.calendar_month_rounded,
@@ -505,7 +508,8 @@ class _MedecinRendezVousPageState extends State<MedecinRendezVousPage> {
                 "Profil",
                 2,
                 index,
-                () => Navigator.pushReplacementNamed(context, '/medecin_profil'),
+                () =>
+                    Navigator.pushReplacementNamed(context, '/medecin_profil'),
               ),
             ],
           ),

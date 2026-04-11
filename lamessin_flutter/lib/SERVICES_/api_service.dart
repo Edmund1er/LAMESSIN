@@ -211,12 +211,17 @@ class ApiService {
         headers: await getHeaders(),
       );
 
+      print("NOTIFS STATUS: ${response.statusCode}");
+      print("NOTIFS BODY: ${response.body}");
+
       if (response.statusCode == 200) {
         List data = json.decode(utf8.decode(response.bodyBytes));
+        print("NOTIFS COUNT: ${data.length}");
         return data.map((item) => NotificationModel.fromJson(item)).toList();
       }
       return [];
     } catch (e) {
+      print("NOTIFS ERREUR: $e");
       return [];
     }
   }

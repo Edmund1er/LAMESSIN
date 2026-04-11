@@ -111,12 +111,30 @@ class CreezRendezVous(APIView):
             patient = Patient.objects.get(compte_utilisateur=request.user)
         except Patient.DoesNotExist:
             return Response({"error": "Seuls les patients peuvent prendre RDV"}, status=403)
+        
         data = request.data.copy()
         data['patient_demandeur'] = patient.pk
         serializer = RendezVousCreateSerializer(data=data)
+        
         if serializer.is_valid():
-            serializer.save()
+            rdv = serializer.save()
+
+            # Notification pour le patient
+            Notification.objects.create(
+                destinataire=request.user,
+                message=f"Rendez-vous enregistré avec le Dr {rdv.medecin_concerne.compte_utilisateur.last_name} pour le {rdv.date_rdv}.",
+                type_notification="RENDEZ_VOUS_CREE"
+            )
+
+            # Notification pour le médecin
+            Notification.objects.create(
+                destinataire=rdv.medecin_concerne.compte_utilisateur,
+                message=f"Nouveau rendez-vous avec {patient.compte_utilisateur.first_name} {patient.compte_utilisateur.last_name} pour le {rdv.date_rdv} à {rdv.heure_rdv}.",
+                type_notification="RENDEZ_VOUS_CREE"
+            )
+
             return Response({"success": True, "message": "RDV enregistré"}, status=201)
+        
         return Response(serializer.errors, status=400)
 
 
@@ -384,7 +402,7 @@ class ListeOrdonnancesPatient(generics.ListAPIView):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def assistant(request):
-    genai.configure(api_key=os.environ.get("GEMINI_KEY", "AIzaSyAIRtRJ8XKpeS_RlaQUtRIkoZuIrQJWUAQ"))
+    genai.configure(api_key=os.environ.get("GEMINI_KEY", "AIzaSyBEyseYbq0bxYnY6O7AfZUPiXCpvaf6hzs"))
     model = genai.GenerativeModel("gemini-2.5-flash")
     response = model.generate_content(request.data.get("prompt", ""))
     return Response({"reponse": response.text})

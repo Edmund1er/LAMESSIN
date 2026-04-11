@@ -7,9 +7,9 @@ import 'api_service.dart';
 import '../MODELS_/utilisateur_model.dart';
 import '../MODELS_/rendezvous_model.dart';
 import '../MODELS_/notification_model.dart';
+import '../MODELS_/plage_horaire_model.dart';
 
 class DoctorService {
-  
   // ========================= PROFIL =========================
 
   static Future<dynamic> getProfil() async {
@@ -29,6 +29,42 @@ class DoctorService {
       return null;
     } catch (e) {
       debugPrint("Erreur getProfil: $e");
+      return null;
+    }
+  }
+
+  // ========================= DASHBOARD & STATISTIQUES =========================
+
+  static Future<Map<String, dynamic>?> getDashboard() async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiService.baseUrl}/medecin/dashboard/'),
+        headers: await ApiService.getHeaders(),
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(utf8.decode(response.bodyBytes));
+      }
+      return null;
+    } catch (e) {
+      debugPrint("Erreur getDashboard: $e");
+      return null;
+    }
+  }
+
+  static Future<Map<String, dynamic>?> getStatistiques() async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiService.baseUrl}/medecin/statistiques/'),
+        headers: await ApiService.getHeaders(),
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(utf8.decode(response.bodyBytes));
+      }
+      return null;
+    } catch (e) {
+      debugPrint("Erreur getStatistiques: $e");
       return null;
     }
   }
@@ -89,7 +125,7 @@ class DoctorService {
       );
 
       if (response.statusCode == 201) {
-        return json.decode(response.body);
+        return json.decode(utf8.decode(response.bodyBytes));
       }
       return null;
     } catch (e) {
@@ -98,7 +134,45 @@ class DoctorService {
     }
   }
 
+  static Future<Map<String, dynamic>?> getConsultation(
+    int consultationId,
+  ) async {
+    try {
+      final response = await http.get(
+        Uri.parse(
+          '${ApiService.baseUrl}/medecin/consultations/$consultationId/',
+        ),
+        headers: await ApiService.getHeaders(),
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(utf8.decode(response.bodyBytes));
+      }
+      return null;
+    } catch (e) {
+      debugPrint("Erreur getConsultation: $e");
+      return null;
+    }
+  }
+
   // ========================= ORDONNANCES =========================
+
+  static Future<List<dynamic>> getOrdonnances() async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiService.baseUrl}/medecin/ordonnances/'),
+        headers: await ApiService.getHeaders(),
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(utf8.decode(response.bodyBytes));
+      }
+      return [];
+    } catch (e) {
+      debugPrint("Erreur getOrdonnances: $e");
+      return [];
+    }
+  }
 
   static Future<Map<String, dynamic>?> creerOrdonnance({
     required int consultationId,
@@ -117,7 +191,7 @@ class DoctorService {
       );
 
       if (response.statusCode == 201) {
-        return json.decode(response.body);
+        return json.decode(utf8.decode(response.bodyBytes));
       }
       return null;
     } catch (e) {
@@ -125,10 +199,9 @@ class DoctorService {
       return null;
     }
   }
-
   // ========================= DISPONIBILITÉS =========================
 
-  static Future<List<dynamic>> getPlagesHoraires() async {
+  static Future<List<PlageHoraire>> getPlagesHoraires() async {
     try {
       final response = await http.get(
         Uri.parse('${ApiService.baseUrl}/medecin/plages-horaires/'),
@@ -136,7 +209,8 @@ class DoctorService {
       );
 
       if (response.statusCode == 200) {
-        return json.decode(utf8.decode(response.bodyBytes));
+        List data = json.decode(utf8.decode(response.bodyBytes));
+        return data.map((item) => PlageHoraire.fromJson(item)).toList();
       }
       return [];
     } catch (e) {
@@ -177,13 +251,12 @@ class DoctorService {
         headers: await ApiService.getHeaders(),
       );
 
-      return response.statusCode == 200;
+      return response.statusCode == 200 || response.statusCode == 204;
     } catch (e) {
       debugPrint("Erreur supprimerPlageHoraire: $e");
       return false;
     }
   }
-
   // ========================= PATIENTS =========================
 
   static Future<List<dynamic>> getMesPatients() async {
@@ -200,6 +273,59 @@ class DoctorService {
     } catch (e) {
       debugPrint("Erreur getMesPatients: $e");
       return [];
+    }
+  }
+
+  static Future<Map<String, dynamic>?> getDossierPatient(int patientId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiService.baseUrl}/medecin/patients/$patientId/dossier/'),
+        headers: await ApiService.getHeaders(),
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(utf8.decode(response.bodyBytes));
+      }
+      return null;
+    } catch (e) {
+      debugPrint("Erreur getDossierPatient: $e");
+      return null;
+    }
+  }
+
+  // ========================= DOCUMENTS =========================
+
+  static Future<bool> uploadDocumentMedical({
+    required int patientId,
+    required String filePath,
+    required String typeDocument,
+    String? description,
+  }) async {
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('${ApiService.baseUrl}/medecin/documents/upload/'),
+      );
+
+      // Ajouter les headers
+      final headers = await ApiService.getHeaders();
+      request.headers.addAll(headers);
+
+      // Ajouter les champs
+      request.fields['patient_id'] = patientId.toString();
+      request.fields['type_document'] = typeDocument;
+      if (description != null) {
+        request.fields['description'] = description;
+      }
+
+      // Ajouter le fichier
+      request.files.add(await http.MultipartFile.fromPath('fichier', filePath));
+
+      final response = await request.send();
+      return response.statusCode == 201;
+    } catch (e) {
+      debugPrint("Erreur uploadDocumentMedical: $e");
+      return false;
     }
   }
 
@@ -222,23 +348,6 @@ class DoctorService {
       return [];
     }
   }
-
-  // ========================= STATISTIQUES =========================
-
-  static Future<Map<String, dynamic>?> getDashboard() async {
-    try {
-      final response = await http.get(
-        Uri.parse('${ApiService.baseUrl}/medecin/dashboard/'),
-        headers: await ApiService.getHeaders(),
-      );
-
-      if (response.statusCode == 200) {
-        return json.decode(response.body);
-      }
-      return null;
-    } catch (e) {
-      debugPrint("Erreur getDashboard: $e");
-      return null;
-    }
-  }
 }
+
+// ✅ Bon - GET sur /medecin/plages-horaires/

@@ -17,6 +17,9 @@ class MedecinDashboardPage extends StatefulWidget {
 class _MedecinDashboardPageState extends State<MedecinDashboardPage> {
   String _nomMedecin = "Docteur";
   String _specialite = "";
+  String _email = "";
+  String _telephone = "";
+
   List<RendezVous> _rdv = [];
   List<NotificationModel> _notifications = [];
   bool _chargement = true;
@@ -31,7 +34,7 @@ class _MedecinDashboardPageState extends State<MedecinDashboardPage> {
     setState(() => _chargement = true);
     try {
       final profil = await DoctorService.getProfil();
-      final notifs = await DoctorService.getNotifications();
+      final notifs = await ApiService.getNotifications();
       final rdvData = await DoctorService.getMesRendezVousMedecin();
 
       if (mounted) {
@@ -40,6 +43,8 @@ class _MedecinDashboardPageState extends State<MedecinDashboardPage> {
             _nomMedecin =
                 "${profil.compteUtilisateur.firstName} ${profil.compteUtilisateur.lastName}";
             _specialite = profil.specialiteMedicale;
+            _email = profil.compteUtilisateur.email ?? "";
+            _telephone = profil.compteUtilisateur.numeroTelephone ?? "";
           }
           _rdv = rdvData;
           _notifications = notifs;
@@ -68,10 +73,233 @@ class _MedecinDashboardPageState extends State<MedecinDashboardPage> {
   List<RendezVous> get _prochains =>
       _rdv.where((r) => r.statutActuelRdv != 'annulé').take(5).toList();
 
+  // ========================= DRAWER =========================
+
+  Widget _buildDrawer() {
+    return Drawer(
+      backgroundColor: AppColors.surface,
+      child: SafeArea(
+        child: Column(
+          children: [
+            // En-tête du drawer
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              color: AppColors.primary,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.5),
+                        width: 2,
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.person_rounded,
+                      color: Colors.white,
+                      size: 30,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    "Dr $_nomMedecin",
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  if (_specialite.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.18),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        _specialite,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                  if (_email.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      _email,
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.7),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            // Items de navigation
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
+                ),
+                children: [
+                  _drawerItem(
+                    icon: Icons.dashboard_rounded,
+                    label: "Tableau de bord",
+                    actif: true,
+                    onTap: () => Navigator.pop(context),
+                  ),
+                  _drawerItem(
+                    icon: Icons.calendar_month_rounded,
+                    label: "Rendez-vous",
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const MedecinRendezVousPage(),
+                        ),
+                      );
+                    },
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Divider(color: AppColors.borderLight),
+                  ),
+                  _drawerItem(
+                    icon: Icons.account_circle_rounded,
+                    label: "Mon profil",
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const MedecinProfilPage(),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+
+            // Bouton déconnexion en bas
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    Navigator.pop(context);
+                    await ApiService.logout();
+                    if (context.mounted) {
+                      Navigator.pushNamedAndRemoveUntil(
+                        context,
+                        '/login',
+                        (r) => false,
+                      );
+                    }
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.danger,
+                    side: const BorderSide(
+                      color: AppColors.dangerLight,
+                      width: 1.5,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  icon: const Icon(Icons.power_settings_new_rounded, size: 18),
+                  label: const Text(
+                    "Se déconnecter",
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _drawerItem({
+    required IconData icon,
+    required String label,
+    bool actif = false,
+    int badge = 0,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 2),
+      decoration: BoxDecoration(
+        color: actif ? AppColors.primaryLight : Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: ListTile(
+        onTap: onTap,
+        dense: true,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        leading: Icon(
+          icon,
+          color: actif ? AppColors.primary : AppColors.textSecondary,
+          size: 22,
+        ),
+        title: Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: actif ? FontWeight.w700 : FontWeight.w500,
+            color: actif ? AppColors.primary : AppColors.textPrimary,
+          ),
+        ),
+        trailing: badge > 0
+            ? Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  "$badge",
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              )
+            : null,
+      ),
+    );
+  }
+
+  // ========================= BUILD =========================
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
+      drawer: _buildDrawer(),
       body: _chargement
           ? const Center(
               child: CircularProgressIndicator(color: AppColors.primary),
@@ -135,6 +363,23 @@ class _MedecinDashboardPageState extends State<MedecinDashboardPage> {
       elevation: 0,
       backgroundColor: AppColors.primary,
       automaticallyImplyLeading: false,
+      leading: Builder(
+        builder: (context) => IconButton(
+          icon: Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(
+              Icons.menu_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
+          ),
+          onPressed: () => Scaffold.of(context).openDrawer(),
+        ),
+      ),
       actions: [
         IconButton(
           icon: Container(

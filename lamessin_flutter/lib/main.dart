@@ -32,6 +32,7 @@ import 'PAGES_/PATIENT_/paiement_page.dart';
 import 'PAGES_/MEDECIN_/medecin_dashboard.dart';
 import 'PAGES_/MEDECIN_/medecin_profil_page.dart';
 import 'PAGES_/MEDECIN_/medecin_rendezvous_page.dart';
+import 'PAGES_/MEDECIN_/GererPlagesHorairesPage.dart';
 
 import 'MODELS_/utilisateur_model.dart';
 
@@ -105,11 +106,12 @@ class MyApp extends StatelessWidget {
         "/historique_notifications": (context) =>
             const NotificationHistoryPage(),
         "/paiement": (context) => const PaiementPage(commandeId: 0, montant: 0),
-        
+
         // Routes Médecin
         "/dashboard_medecin": (context) => const MedecinDashboardPage(),
         "/medecin_rendezvous": (context) => const MedecinRendezVousPage(),
         "/medecin_profil": (context) => const MedecinProfilPage(),
+        "/GererPlages": (context) => const GererPlagesHorairesPage(),
       },
     );
   }
