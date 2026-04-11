@@ -47,8 +47,8 @@ class Patient {
   final String? photoProfil;
 
   Patient({
-    required this.compteUtilisateur, 
-    this.dateNaissance, 
+    required this.compteUtilisateur,
+    this.dateNaissance,
     this.groupeSanguin,
     this.photoProfil,
   });
@@ -71,8 +71,8 @@ class Medecin {
   final String? photoProfil;
 
   Medecin({
-    required this.compteUtilisateur, 
-    required this.specialiteMedicale, 
+    required this.compteUtilisateur,
+    required this.specialiteMedicale,
     required this.numeroLicence,
     this.photoProfil,
   });
@@ -81,8 +81,35 @@ class Medecin {
     return Medecin(
       compteUtilisateur: Utilisateur.fromJson(json['compte_utilisateur']),
       // Même correction ici
-      specialiteMedicale: (json['specialite_medicale'] as String?) ?? 'Généraliste',
+      specialiteMedicale:
+          (json['specialite_medicale'] as String?) ?? 'Généraliste',
       numeroLicence: (json['numero_licence'] as String?) ?? '0000',
+      photoProfil: json['photo_profil'],
+    );
+  }
+}
+
+class Pharmacien {
+  final Utilisateur compteUtilisateur;
+  final String? nomPharmacie;
+  final String? adressePharmacie;
+  final String? numeroPharmacie;
+  final String? photoProfil;
+
+  Pharmacien({
+    required this.compteUtilisateur,
+    this.nomPharmacie,
+    this.adressePharmacie,
+    this.numeroPharmacie,
+    this.photoProfil,
+  });
+
+  factory Pharmacien.fromJson(Map<String, dynamic> json) {
+    return Pharmacien(
+      compteUtilisateur: Utilisateur.fromJson(json['compte_utilisateur']),
+      nomPharmacie: json['nom_pharmacie'], // sera null
+      adressePharmacie: json['adresse_pharmacie'], // sera null
+      numeroPharmacie: json['numero_licence'], // ← ici
       photoProfil: json['photo_profil'],
     );
   }

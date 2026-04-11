@@ -150,10 +150,20 @@ class ApiService {
         headers: await getHeaders(),
       );
 
+      print("PROFIL STATUS: ${response.statusCode}");
+      print("PROFIL BODY: ${response.body}");
+
       if (response.statusCode == 200) {
-        var data = json.decode(utf8.decode(response.bodyBytes));
+        final data = json.decode(utf8.decode(response.bodyBytes));
 
         if (data.containsKey('compte_utilisateur')) {
+          if (data.containsKey('numero_licence') &&
+              data['compte_utilisateur']['est_un_compte_pharmacien'] == true) {
+            return Pharmacien.fromJson(data);
+          }
+          if (data.containsKey('specialite_medicale')) {
+            return Medecin.fromJson(data);
+          }
           if (data.containsKey('date_naissance')) {
             return Patient.fromJson(data);
           }
@@ -164,6 +174,7 @@ class ApiService {
       }
       return null;
     } catch (e) {
+      print("PROFIL ERREUR: $e");
       return null;
     }
   }

@@ -33,6 +33,9 @@ import 'PAGES_/MEDECIN_/medecin_dashboard.dart';
 import 'PAGES_/MEDECIN_/medecin_profil_page.dart';
 import 'PAGES_/MEDECIN_/medecin_rendezvous_page.dart';
 import 'PAGES_/MEDECIN_/GererPlagesHorairesPage.dart';
+import 'PAGES_/PHARMACIEN_/pharmacien_dashboard_page.dart';
+import 'PAGES_/PHARMACIEN_/pharmacien_produits_page.dart';
+import 'PAGES_/PHARMACIEN_/pharmacien_profil_page.dart';
 
 import 'MODELS_/utilisateur_model.dart';
 
@@ -112,6 +115,9 @@ class MyApp extends StatelessWidget {
         "/medecin_rendezvous": (context) => const MedecinRendezVousPage(),
         "/medecin_profil": (context) => const MedecinProfilPage(),
         "/GererPlages": (context) => const GererPlagesHorairesPage(),
+        "/dashboard_pharmacien": (context) => const PharmacienDashboardPage(),
+        "/produits": (context) => const PharmacienProduitsPage(),
+        "/Profil_medecin": (context) => const PharmacienProfilPage(),
       },
     );
   }

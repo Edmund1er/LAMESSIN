@@ -21,6 +21,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 import google.generativeai as genai
 
 from firebase_admin import messaging
+from collections import defaultdict
 
 from lamessin_app.models import *
 from lamessin_app.serializers import *
@@ -205,6 +206,8 @@ class MesCommandesView(generics.ListAPIView):
         ).order_by('-date_creation')
 
 
+
+
 class CreerCommandeMultiple(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -224,6 +227,7 @@ class CreerCommandeMultiple(APIView):
                 )
 
                 total_general = 0
+                pharmacies_notifiees = defaultdict(list)
 
                 for item in articles:
                     medoc = get_object_or_404(Medicament, id=item['id'])
@@ -239,9 +243,29 @@ class CreerCommandeMultiple(APIView):
                         prix_unitaire=pv
                     )
                     total_general += (pv * qte)
+                    pharmacies_notifiees[pharmacie].append(medoc.nom_commercial)
 
                 commande.total = total_general
                 commande.save()
+
+                # Notification patient
+                Notification.objects.create(
+                    destinataire=request.user,
+                    message=f"Votre commande #{commande.id} a été enregistrée avec succès.",
+                    type_notification="COMMANDE_CREE"
+                )
+
+                # Notification pharmacien(s)
+                for pharmacie, produits in pharmacies_notifiees.items():
+                    try:
+                        pharmacien = Pharmacien.objects.get(pharmacie=pharmacie)
+                        Notification.objects.create(
+                            destinataire=pharmacien.compte_utilisateur,
+                            message=f"Nouvelle commande #{commande.id} de {patient.compte_utilisateur.first_name} {patient.compte_utilisateur.last_name} : {', '.join(produits)}.",
+                            type_notification="NOUVELLE_COMMANDE"
+                        )
+                    except Pharmacien.DoesNotExist:
+                        pass
 
                 return Response({
                     'success': True,

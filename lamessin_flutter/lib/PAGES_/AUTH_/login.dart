@@ -42,7 +42,7 @@ class _LoginState extends State<Login> {
             Navigator.pushReplacementNamed(context, "/dashboard_medecin");
             break;
           case 'PHARMACIEN':
-            Navigator.pushReplacementNamed(context, "/accueil_pharmacien");
+            Navigator.pushReplacementNamed(context, "/dashboard_pharmacien");
             break;
           default:
             Navigator.pushReplacementNamed(context, "/page_utilisateur");
