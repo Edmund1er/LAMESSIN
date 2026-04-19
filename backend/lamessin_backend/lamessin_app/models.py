@@ -40,13 +40,6 @@ class Medecin(models.Model):
     def __str__(self):
         return f"Dr {self.compte_utilisateur.last_name}"
 
-class Pharmacien(models.Model):
-    compte_utilisateur = models.OneToOneField(Utilisateur, on_delete=models.CASCADE, primary_key=True)
-    numero_licence = models.CharField(max_length=50, unique=True)
-
-    def __str__(self):
-        return f"Pharmacien: {self.compte_utilisateur.last_name}"
-
 # ====================================================================================================================
 # MODULE : GEOLOCALISATION & ETABLISSEMENTS
 # ====================================================================================================================
@@ -72,6 +65,13 @@ class Pharmacie(EtablissementSante):
     pharmacie_est_garde = models.BooleanField(default=False)
     numero_paiement = models.CharField(max_length=15, help_text="Numéro T-Money ou Flooz de la pharmacie")
     reseau_paiement = models.CharField(max_length=10, choices=[('tmoney', 'T-Money'), ('flooz', 'Flooz')], default='tmoney')
+
+class Pharmacien(models.Model):
+    compte_utilisateur = models.OneToOneField(Utilisateur, on_delete=models.CASCADE, primary_key=True)
+    numero_licence = models.CharField(max_length=50, unique=True)
+    pharmacie = models.OneToOneField(Pharmacie, on_delete=models.CASCADE, null=True, blank=True)
+    def __str__(self):
+        return f"Pharmacien: {self.compte_utilisateur.last_name}"
 
 # ====================================================================================================================
 # MODULE : PRODUITS & STOCKS

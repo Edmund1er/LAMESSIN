@@ -7,7 +7,7 @@ class Consultation {
   final String actesEffectues;
   final String? notesMedecin;
   final String dateConsultation;
-  final String? documentJoint; // AJOUT CRITIQUE ICI
+  final String? documentJoint; 
   final List<Ordonnance> ordonnances;
 
   Consultation({
@@ -17,12 +17,12 @@ class Consultation {
     required this.actesEffectues,
     this.notesMedecin,
     required this.dateConsultation,
-    this.documentJoint, // AJOUT CRITIQUE ICI
+    this.documentJoint, 
     required this.ordonnances,
   });
 
   factory Consultation.fromJson(Map<String, dynamic> json) {
-    // Sécurité: si 'ordonnances' est null, on retourne une liste vide
+    
     var ordsList = json['ordonnances'];
     List<Ordonnance> ords = [];
     if (ordsList != null) {
@@ -36,7 +36,7 @@ class Consultation {
       actesEffectues: json['actes_effectues'] ?? "",
       notesMedecin: json['notes_medecin'],
       dateConsultation: json['date_consultation'] ?? "",
-      documentJoint: json['document_joint'], // Mapping correct
+      documentJoint: json['document_joint'], 
       ordonnances: ords,
     );
   }

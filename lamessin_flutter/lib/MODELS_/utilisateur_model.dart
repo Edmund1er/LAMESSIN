@@ -57,7 +57,6 @@ class Patient {
     return Patient(
       compteUtilisateur: Utilisateur.fromJson(json['compte_utilisateur']),
       dateNaissance: json['date_naissance'],
-      // Ajout du ?? pour la sécurité si le champ est null dans le JSON
       groupeSanguin: json['groupe_sanguin'] ?? 'Inconnu',
       photoProfil: json['photo_profil'],
     );
@@ -80,7 +79,6 @@ class Medecin {
   factory Medecin.fromJson(Map<String, dynamic> json) {
     return Medecin(
       compteUtilisateur: Utilisateur.fromJson(json['compte_utilisateur']),
-      // Même correction ici
       specialiteMedicale:
           (json['specialite_medicale'] as String?) ?? 'Généraliste',
       numeroLicence: (json['numero_licence'] as String?) ?? '0000',
@@ -107,9 +105,9 @@ class Pharmacien {
   factory Pharmacien.fromJson(Map<String, dynamic> json) {
     return Pharmacien(
       compteUtilisateur: Utilisateur.fromJson(json['compte_utilisateur']),
-      nomPharmacie: json['nom_pharmacie'], // sera null
-      adressePharmacie: json['adresse_pharmacie'], // sera null
-      numeroPharmacie: json['numero_licence'], // ← ici
+      nomPharmacie: json['nom_pharmacie'],
+      adressePharmacie: json['adresse_pharmacie'],
+      numeroPharmacie: json['numero_licence'], 
       photoProfil: json['photo_profil'],
     );
   }

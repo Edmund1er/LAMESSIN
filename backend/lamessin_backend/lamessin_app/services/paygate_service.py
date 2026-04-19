@@ -13,23 +13,21 @@ class PayGateService:
     PAY_URL = f"{BASE_URL}/pay"
     STATUS_URL = f"{BASE_URL}/status"
 
-    MODE_TEST = True
+    MODE_TEST = False
 
     @classmethod
     def initier_paiement(cls, montant: float, telephone: str, operateur: str, identifier: str):
         """Initie un paiement mobile money"""
 
-        # MODE TEST : Simuler un paiement réussi
         if cls.MODE_TEST:
-            print(f"🔧 MODE TEST - Paiement simulé pour {montant} FCFA")
+            print(f"MODE TEST - Paiement simule pour {montant} FCFA")
             return {
                 'success': True,
                 'tx_reference': f'TEST_{identifier}',
                 'status': 0,
-                'message': 'Mode test - Paiement simulé'
+                'message': 'Mode test - Paiement simule'
             }
 
-        # Code réel (désactivé en mode test)
         phone = ''.join(filter(str.isdigit, telephone))
         if len(phone) > 8:
             phone = phone[-8:]
@@ -45,6 +43,8 @@ class PayGateService:
             "network": operateur.upper()
         }
 
+        print(f"Envoi PayGate - Payload: {payload}")
+
         try:
             response = requests.post(
                 cls.PAY_URL,
@@ -52,6 +52,9 @@ class PayGateService:
                 headers={"Content-Type": "application/json"},
                 timeout=30
             )
+
+            print(f"Reponse PayGate - Status: {response.status_code}")
+            print(f"Reponse PayGate - Body: {response.text}")
 
             if response.status_code == 200:
                 data = response.json()
@@ -62,22 +65,32 @@ class PayGateService:
                         'success': True,
                         'tx_reference': data.get('tx_reference'),
                         'status': status_code,
-                        'message': 'Transaction initiée'
+                        'message': 'Transaction initiee'
                     }
+                elif status_code == 2:
+                    return {'success': False, 'error': 'Cle API invalide', 'status': status_code}
+                elif status_code == 4:
+                    return {'success': False, 'error': 'Parametres invalides', 'status': status_code}
+                elif status_code == 6:
+                    return {'success': False, 'error': 'Transaction deja existante', 'status': status_code}
                 else:
-                    return {'success': False, 'error': f'Erreur: {status_code}'}
+                    return {'success': False, 'error': f'Erreur inconnue: {status_code}'}
             else:
                 return {'success': False, 'error': f'Erreur HTTP: {response.status_code}'}
+
+        except requests.exceptions.Timeout:
+            return {'success': False, 'error': 'Timeout de connexion'}
+        except requests.exceptions.ConnectionError:
+            return {'success': False, 'error': 'Erreur de connexion'}
         except Exception as e:
             return {'success': False, 'error': str(e)}
 
     @classmethod
     def verifier_statut(cls, tx_reference: str):
-        """Vérifie le statut d'une transaction"""
+        """Verifie le statut d'une transaction"""
 
-        # MODE TEST : Toujours retourner SUCCES
         if cls.MODE_TEST and tx_reference.startswith('TEST_'):
-            print(f"🔧 MODE TEST - Statut simulé: SUCCES")
+            print(f"MODE TEST - Statut simule: SUCCES")
             return {
                 'success': True,
                 'status': 'SUCCES',
@@ -85,7 +98,6 @@ class PayGateService:
                 'payment_reference': 'TEST_123456'
             }
 
-        # Code réel
         payload = {
             "auth_token": cls.API_KEY,
             "tx_reference": tx_reference
@@ -112,8 +124,36 @@ class PayGateService:
                     }
                 elif status_code == 2:
                     return {'success': False, 'status': 'EN_ATTENTE'}
+                elif status_code == 4:
+                    return {'success': False, 'status': 'EXPIRE'}
+                elif status_code == 6:
+                    return {'success': False, 'status': 'ANNULE'}
                 else:
-                    return {'success': False, 'status': 'ECHEC'}
+                    return {'success': False, 'status': 'INCONNU'}
             return {'success': False, 'status': 'ERREUR'}
         except Exception as e:
             return {'success': False, 'status': 'ERREUR', 'error': str(e)}
+
+    @classmethod
+    def verifier_solde(cls):
+        """Verifie le solde du compte PayGate"""
+        payload = {"auth_token": cls.API_KEY}
+
+        try:
+            response = requests.post(
+                "https://paygateglobal.com/api/v1/check-balance",
+                json=payload,
+                headers={"Content-Type": "application/json"},
+                timeout=30
+            )
+
+            if response.status_code == 200:
+                data = response.json()
+                return {
+                    'success': True,
+                    'flooz': data.get('flooz', 0),
+                    'tmoney': data.get('tmoney', 0)
+                }
+            return {'success': False, 'error': 'Erreur de verification'}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}

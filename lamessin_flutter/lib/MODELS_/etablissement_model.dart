@@ -45,9 +45,9 @@ class EtablissementSante {
     );
   }
 
-  // Getter pour savoir si c'est une pharmacie
+
   bool get estPharmacie => typeEtablissement == 'pharmacie';
   
-  // Getter pour savoir si c'est un hôpital
+
   bool get estHopital => typeEtablissement == 'hopital';
 }
