@@ -206,13 +206,14 @@ class MesCommandesView(generics.ListAPIView):
         ).order_by('-date_creation')
 
 
-
-
 class CreerCommandeMultiple(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
         articles = request.data.get('articles', [])
+
+        print(f"ARTICLES RECUS: {articles}")
+
         if not articles:
             return Response({"error": "Panier vide"}, status=400)
 
@@ -227,12 +228,21 @@ class CreerCommandeMultiple(APIView):
                 )
 
                 total_general = 0
-                pharmacies_notifiees = defaultdict(list)
 
                 for item in articles:
-                    medoc = get_object_or_404(Medicament, id=item['id'])
-                    pharmacie = get_object_or_404(Pharmacie, id=item['pharmacie_id'])
-                    qte = int(item.get('qte', 1))
+                    medoc_id = item.get('id')
+                    pharmacie_id = item.get('pharmacie_id')
+                    qte = item.get('qte', 1)
+
+                    print(f"Item: medoc_id={medoc_id}, pharmacie_id={pharmacie_id}, qte={qte}")
+
+                    if not medoc_id or not pharmacie_id:
+                        return Response({
+                            "error": f"Données invalides: {item}"
+                        }, status=400)
+
+                    medoc = get_object_or_404(Medicament, id=medoc_id)
+                    pharmacie = get_object_or_404(Pharmacie, id=pharmacie_id)
                     pv = float(medoc.prix_vente)
 
                     LigneCommande.objects.create(
@@ -243,7 +253,6 @@ class CreerCommandeMultiple(APIView):
                         prix_unitaire=pv
                     )
                     total_general += (pv * qte)
-                    pharmacies_notifiees[pharmacie].append(medoc.nom_commercial)
 
                 commande.total = total_general
                 commande.save()
@@ -251,21 +260,9 @@ class CreerCommandeMultiple(APIView):
                 # Notification patient
                 Notification.objects.create(
                     destinataire=request.user,
-                    message=f"Votre commande #{commande.id} a été enregistrée avec succès.",
+                    message=f"Votre commande #{commande.id} a été enregistrée avec succès. Montant: {total_general} FCFA",
                     type_notification="COMMANDE_CREE"
                 )
-
-                # Notification pharmacien(s)
-                for pharmacie, produits in pharmacies_notifiees.items():
-                    try:
-                        pharmacien = Pharmacien.objects.get(pharmacie=pharmacie)
-                        Notification.objects.create(
-                            destinataire=pharmacien.compte_utilisateur,
-                            message=f"Nouvelle commande #{commande.id} de {patient.compte_utilisateur.first_name} {patient.compte_utilisateur.last_name} : {', '.join(produits)}.",
-                            type_notification="NOUVELLE_COMMANDE"
-                        )
-                    except Pharmacien.DoesNotExist:
-                        pass
 
                 return Response({
                     'success': True,
@@ -275,6 +272,7 @@ class CreerCommandeMultiple(APIView):
                 }, status=201)
 
         except Exception as e:
+            print(f"ERREUR: {str(e)}")
             return Response({'error': str(e)}, status=400)
 
 
@@ -426,7 +424,7 @@ class ListeOrdonnancesPatient(generics.ListAPIView):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def assistant(request):
-    genai.configure(api_key=os.environ.get("GEMINI_KEY", "AIzaSyBEyseYbq0bxYnY6O7AfZUPiXCpvaf6hzs"))
+    genai.configure(api_key=os.environ.get("GEMINI_KEY", "AIzaSyB_talvIiJ6Sent62bneLzx_QciGUW90zk"))
     model = genai.GenerativeModel("gemini-2.5-flash")
     response = model.generate_content(request.data.get("prompt", ""))
     return Response({"reponse": response.text})

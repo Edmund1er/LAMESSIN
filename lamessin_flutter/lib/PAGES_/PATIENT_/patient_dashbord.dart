@@ -14,10 +14,15 @@ class PageUtilisateur extends StatefulWidget {
 }
 
 class _PageUtilisateurState extends State<PageUtilisateur> {
+// Couleur principale de l'application
   static const Color _brandColor = Color(0xFF00C2CB);
+// Nom affiche dans l'en-tete
   String _nomAffichage = "Chargement...";
+// Liste des notifications de l'utilisateur
   List<NotificationModel> _notifications = [];
+// Etat du chargement des donnees
   bool _chargement = true;
+// Abonnement aux messages Firebase
   StreamSubscription<RemoteMessage>? _firebaseSubscription;
 
   @override
@@ -28,32 +33,40 @@ class _PageUtilisateurState extends State<PageUtilisateur> {
 
   @override
   void dispose() {
+// Annulation l'abonnement Firebase 
     _firebaseSubscription?.cancel();
     super.dispose();
   }
 
+// Initialise la page
   Future<void> _initialiserPage() async {
     await _chargerDonneesProfil();
     try {
+// on recupere et enregistre le token FCM pour les notifications push
       String? token = await FirebaseMessaging.instance.getToken();
       if (token != null) await ApiService.enregistrerFCMToken(token);
     } catch (e) {
       debugPrint("Erreur FCM: $e");
     }
+// on ouvre les messages recus pendant que l'app est ouverte
     _firebaseSubscription = FirebaseMessaging.onMessage.listen((msg) {
       _chargerDonneesProfil();
       if (mounted) {
-        AppWidgets.showSnack(context,
-            "${msg.notification?.title ?? 'Alerte'}: ${msg.notification?.body ?? ''}",
-            color: _brandColor);
+        AppWidgets.showSnack(
+          context,
+          "${msg.notification?.title ?? 'Alerte'}: ${msg.notification?.body ?? ''}",
+          color: _brandColor,
+        );
       }
     });
   }
 
+// Charge le profil utilisateur et ses notifications depuis le backend
   Future<void> _chargerDonneesProfil() async {
     try {
       final data = await ApiService.getProfil();
-      final List<NotificationModel> notifs = await ApiService.getNotifications();
+      final List<NotificationModel> notifs =
+          await ApiService.getNotifications();
       if (mounted) {
         setState(() {
           if (data != null) {
@@ -77,16 +90,18 @@ class _PageUtilisateurState extends State<PageUtilisateur> {
     }
   }
 
+// on convertit une date en texte pour mentionner le nombre de minutes
   String _calculerTempsEcoule(String? dateStr) {
-    if (dateStr == null || dateStr.isEmpty) return "Récemment";
+    if (dateStr == null || dateStr.isEmpty) return "Recemment";
     try {
-      final diff =
-          DateTime.now().difference(DateTime.parse(dateStr).toLocal());
+      final diff = DateTime.now().difference(DateTime.parse(dateStr).toLocal());
       if (diff.inSeconds < 60) return "Il y a ${diff.inSeconds} s";
       if (diff.inMinutes < 60) return "Il y a ${diff.inMinutes} min";
-      if (diff.inHours < 24)   return "Il y a ${diff.inHours} h";
+      if (diff.inHours < 24) return "Il y a ${diff.inHours} h";
       return "Il y a ${diff.inDays} j";
-    } catch (_) { return "Récemment"; }
+    } catch (_) {
+      return "Recemment";
+    }
   }
 
   @override
@@ -117,7 +132,7 @@ class _PageUtilisateurState extends State<PageUtilisateur> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _sectionTitle("Notifications récentes"),
+                              _sectionTitle("Notifications recentes"),
                               const SizedBox(height: 12),
                               if (_notifications.isEmpty)
                                 _buildEmptyNotif()
@@ -140,6 +155,7 @@ class _PageUtilisateurState extends State<PageUtilisateur> {
     );
   }
 
+// En-tete avec le nom de l'utilisateur et les boutons d'action
   Widget _buildSliverHeader() {
     return SliverAppBar(
       expandedHeight: 180,
@@ -155,8 +171,11 @@ class _PageUtilisateurState extends State<PageUtilisateur> {
               color: Colors.white.withOpacity(0.15),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.notifications_none_rounded,
-                color: Colors.white, size: 20),
+            child: const Icon(
+              Icons.notifications_none_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
           ),
           onPressed: () =>
               Navigator.pushNamed(context, '/historique_notifications'),
@@ -168,8 +187,11 @@ class _PageUtilisateurState extends State<PageUtilisateur> {
               color: Colors.white.withOpacity(0.15),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.power_settings_new_rounded,
-                color: Colors.white, size: 20),
+            child: const Icon(
+              Icons.power_settings_new_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
           ),
           onPressed: () => _confirmerDeconnexion(context),
         ),
@@ -182,14 +204,22 @@ class _PageUtilisateurState extends State<PageUtilisateur> {
             mainAxisAlignment: MainAxisAlignment.end,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("Bonjour,",
-                  style: TextStyle(
-                      color: Colors.white.withOpacity(0.9), fontSize: 15)),
+              Text(
+                "Bonjour,",
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.9),
+                  fontSize: 15,
+                ),
+              ),
               const SizedBox(height: 4),
-              Text("M. $_nomAffichage ",
-                  style: const TextStyle(
-                      color: Colors.white, fontSize: 26,
-                      fontWeight: FontWeight.w900)),
+              Text(
+                "M. $_nomAffichage ",
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 26,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
             ],
           ),
         ),
@@ -197,17 +227,31 @@ class _PageUtilisateurState extends State<PageUtilisateur> {
     );
   }
 
-  Widget _sectionTitle(String title) => Text(title,
-      style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800,
-          color: AppColors.textPrimary));
+// Titre de section
+  Widget _sectionTitle(String title) => Text(
+    title,
+    style: const TextStyle(
+      fontSize: 17,
+      fontWeight: FontWeight.w800,
+      color: AppColors.textPrimary,
+    ),
+  );
 
+// Carte d'une notification
   Widget _buildNotifCard(NotificationModel notif) {
     final String type = notif.typeNotification ?? "GENERAL";
     IconData icone = Icons.notifications_rounded;
-    Color couleur  = _brandColor;
-    if (type.contains('ORDONNANCE')) { icone = Icons.description_rounded; couleur = _brandColor; }
-    else if (type.contains('RENDEZ_VOUS')) { icone = Icons.event_rounded; couleur = AppColors.warning; }
-    else if (type.contains('COMMANDE')) { icone = Icons.shopping_bag_rounded; couleur = AppColors.accent; }
+    Color couleur = _brandColor;
+    if (type.contains('ORDONNANCE')) {
+      icone = Icons.description_rounded;
+      couleur = _brandColor;
+    } else if (type.contains('RENDEZ_VOUS')) {
+      icone = Icons.event_rounded;
+      couleur = AppColors.warning;
+    } else if (type.contains('COMMANDE')) {
+      icone = Icons.shopping_bag_rounded;
+      couleur = AppColors.accent;
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -215,32 +259,46 @@ class _PageUtilisateurState extends State<PageUtilisateur> {
         color: Colors.white.withOpacity(0.85),
         borderRadius: BorderRadius.circular(14),
         border: Border(left: BorderSide(color: couleur, width: 4)),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5)],
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5),
+        ],
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
         onTap: () => _afficherDetailNotif(notif.message ?? ""),
         leading: Container(
-          width: 38, height: 38,
+          width: 38,
+          height: 38,
           decoration: BoxDecoration(
             color: couleur.withOpacity(0.15),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(icone, size: 18, color: couleur),
         ),
-        title: Text(notif.message ?? "Nouveau message",
-            maxLines: 2, overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary)),
-        subtitle: Text(_calculerTempsEcoule(notif.heureEnvoi),
-            style: const TextStyle(
-                fontSize: 11, color: AppColors.textSecondary)),
-        trailing: const Icon(Icons.chevron_right_rounded,
-            size: 18, color: AppColors.textSecondary),
+        title: Text(
+          notif.message ?? "Nouveau message",
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        subtitle: Text(
+          _calculerTempsEcoule(notif.heureEnvoi),
+          style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+        ),
+        trailing: const Icon(
+          Icons.chevron_right_rounded,
+          size: 18,
+          color: AppColors.textSecondary,
+        ),
       ),
     );
   }
 
+// le message quand aucune notification n'est disponible
   Widget _buildEmptyNotif() {
     return Container(
       width: double.infinity,
@@ -250,31 +308,75 @@ class _PageUtilisateurState extends State<PageUtilisateur> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.borderLight),
       ),
-      child: Column(children: [
-        Icon(Icons.notifications_off_outlined,
-            color: Colors.grey[400], size: 40),
-        const SizedBox(height: 8),
-        const Text("Aucune notification",
-            style: TextStyle(color: AppColors.textSecondary)),
-      ]),
+      child: Column(
+        children: [
+          Icon(
+            Icons.notifications_off_outlined,
+            color: Colors.grey[400],
+            size: 40,
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            "Aucune notification",
+            style: TextStyle(color: AppColors.textSecondary),
+          ),
+        ],
+      ),
     );
   }
 
+// la grille des services disponibles pour le patient
   Widget _buildGrilleServices() {
     final services = [
-      {'label':'Pharmacies','icon':Icons.local_pharmacy_rounded,'route':'/recherches_services_medicaux','color':_brandColor,'bg':_brandColor.withOpacity(0.15)},
-      {'label':'Traitements','icon':Icons.medication_rounded,'route':'/suivi_traitements','color':const Color(0xFF22863A),'bg':AppColors.successLight},
-      {'label':'Rendez-vous','icon':Icons.calendar_month_rounded,'route':'/mes_rendez_vous_page','color':const Color(0xFFE65100),'bg':AppColors.warningLight},
-      {'label':'Commandes','icon':Icons.shopping_bag_rounded,'route':'/mes_commandes','color':AppColors.accent,'bg':AppColors.dangerLight},
-      {'label':'Assistant IA','icon':Icons.smart_toy_rounded,'route':'/assistant','color':_brandColor,'bg':_brandColor.withOpacity(0.15)},
-      {'label':'Mon Profil','icon':Icons.account_circle_rounded,'route':'/profil_patient','color':_brandColor,'bg':_brandColor.withOpacity(0.15)},
+      {
+        'label': 'Pharmacies',
+        'icon': Icons.local_pharmacy_rounded,
+        'route': '/recherches_services_medicaux',
+        'color': _brandColor,
+        'bg': _brandColor.withOpacity(0.15),
+      },
+      {
+        'label': 'Traitements',
+        'icon': Icons.medication_rounded,
+        'route': '/suivi_traitements',
+        'color': const Color(0xFF22863A),
+        'bg': AppColors.successLight,
+      },
+      {
+        'label': 'Rendez-vous',
+        'icon': Icons.calendar_month_rounded,
+        'route': '/mes_rendez_vous_page',
+        'color': const Color.fromARGB(255, 221, 109, 49),
+        'bg': AppColors.warningLight,
+      },
+      {
+        'label': 'Commandes',
+        'icon': Icons.shopping_bag_rounded,
+        'route': '/mes_commandes',
+        'color': AppColors.accent,
+        'bg': AppColors.dangerLight,
+      },
+      {
+        'label': 'Assistant IA',
+        'icon': Icons.smart_toy_rounded,
+        'route': '/assistant',
+        'color': _brandColor,
+        'bg': _brandColor.withOpacity(0.15),
+      },
+      {
+        'label': 'Mon Profil',
+        'icon': Icons.account_circle_rounded,
+        'route': '/profil_patient',
+        'color': _brandColor,
+        'bg': _brandColor.withOpacity(0.15),
+      },
     ];
 
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       crossAxisCount: 3,
-      crossAxisSpacing: 6, 
+      crossAxisSpacing: 6,
       mainAxisSpacing: 6,
       childAspectRatio: 1.0,
       children: services.map((s) {
@@ -286,27 +388,37 @@ class _PageUtilisateurState extends State<PageUtilisateur> {
               color: Colors.white.withOpacity(0.85),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: Colors.grey.shade200, width: 1),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 3)],
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 3),
+              ],
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  width: 20, height: 20,
+                  width: 20,
+                  height: 20,
                   decoration: BoxDecoration(
                     color: s['bg'] as Color,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(s['icon'] as IconData,
-                      color: s['color'] as Color, size: 16),
+                  child: Icon(
+                    s['icon'] as IconData,
+                    color: s['color'] as Color,
+                    size: 16,
+                  ),
                 ),
                 const SizedBox(height: 4),
-                Text(s['label'] as String,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 9,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary)),
+                Text(
+                  s['label'] as String,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
               ],
             ),
           ),
@@ -315,57 +427,82 @@ class _PageUtilisateurState extends State<PageUtilisateur> {
     );
   }
 
+// la deconnexion
   void _confirmerDeconnexion(BuildContext context) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text("Déconnexion",
-            style: TextStyle(fontWeight: FontWeight.w800)),
+        title: const Text(
+          "Deconnexion",
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
         content: const Text("Voulez-vous vraiment quitter LAMESSIN ?"),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx),
-              child: const Text("Annuler",
-                  style: TextStyle(color: AppColors.textSecondary))),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text(
+              "Annuler",
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.danger,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
             onPressed: () async {
               Navigator.pop(ctx);
               await ApiService.logout();
               if (context.mounted)
                 Navigator.pushNamedAndRemoveUntil(
-                    context, '/login', (r) => false);
+                  context,
+                  '/login',
+                  (r) => false,
+                );
             },
-            child: const Text("Se déconnecter",
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+            child: const Text(
+              "Se deconnecter",
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
+// Affiche le contenu complet d'une notification
   void _afficherDetailNotif(String message) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text("Notification",
-            style: TextStyle(fontWeight: FontWeight.w800)),
+        title: const Text(
+          "Notification",
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
         content: Text(message),
         actions: [
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: _brandColor,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
             onPressed: () => Navigator.pop(ctx),
-            child: const Text("Fermer",
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+            child: const Text(
+              "Fermer",
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
         ],
       ),

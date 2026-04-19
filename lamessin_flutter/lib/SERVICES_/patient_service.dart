@@ -121,76 +121,78 @@ class PatientService {
     }
   }
 
-  // Remplacer la méthode existante par celle-ci :
+  static Future<Map<String, dynamic>?> creerCommandeMultiple(
+    List<Map<String, dynamic>> articles, {
+    String methodeRetrait = "RETRAIT",
+  }) async {
+    try {
+      print("📤 Envoi commande: $articles");
+      
+      final response = await http.post(
+        Uri.parse('${ApiService.baseUrl}/commandes/creer/'),
+        headers: await ApiService.getHeaders(),
+        body: jsonEncode({
+          'articles': articles,
+          'methode_retrait': methodeRetrait,
+        }),
+      );
+      
+      print("📥 Réponse: ${response.statusCode} - ${response.body}");
 
-static Future<Map<String, dynamic>?> creerCommandeMultiple(
-  List<Map<String, dynamic>> articles, {
-  String methodeRetrait = "RETRAIT",
-}) async {
-  try {
-    final response = await http.post(
-      Uri.parse('${ApiService.baseUrl}/commandes/creer/'),  // Changé de 'creerEtPayer' à 'creer'
-      headers: await ApiService.getHeaders(),
-      body: jsonEncode({
-        'articles': articles,
-        'methode_retrait': methodeRetrait,
-      }),
-    );
-
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      return json.decode(response.body);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return json.decode(response.body);
+      }
+      return null;
+    } catch (e) {
+      debugPrint("Erreur creerCommandeMultiple: $e");
+      return null;
     }
-    return null;
-  } catch (e) {
-    debugPrint("Erreur creerCommandeMultiple: $e");
-    return null;
   }
-}
 
-// ========================= PAIEMENT PAYGATE =========================
+  // ========================= PAIEMENT PAYGATE =========================
 
-static Future<Map<String, dynamic>?> initierPaiementMobileMoney({
-  required int commandeId,
-  required String telephone,
-  required String operateur,
-}) async {
-  try {
-    final response = await http.post(
-      Uri.parse('${ApiService.baseUrl}/paiement/initier/'),
-      headers: await ApiService.getHeaders(),
-      body: jsonEncode({
-        'commande_id': commandeId,
-        'telephone': telephone,
-        'operateur': operateur,
-      }),
-    );
+  static Future<Map<String, dynamic>?> initierPaiementMobileMoney({
+    required int commandeId,
+    required String telephone,
+    required String operateur,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiService.baseUrl}/paiement/initier/'),
+        headers: await ApiService.getHeaders(),
+        body: jsonEncode({
+          'commande_id': commandeId,
+          'telephone': telephone,
+          'operateur': operateur,
+        }),
+      );
 
-    if (response.statusCode == 200) {
-      return json.decode(response.body);
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+      return null;
+    } catch (e) {
+      debugPrint("Erreur initierPaiementMobileMoney: $e");
+      return null;
     }
-    return null;
-  } catch (e) {
-    debugPrint("Erreur initierPaiementMobileMoney: $e");
-    return null;
   }
-}
 
-static Future<Map<String, dynamic>?> verifierStatutPaiement(int commandeId) async {
-  try {
-    final response = await http.get(
-      Uri.parse('${ApiService.baseUrl}/paiement/verifier/$commandeId/'),
-      headers: await ApiService.getHeaders(),
-    );
+  static Future<Map<String, dynamic>?> verifierStatutPaiement(int commandeId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiService.baseUrl}/paiement/verifier/$commandeId/'),
+        headers: await ApiService.getHeaders(),
+      );
 
-    if (response.statusCode == 200) {
-      return json.decode(response.body);
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+      return null;
+    } catch (e) {
+      debugPrint("Erreur verifierStatutPaiement: $e");
+      return null;
     }
-    return null;
-  } catch (e) {
-    debugPrint("Erreur verifierStatutPaiement: $e");
-    return null;
   }
-}
 
   static Future<List<Commande>> getMesCommandes() async {
     try {

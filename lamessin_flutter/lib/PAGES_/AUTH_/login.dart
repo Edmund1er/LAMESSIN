@@ -1,4 +1,4 @@
-import 'dart:ui'; // Import pour l'effet de flou
+import 'dart:ui'; 
 import 'package:flutter/material.dart';
 import '../../SERVICES_/api_service.dart';
 import '../../THEME_/app_theme.dart';
@@ -24,7 +24,7 @@ class _LoginState extends State<Login> {
     setState(() => _chargement = true);
 
     try {
-      // On récupère le rôle au lieu du token
+// On récupère le rôle au lieu du token
       String? role = await ApiService.login(
         _telephone.text.trim(),
         _password.text,
@@ -33,7 +33,7 @@ class _LoginState extends State<Login> {
       if (!mounted) return;
 
       if (role != null) {
-        // --- LOGIQUE DE REDIRECTION PAR RÔLE ---
+// --- logique pour la redirecion par role ---
         switch (role) {
           case 'PATIENT':
             Navigator.pushReplacementNamed(context, "/page_utilisateur");
@@ -71,12 +71,12 @@ class _LoginState extends State<Login> {
     return Scaffold(
       body: Stack(
         children: [
-          //IMAGE DE FOND
+// l'image de fond 
           Positioned.fill(
             child: Image.asset('assets/images/login.jpeg', fit: BoxFit.cover),
           ),
 
-          // Le haut est transparent pour voir l'image, le bas est sombre pour le contraste
+// Le haut est transparent pour voir l'image, le bas est sombre pour le contraste
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
@@ -92,7 +92,7 @@ class _LoginState extends State<Login> {
             ),
           ),
 
-          //CONTENU PRINCIPAL
+// contenu pricipal
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
@@ -102,7 +102,7 @@ class _LoginState extends State<Login> {
                   children: [
                     const SizedBox(height: 40),
 
-                    // --- LOGO
+// placons le logo
                     Container(
                       width: 80,
                       height: 80,
@@ -125,7 +125,7 @@ class _LoginState extends State<Login> {
                     ),
                     const SizedBox(height: 30),
 
-                    // --- TITRE  ---
+// le titre ou bien le mot d'accueil 
                     Text(
                       'Bienvenue sur LAMESSIN',
                       textAlign: TextAlign.center,
@@ -156,7 +156,7 @@ class _LoginState extends State<Login> {
 
                     const SizedBox(height: 60),
 
-                    // --- CARTE DE FORMULAIRE ---
+// la carte pour le formulaire
                     ClipRRect(
                       borderRadius: BorderRadius.circular(30),
                       child: BackdropFilter(
@@ -173,7 +173,7 @@ class _LoginState extends State<Login> {
                           ),
                           child: Column(
                             children: [
-                              // --- CHAMP TÉLÉPHONE ---
+// champ telephone
                               Container(
                                 decoration: BoxDecoration(
                                   color: Colors.white.withOpacity(0.9),
@@ -204,7 +204,7 @@ class _LoginState extends State<Login> {
                               ),
                               const SizedBox(height: 20),
 
-                              // --- CHAMP MOT DE PASSE ---
+// champ pour le mot de passe
                               Container(
                                 decoration: BoxDecoration(
                                   color: Colors.white.withOpacity(0.9),
@@ -247,7 +247,7 @@ class _LoginState extends State<Login> {
                               ),
                               const SizedBox(height: 12),
 
-                              // --- MOT DE PASSE OUBLIÉ ---
+// partie pour le mot de passe oublie
                               Align(
                                 alignment: Alignment.centerRight,
                                 child: TextButton(
@@ -264,7 +264,7 @@ class _LoginState extends State<Login> {
                               ),
                               const SizedBox(height: 16),
 
-                              // --- BOUTON CONNEXION ---
+// bouton de connexion
                               SizedBox(
                                 width: double.infinity,
                                 height: 55,
@@ -300,7 +300,7 @@ class _LoginState extends State<Login> {
                               ),
                               const SizedBox(height: 24),
 
-                              // --- LIEN INSCRIPTION ---
+// lien pour la redirection vers l'inscription
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [

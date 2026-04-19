@@ -61,7 +61,7 @@ class StockPharmacie {
 
   factory StockPharmacie.fromJson(Map<String, dynamic> json) {
     return StockPharmacie(
-      idStock: json['id_pharmacie'], // CORRECTION ICI : clé JSON correcte
+      idStock: json['id_pharmacie'],
       idPharmacie: json['id_pharmacie'] ?? 0,
       nomPharmacie: json['nom_pharmacie'] ?? 'Pharmacie inconnue',
       adressePharmacie: json['adresse_pharmacie'] ?? '',

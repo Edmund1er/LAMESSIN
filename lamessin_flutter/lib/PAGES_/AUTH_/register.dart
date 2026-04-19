@@ -1,4 +1,5 @@
-import 'dart:ui'; // Nécessaire pour le flou
+
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../SERVICES_/api_service.dart';
 import '../../THEME_/app_theme.dart';
@@ -11,8 +12,8 @@ class Register extends StatefulWidget {
 }
 
 class _RegisterState extends State<Register> {
+// Controleurs pour chaque champ du formulaire
   final _formKey = GlobalKey<FormState>();
-
   final _nom = TextEditingController();
   final _prenom = TextEditingController();
   final _telephone = TextEditingController();
@@ -20,6 +21,8 @@ class _RegisterState extends State<Register> {
   final _password = TextEditingController();
   final _specialite = TextEditingController();
   final _licence = TextEditingController();
+
+// Gestion du groupe sanguin
 
   String? _groupeSanguinChoisi;
   final List<String> _groupes = [
@@ -32,10 +35,21 @@ class _RegisterState extends State<Register> {
     "O+",
     "O-",
   ];
+
+// Date de naissance du patient
+
   DateTime? _dateNaissance;
+
+// Rôle sélectionné: patient, medecin ou pharmacien
+
   String _roleChoisi = "patient";
+
+// État du chargement et affichage du mot de passe
+
   bool _isLoading = false;
   bool _obscure = true;
+
+// pour ouvrir le sélecteur de date pour la naissance
 
   Future<void> _selectionnerDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -63,8 +77,15 @@ class _RegisterState extends State<Register> {
     }
   }
 
+// Envoie les données au backend pour créer le compte
+
   void _lancerInscription() async {
+
+// Validation du formulaire
+
     if (!_formKey.currentState!.validate()) return;
+
+// Vérification spécifique pour le patient
 
     if (_roleChoisi == "patient" && _dateNaissance == null) {
       AppWidgets.showSnack(
@@ -77,6 +98,8 @@ class _RegisterState extends State<Register> {
 
     setState(() => _isLoading = true);
 
+// our les information reservé selon le rôle
+
     Map<String, dynamic> monColis = {
       "username": _telephone.text.trim(),
       "numero_telephone": _telephone.text.trim(),
@@ -87,19 +110,23 @@ class _RegisterState extends State<Register> {
       "type_compte": _roleChoisi.toLowerCase(),
     };
 
+// Champs spécifiques au patient
+
     if (_roleChoisi == "patient") {
       monColis["date_naissance"] = _dateNaissance?.toIso8601String().split(
         'T',
       )[0];
       monColis["groupe_sanguin"] = _groupeSanguinChoisi;
-    } else {
+    }
+// Champs spécifiques au médecin ou pharmacien
+
+    else {
       monColis["specialite_medicale"] = _specialite.text.trim();
       monColis["numero_licence"] = _licence.text.trim();
     }
 
     try {
       bool succes = await ApiService.inscription(monColis);
-
       if (mounted) setState(() => _isLoading = false);
 
       if (succes) {
@@ -132,6 +159,7 @@ class _RegisterState extends State<Register> {
     return Scaffold(
       body: Stack(
         children: [
+//image de fond
           Positioned.fill(
             child: Image.asset(
               'assets/images/register.jpeg',
@@ -139,6 +167,7 @@ class _RegisterState extends State<Register> {
             ),
           ),
 
+//dégradé pour la lisibilité
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
@@ -146,19 +175,15 @@ class _RegisterState extends State<Register> {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withOpacity(
-                      0.2,
-                    ), // Le haut reste clair pour voir l'image
-                    Colors.black.withOpacity(
-                      0.75,
-                    ), // Le bas s'assombrit pour le formulaire
+                    Colors.black.withOpacity(0.2), 
+                    Colors.black.withOpacity(0.75), 
                   ],
                 ),
               ),
             ),
           ),
 
-          // 3. CONTENU PRINCIPAL
+//contenu principal
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
@@ -168,7 +193,7 @@ class _RegisterState extends State<Register> {
                   children: [
                     const SizedBox(height: 20),
 
-                    // BOUTON RETOUR (FLOTTANT)
+//bouton retour flottant
                     Align(
                       alignment: Alignment.centerLeft,
                       child: IconButton(
@@ -192,7 +217,7 @@ class _RegisterState extends State<Register> {
 
                     const SizedBox(height: 10),
 
-                    // --- TITRE (Chic et Visible) ---
+//titre principal
                     Text(
                       'Créer un compte',
                       style: TextStyle(
@@ -220,7 +245,7 @@ class _RegisterState extends State<Register> {
 
                     const SizedBox(height: 30),
 
-                    // --- CARTE FORMULAIRE (GLASSMORPHISM) ---
+// Carte formulaire
                     ClipRRect(
                       borderRadius: BorderRadius.circular(30),
                       child: BackdropFilter(
@@ -228,9 +253,7 @@ class _RegisterState extends State<Register> {
                         child: Container(
                           padding: const EdgeInsets.all(25),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(
-                              0.15,
-                            ), // Fond transparent
+                            color: Colors.white.withOpacity(0.15),
                             borderRadius: BorderRadius.circular(30),
                             border: Border.all(
                               color: Colors.white.withOpacity(0.3),
@@ -242,7 +265,7 @@ class _RegisterState extends State<Register> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // SÉLECTEUR DE RÔLE
+// Sélecteur de rôle 
                                 const Text(
                                   "Je suis un...",
                                   style: TextStyle(
@@ -288,7 +311,7 @@ class _RegisterState extends State<Register> {
                                 ),
                                 const SizedBox(height: 20),
 
-                                // CHAMPS NOM & PRÉNOM
+// Ligne nom et prénom
                                 Row(
                                   children: [
                                     Expanded(
@@ -310,7 +333,7 @@ class _RegisterState extends State<Register> {
                                 ),
                                 const SizedBox(height: 12),
 
-                                // TÉLÉPHONE
+// Téléphone
                                 _buildField(
                                   _telephone,
                                   "Téléphone",
@@ -319,7 +342,7 @@ class _RegisterState extends State<Register> {
                                 ),
                                 const SizedBox(height: 12),
 
-                                // EMAIL
+// Email
                                 _buildField(
                                   _email,
                                   "Email",
@@ -329,11 +352,11 @@ class _RegisterState extends State<Register> {
                                 ),
                                 const SizedBox(height: 12),
 
-                                // MOT DE PASSE
+  // Mot de passe
                                 _buildPasswordField(),
                                 const SizedBox(height: 20),
 
-                                // CHAMPS CONDITIONNELS
+// Champs selon le rôle
                                 if (_roleChoisi == "patient") ...[
                                   const Text(
                                     "Informations de santé",
@@ -372,7 +395,7 @@ class _RegisterState extends State<Register> {
 
                                 const SizedBox(height: 25),
 
-                                // BOUTON VALIDER
+// bouton d'inscription
                                 SizedBox(
                                   width: double.infinity,
                                   height: 50,
@@ -407,7 +430,7 @@ class _RegisterState extends State<Register> {
                                 ),
                                 const SizedBox(height: 15),
 
-                                // LIEN
+// Lien vers la connexion
                                 Center(
                                   child: GestureDetector(
                                     onTap: () => Navigator.pop(context),
@@ -439,8 +462,7 @@ class _RegisterState extends State<Register> {
     );
   }
 
-  // --- WIDGETS PERSONNALISÉS STYLE GLASS ---
-
+// Bouton de sélection du rôle
   Widget _roleButton(String label, IconData icon, String value) {
     bool isSelected = _roleChoisi == value;
     return GestureDetector(
@@ -474,6 +496,7 @@ class _RegisterState extends State<Register> {
     );
   }
 
+// Champ de saisie général
   Widget _buildField(
     TextEditingController ctrl,
     String label,
@@ -484,7 +507,6 @@ class _RegisterState extends State<Register> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 15),
       decoration: BoxDecoration(
-        // Fond blanc semi-transparent (70%) pour lisibilité
         color: Colors.white.withOpacity(0.7),
         borderRadius: BorderRadius.circular(12),
       ),
@@ -508,15 +530,15 @@ class _RegisterState extends State<Register> {
         validator: (value) {
           if (value == null || value.isEmpty) return "Requis";
           if (isEmail &&
-              !RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+              !RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value))
             return "Email invalide";
-          }
           return null;
         },
       ),
     );
   }
 
+  // Champ mot de passe avec affichage/masquée
   Widget _buildPasswordField() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 15),
@@ -554,13 +576,14 @@ class _RegisterState extends State<Register> {
         ),
         validator: (value) {
           if (value == null || value.isEmpty) return "Requis";
-          if (value.length < 6) return "6 car. min";
+          if (value.length < 6) return "6 caractères minimum";
           return null;
         },
       ),
     );
   }
 
+// selecteur de date de naissance
   Widget _buildDatePicker() {
     return InkWell(
       onTap: () => _selectionnerDate(context),
@@ -592,6 +615,7 @@ class _RegisterState extends State<Register> {
     );
   }
 
+// selecteur de groupe sanguin
   Widget _buildBloodSelector() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 15),
@@ -622,9 +646,9 @@ class _RegisterState extends State<Register> {
               size: 20,
             ),
           ),
-          items: _groupes.map((String g) {
-            return DropdownMenuItem(value: g, child: Text(g));
-          }).toList(),
+          items: _groupes
+              .map((String g) => DropdownMenuItem(value: g, child: Text(g)))
+              .toList(),
           onChanged: (value) => setState(() => _groupeSanguinChoisi = value),
           validator: (value) => value == null ? "Requis" : null,
         ),

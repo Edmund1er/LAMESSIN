@@ -28,5 +28,3 @@ class PlageHoraire {
   }
 }
 
-
-// statistiques_pharmacien_model.dart

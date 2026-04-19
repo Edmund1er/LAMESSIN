@@ -14,7 +14,7 @@ class Traitement {
   });
 
   factory Traitement.fromJson(Map<String, dynamic> json) {
-    // Gestion des prises null
+
     var prisesList = json['prises'];
     List<PriseMedicament> prises = [];
     if (prisesList != null) {
