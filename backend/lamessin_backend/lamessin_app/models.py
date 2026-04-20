@@ -69,10 +69,9 @@ class Pharmacie(EtablissementSante):
 class Pharmacien(models.Model):
     compte_utilisateur = models.OneToOneField(Utilisateur, on_delete=models.CASCADE, primary_key=True)
     numero_licence = models.CharField(max_length=50, unique=True)
-    pharmacie = models.OneToOneField(Pharmacie, on_delete=models.CASCADE, null=True, blank=True)
+    pharmacie = models.ForeignKey(Pharmacie, on_delete=models.SET_NULL, null=True, blank=True)
     def __str__(self):
         return f"Pharmacien: {self.compte_utilisateur.last_name}"
-
 # ====================================================================================================================
 # MODULE : PRODUITS & STOCKS
 # ====================================================================================================================

@@ -76,7 +76,14 @@ flutter:
     - assets/images/register.jpeg
     - assets/images/fond_patient.jpg
     - assets/images/rdv.jpeg
-
+    - assets/images/fond_pharmacien_dashboard.jpg
+    - assets/images/fond_pharmacien_produits.jpg
+    - assets/images/fond_pharmacien_profil.jpg
+    - assets/images/fond_pharmacien_commandes.jpg
+    - assets/images/fond_pharmacien_detail_commande.jpg
+    - assets/images/fond_pharmacien_scan.jpg
+    - assets/images/fond_pharmacien_detail_ordonnance.jpg
+    - assets/images/fond_pharmacien_alertes.jpg
 
 
 

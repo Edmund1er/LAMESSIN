@@ -32,6 +32,16 @@ class ApiService {
     return prefs.getString('access_token');
   }
 
+  static Future<String?> getRefreshToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('refresh_token');
+  }
+
+  static Future<String?> getUserRole() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('user_role');
+  }
+
   static Future<bool> estConnecte() async {
     final prefs = await SharedPreferences.getInstance();
     String? refreshToken = prefs.getString('refresh_token');
@@ -105,23 +115,25 @@ class ApiService {
         await prefs.setString('access_token', data['access']);
         await prefs.setString('refresh_token', data['refresh']);
 
-        // Sauvegarde du rôle pour une utilisation future dans l'app
         String role = data['role'] ?? 'INCONNU';
         await prefs.setString('user_role', role);
 
+        print("Connexion réussie - Rôle: $role");
         return role;
       }
 
-      print("Erreur Login: ${response.body}");
+      print(" Erreur Login: ${response.body}");
       return null;
     } catch (e) {
-      print("Erreur Connexion: $e");
+      print(" Erreur Connexion: $e");
       return null;
     }
   }
 
   static Future<bool> inscription(Map<String, dynamic> donnees) async {
     try {
+      print(" Envoi inscription: ${donnees.keys}");
+      
       final response = await http.post(
         Uri.parse('$baseUrl/inscription/'),
         headers: {
@@ -131,14 +143,17 @@ class ApiService {
         body: jsonEncode(donnees),
       );
 
+      print("Réponse inscription: ${response.statusCode}");
+      
       if (response.statusCode == 201) {
+        print(" Inscription réussie");
         return true;
       } else {
-        print("DÉTAIL ERREUR DJANGO : ${response.body}");
+        print(" Erreur inscription: ${response.body}");
         return false;
       }
     } catch (e) {
-      print("ERREUR RÉSEAU : $e");
+      print(" ERREUR RÉSEAU: $e");
       return false;
     }
   }
@@ -150,27 +165,21 @@ class ApiService {
         headers: await getHeaders(),
       );
 
-      print("PROFIL STATUS: ${response.statusCode}");
-      print("PROFIL BODY: ${response.body}");
-
       if (response.statusCode == 200) {
         final data = json.decode(utf8.decode(response.bodyBytes));
+        final userData = data['compte_utilisateur'] ?? data;
 
-        if (data.containsKey('compte_utilisateur')) {
-          if (data.containsKey('numero_licence') &&
-              data['compte_utilisateur']['est_un_compte_pharmacien'] == true) {
-            return Pharmacien.fromJson(data);
-          }
-          if (data.containsKey('specialite_medicale')) {
-            return Medecin.fromJson(data);
-          }
-          if (data.containsKey('date_naissance')) {
-            return Patient.fromJson(data);
-          }
-          return Utilisateur.fromJson(data['compte_utilisateur']);
-        } else {
-          return Utilisateur.fromJson(data);
+        // Détection du rôle et retour du bon modèle
+        if (userData['est_un_compte_pharmacien'] == true) {
+          return Pharmacien.fromJson(data);
         }
+        if (userData['est_un_compte_medecin'] == true) {
+          return Medecin.fromJson(data);
+        }
+        if (userData['est_un_compte_patient'] == true) {
+          return Patient.fromJson(data);
+        }
+        return Utilisateur.fromJson(userData);
       }
       return null;
     } catch (e) {
@@ -197,6 +206,8 @@ class ApiService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('access_token');
     await prefs.remove('refresh_token');
+    await prefs.remove('user_role');
+    print(" Déconnexion réussie");
   }
 
   // ========================= NOTIFICATIONS =========================
@@ -222,12 +233,8 @@ class ApiService {
         headers: await getHeaders(),
       );
 
-      print("NOTIFS STATUS: ${response.statusCode}");
-      print("NOTIFS BODY: ${response.body}");
-
       if (response.statusCode == 200) {
         List data = json.decode(utf8.decode(response.bodyBytes));
-        print("NOTIFS COUNT: ${data.length}");
         return data.map((item) => NotificationModel.fromJson(item)).toList();
       }
       return [];

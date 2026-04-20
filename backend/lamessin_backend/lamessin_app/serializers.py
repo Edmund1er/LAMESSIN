@@ -58,10 +58,11 @@ class MedecinSerializer(serializers.ModelSerializer):
 
 class PharmacienSerializer(serializers.ModelSerializer):
     compte_utilisateur = UtilisateurSerializer(read_only=True)
+    pharmacie_nom = serializers.ReadOnlyField(source='pharmacie.nom', read_only=True)
 
     class Meta:
         model = Pharmacien
-        fields = ('compte_utilisateur', 'numero_licence')
+        fields = ('compte_utilisateur', 'numero_licence', 'pharmacie', 'pharmacie_nom')
 
 
 class InscriptionSerializer(serializers.ModelSerializer):
@@ -73,12 +74,13 @@ class InscriptionSerializer(serializers.ModelSerializer):
     date_naissance = serializers.DateField(required=False, write_only=True)
     groupe_sanguin = serializers.CharField(required=False, write_only=True)
     photo_profil = serializers.ImageField(required=False, write_only=True)
+    pharmacie_nom = serializers.CharField(required=False, write_only=True)
 
     class Meta:
         model = Utilisateur
         fields = ('username', 'numero_telephone', 'email', 'password', 'first_name', 'last_name',
                   'type_compte', 'specialite_medicale', 'numero_licence', 'date_naissance', 'groupe_sanguin',
-                  'photo_profil')
+                  'photo_profil', 'pharmacie_nom')
 
     def validate(self, data):
         type_compte = data.get('type_compte', '').lower()
@@ -89,10 +91,18 @@ class InscriptionSerializer(serializers.ModelSerializer):
                 errors['specialite_medicale'] = "Requis pour médecin."
             if not data.get('numero_licence'):
                 errors['numero_licence'] = "Requis pour médecin."
-        elif type_compte == 'pharmacien' and not data.get('numero_licence'):
-            errors['numero_licence'] = "Requis pour pharmacien."
-        elif type_compte == 'patient' and not data.get('date_naissance'):
-            errors['date_naissance'] = "Date de naissance requise."
+
+        elif type_compte == 'pharmacien':
+            if not data.get('numero_licence'):
+                errors['numero_licence'] = "Requis pour pharmacien."
+
+            pharmacie_nom = data.get('pharmacie_nom')
+            if not pharmacie_nom:
+                errors['pharmacie_nom'] = "Veuillez indiquer le nom de votre pharmacie"
+
+        elif type_compte == 'patient':
+            if not data.get('date_naissance'):
+                errors['date_naissance'] = "Date de naissance requise."
 
         if errors:
             raise serializers.ValidationError(errors)
@@ -106,6 +116,23 @@ class InscriptionSerializer(serializers.ModelSerializer):
         sang = validated_data.pop('groupe_sanguin', None)
         photo = validated_data.pop('photo_profil', None)
 
+        # Retirer pharmacie_nom de validated_data avant de créer l'utilisateur
+        pharmacie_nom = validated_data.pop('pharmacie_nom', None)
+        pharmacie = None
+
+        # Si pharmacien, chercher la pharmacie
+        if type_compte == 'pharmacien' and pharmacie_nom:
+            from lamessin_app.models import Pharmacie
+            try:
+                pharmacie = Pharmacie.objects.get(nom__iexact=pharmacie_nom)
+            except Pharmacie.DoesNotExist:
+                suggestions = Pharmacie.objects.filter(nom__icontains=pharmacie_nom)[:3]
+                suggestion_text = ", ".join([s.nom for s in suggestions]) if suggestions else ""
+                raise serializers.ValidationError({
+                    'pharmacie_nom': f"Pharmacie '{pharmacie_nom}' introuvable. Suggestions: {suggestion_text}"
+                })
+
+        # Créer l'utilisateur (pharmacie_nom a été retiré)
         user = Utilisateur.objects.create_user(**validated_data)
 
         if type_compte == 'patient':
@@ -128,7 +155,8 @@ class InscriptionSerializer(serializers.ModelSerializer):
             user.est_un_compte_pharmacien = True
             Pharmacien.objects.create(
                 compte_utilisateur=user,
-                numero_licence=licence
+                numero_licence=licence,
+                pharmacie=pharmacie
             )
 
         user.save()

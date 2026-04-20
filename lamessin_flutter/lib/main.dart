@@ -12,11 +12,13 @@ import 'THEME_/app_theme.dart';
 import 'SERVICES_/notification_service.dart';
 import 'SERVICES_/api_service.dart';
 
-// Pages
+// Pages Auth
 import 'PAGES_/AUTH_/splash.dart';
 import 'PAGES_/AUTH_/login.dart';
 import 'PAGES_/AUTH_/register.dart';
-import 'PAGES_/home_page.dart';
+
+
+// Pages Patient
 import 'PAGES_/PATIENT_/patient_dashbord.dart';
 import 'PAGES_/PATIENT_/recherches_services_medicaux.dart';
 import 'PAGES_/PATIENT_/prise_rdv_patient.dart';
@@ -29,13 +31,20 @@ import 'PAGES_/PATIENT_/mes_rendez_vous_page.dart';
 import 'PAGES_/PATIENT_/AssistantHistoriquePage.dart';
 import 'PAGES_/PATIENT_/notifications_history_page.dart';
 import 'PAGES_/PATIENT_/paiement_page.dart';
+
+// Pages Medecin
 import 'PAGES_/MEDECIN_/medecin_dashboard.dart';
 import 'PAGES_/MEDECIN_/medecin_profil_page.dart';
 import 'PAGES_/MEDECIN_/medecin_rendezvous_page.dart';
 import 'PAGES_/MEDECIN_/GererPlagesHorairesPage.dart';
+
+// Pages Pharmacien
 import 'PAGES_/PHARMACIEN_/pharmacien_dashboard_page.dart';
 import 'PAGES_/PHARMACIEN_/pharmacien_produits_page.dart';
 import 'PAGES_/PHARMACIEN_/pharmacien_profil_page.dart';
+import 'PAGES_/PHARMACIEN_/pharmacien_commandes_page.dart';
+import 'PAGES_/PHARMACIEN_/pharmacien_scan_ordonnance_page.dart';
+import 'PAGES_/PHARMACIEN_/pharmacien_alertes_stock_page.dart';
 
 import 'MODELS_/utilisateur_model.dart';
 
@@ -83,12 +92,13 @@ class MyApp extends StatelessWidget {
       locale: const Locale('fr', 'FR'),
       initialRoute: "/splash",
       routes: {
+        // Auth
         "/splash": (context) => const Splash(),
         "/login": (context) => const Login(),
         "/register": (context) => const Register(),
-        "/home_page": (context) => const HomePage(),
-        "/profil_patient": (context) => const ProfilPatientPage(),
 
+        // Patient
+        "/profil_patient": (context) => const ProfilPatientPage(),
         "/edit_profil": (context) {
           final args = ModalRoute.of(context)!.settings.arguments;
           if (args is Patient) return EditProfilPage(patient: args);
@@ -96,28 +106,30 @@ class MyApp extends StatelessWidget {
             body: Center(child: Text("Erreur : Aucun profil fourni")),
           );
         },
-
         "/page_utilisateur": (context) => const PageUtilisateur(),
-        "/recherches_services_medicaux": (context) =>
-            const RechercheServicesPage(),
+        "/recherches_services_medicaux": (context) => const RechercheServicesPage(),
         "/assistant": (context) => const AssistantPage(),
-        '/suivi_traitements': (context) => const SuiviTraitementsPage(),
+        "/suivi_traitements": (context) => const SuiviTraitementsPage(),
         "/mes_commandes": (context) => const MesCommandesPage(),
         "/rendez_vous_page": (context) => const RendezVousPage(),
         "/mes_rendez_vous_page": (context) => const MesRendezVousPage(),
         "/historique_chatbot": (context) => const AssistantHistoriquePage(),
-        "/historique_notifications": (context) =>
-            const NotificationHistoryPage(),
+        "/historique_notifications": (context) => const NotificationHistoryPage(),
         "/paiement": (context) => const PaiementPage(commandeId: 0, montant: 0),
 
-        // Routes Médecin
+        // Medecin
         "/dashboard_medecin": (context) => const MedecinDashboardPage(),
         "/medecin_rendezvous": (context) => const MedecinRendezVousPage(),
         "/medecin_profil": (context) => const MedecinProfilPage(),
         "/GererPlages": (context) => const GererPlagesHorairesPage(),
+
+        // Pharmacien
         "/dashboard_pharmacien": (context) => const PharmacienDashboardPage(),
-        "/produits": (context) => const PharmacienProduitsPage(),
-        "/Profil_medecin": (context) => const PharmacienProfilPage(),
+        "/produits_pharmacien": (context) => const PharmacienProduitsPage(),
+        "/profil_pharmacien": (context) => const PharmacienProfilPage(),
+        "/commandes_pharmacien": (context) => const PharmacienCommandesPage(),
+        "/scan_ordonnance_pharmacien": (context) => const PharmacienScanOrdonnancePage(),
+        "/alertes_stock_pharmacien": (context) => const PharmacienAlertesStockPage(),
       },
     );
   }

@@ -5,19 +5,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="ef23ec41-710c-44e6-8fa9-f5153c2048ff" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/../../.idea/deviceManager.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../../.idea/deviceManager.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../../.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lamessin_app/migrations/0001_initial.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/lamessin_app/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/lamessin_app/models.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lamessin_app/serializers.py" beforeDir="false" afterPath="$PROJECT_DIR$/lamessin_app/serializers.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/seed_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/seed_data.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../lamessin_flutter/lib/PAGES_/AUTH_/login.dart" beforeDir="false" afterPath="$PROJECT_DIR$/../../lamessin_flutter/lib/PAGES_/AUTH_/login.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../lamessin_flutter/lib/PAGES_/MEDECIN_/medecin_dashboard_page.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../lamessin_flutter/lib/PAGES_/MEDECIN_/medecin_profil_page.dart" beforeDir="false" afterPath="$PROJECT_DIR$/../../lamessin_flutter/lib/PAGES_/MEDECIN_/medecin_profil_page.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../lamessin_flutter/lib/PAGES_/MEDECIN_/medecin_rendezvous_page.dart" beforeDir="false" afterPath="$PROJECT_DIR$/../../lamessin_flutter/lib/PAGES_/MEDECIN_/medecin_rendezvous_page.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../lamessin_flutter/lib/PAGES_/PATIENT_/patient_dashbord.dart" beforeDir="false" afterPath="$PROJECT_DIR$/../../lamessin_flutter/lib/PAGES_/PATIENT_/patient_dashbord.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../lamessin_flutter/lib/PAGES_/PATIENT_/recherches_services_medicaux.dart" beforeDir="false" afterPath="$PROJECT_DIR$/../../lamessin_flutter/lib/PAGES_/PATIENT_/recherches_services_medicaux.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../lamessin_flutter/lib/SERVICES_/doctor_service.dart" beforeDir="false" afterPath="$PROJECT_DIR$/../../lamessin_flutter/lib/SERVICES_/doctor_service.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../lamessin_flutter/lib/main.dart" beforeDir="false" afterPath="$PROJECT_DIR$/../../lamessin_flutter/lib/main.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../lamessin_flutter/lib/PAGES_/AUTH_/register.dart" beforeDir="false" afterPath="$PROJECT_DIR$/../../lamessin_flutter/lib/PAGES_/AUTH_/register.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../lamessin_flutter/lib/SERVICES_/api_service.dart" beforeDir="false" afterPath="$PROJECT_DIR$/../../lamessin_flutter/lib/SERVICES_/api_service.dart" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -25,7 +18,7 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="38" />
+    <option name="cachedIndexableFilesCount" value="47" />
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/../.." />
@@ -42,19 +35,19 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.MCP Project settings loaded": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
-    "ai.playground.ignore.import.keys.banner.in.settings": "true",
-    "git-widget-placeholder": "main",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;ai.playground.ignore.import.keys.banner.in.settings&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>

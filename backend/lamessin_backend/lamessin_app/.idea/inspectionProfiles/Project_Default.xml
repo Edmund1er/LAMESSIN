@@ -1,0 +1,64 @@
+<component name="InspectionProjectProfileManager">
+  <profile version="1.0">
+    <option name="myName" value="Project Default" />
+    <inspection_tool class="PyPackageRequirementsInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoredPackages">
+        <list>
+          <option value="google-genai" />
+          <option value="annotated-types" />
+          <option value="anyio" />
+          <option value="asgiref" />
+          <option value="CacheControl" />
+          <option value="certifi" />
+          <option value="cffi" />
+          <option value="charset-normalizer" />
+          <option value="cryptography" />
+          <option value="distro" />
+          <option value="Django" />
+          <option value="django-cors-headers" />
+          <option value="djangorestframework" />
+          <option value="djangorestframework_simplejwt" />
+          <option value="firebase_admin" />
+          <option value="google-api-core" />
+          <option value="google-auth" />
+          <option value="google-cloud-core" />
+          <option value="google-cloud-firestore" />
+          <option value="google-cloud-storage" />
+          <option value="google-crc32c" />
+          <option value="google-resumable-media" />
+          <option value="googleapis-common-protos" />
+          <option value="grpcio" />
+          <option value="grpcio-status" />
+          <option value="h11" />
+          <option value="h2" />
+          <option value="hpack" />
+          <option value="httpcore" />
+          <option value="httpx" />
+          <option value="hyperframe" />
+          <option value="idna" />
+          <option value="msgpack" />
+          <option value="proto-plus" />
+          <option value="protobuf" />
+          <option value="psycopg2-binary" />
+          <option value="pyasn1" />
+          <option value="pyasn1_modules" />
+          <option value="pycparser" />
+          <option value="pydantic" />
+          <option value="pydantic_core" />
+          <option value="PyJWT" />
+          <option value="python-dotenv" />
+          <option value="requests" />
+          <option value="rsa" />
+          <option value="sniffio" />
+          <option value="sqlparse" />
+          <option value="tenacity" />
+          <option value="typing-inspection" />
+          <option value="typing_extensions" />
+          <option value="tzdata" />
+          <option value="urllib3" />
+          <option value="websockets" />
+        </list>
+      </option>
+    </inspection_tool>
+  </profile>
+</component>

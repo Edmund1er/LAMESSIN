@@ -1,4 +1,3 @@
-
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../SERVICES_/api_service.dart';
@@ -21,6 +20,7 @@ class _RegisterState extends State<Register> {
   final _password = TextEditingController();
   final _specialite = TextEditingController();
   final _licence = TextEditingController();
+  final _pharmacieNom = TextEditingController(); 
 
 // Gestion du groupe sanguin
 
@@ -36,20 +36,20 @@ class _RegisterState extends State<Register> {
     "O-",
   ];
 
-// Date de naissance du patient
+  // Date de naissance du patient
 
   DateTime? _dateNaissance;
 
-// Rôle sélectionné: patient, medecin ou pharmacien
+  // Rôle sélectionné: patient, medecin ou pharmacien
 
   String _roleChoisi = "patient";
 
-// État du chargement et affichage du mot de passe
+  // État du chargement et affichage du mot de passe
 
   bool _isLoading = false;
   bool _obscure = true;
 
-// pour ouvrir le sélecteur de date pour la naissance
+  // pour ouvrir le sélecteur de date pour la naissance
 
   Future<void> _selectionnerDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -77,15 +77,14 @@ class _RegisterState extends State<Register> {
     }
   }
 
-// Envoie les données au backend pour créer le compte
+  // Envoie les données au backend pour créer le compte
 
   void _lancerInscription() async {
-
-// Validation du formulaire
+    // Validation du formulaire
 
     if (!_formKey.currentState!.validate()) return;
 
-// Vérification spécifique pour le patient
+    // Vérification spécifique pour le patient
 
     if (_roleChoisi == "patient" && _dateNaissance == null) {
       AppWidgets.showSnack(
@@ -98,7 +97,7 @@ class _RegisterState extends State<Register> {
 
     setState(() => _isLoading = true);
 
-// our les information reservé selon le rôle
+    // our les information reservé selon le rôle
 
     Map<String, dynamic> monColis = {
       "username": _telephone.text.trim(),
@@ -110,7 +109,7 @@ class _RegisterState extends State<Register> {
       "type_compte": _roleChoisi.toLowerCase(),
     };
 
-// Champs spécifiques au patient
+    // Champs spécifiques au patient
 
     if (_roleChoisi == "patient") {
       monColis["date_naissance"] = _dateNaissance?.toIso8601String().split(
@@ -118,11 +117,16 @@ class _RegisterState extends State<Register> {
       )[0];
       monColis["groupe_sanguin"] = _groupeSanguinChoisi;
     }
-// Champs spécifiques au médecin ou pharmacien
-
+    // Champs spécifiques au médecin ou pharmacien
     else {
-      monColis["specialite_medicale"] = _specialite.text.trim();
+      if (_roleChoisi == "medecin") {
+        monColis["specialite_medicale"] = _specialite.text.trim();
+      }
       monColis["numero_licence"] = _licence.text.trim();
+      // Champ pour le pharmacien: nom de la pharmacie
+      if (_roleChoisi == "pharmacien") {
+        monColis["pharmacie_nom"] = _pharmacieNom.text.trim();
+      }
     }
 
     try {
@@ -175,8 +179,8 @@ class _RegisterState extends State<Register> {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withOpacity(0.2), 
-                    Colors.black.withOpacity(0.75), 
+                    Colors.black.withOpacity(0.2),
+                    Colors.black.withOpacity(0.75),
                   ],
                 ),
               ),
@@ -265,7 +269,7 @@ class _RegisterState extends State<Register> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-// Sélecteur de rôle 
+// Sélecteur de rôle
                                 const Text(
                                   "Je suis un...",
                                   style: TextStyle(
@@ -342,7 +346,7 @@ class _RegisterState extends State<Register> {
                                 ),
                                 const SizedBox(height: 12),
 
-// Email
+  // Email
                                 _buildField(
                                   _email,
                                   "Email",
@@ -352,7 +356,7 @@ class _RegisterState extends State<Register> {
                                 ),
                                 const SizedBox(height: 12),
 
-  // Mot de passe
+// Mot de passe
                                 _buildPasswordField(),
                                 const SizedBox(height: 20),
 
@@ -370,7 +374,7 @@ class _RegisterState extends State<Register> {
                                   _buildDatePicker(),
                                   const SizedBox(height: 12),
                                   _buildBloodSelector(),
-                                ] else ...[
+                                ] else if (_roleChoisi == "medecin") ...[
                                   const Text(
                                     "Informations professionnelles",
                                     style: TextStyle(
@@ -391,6 +395,23 @@ class _RegisterState extends State<Register> {
                                     "N° Licence",
                                     Icons.verified_user_outlined,
                                   ),
+                                ] else if (_roleChoisi == "pharmacien") ...[
+                                  const Text(
+                                    "Informations professionnelles",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  _buildField(
+                                    _licence,
+                                    "N° Licence",
+                                    Icons.verified_user_outlined,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  _buildPharmacieField(), 
                                 ],
 
                                 const SizedBox(height: 25),
@@ -496,7 +517,7 @@ class _RegisterState extends State<Register> {
     );
   }
 
-// Champ de saisie général
+  // Champ de saisie général
   Widget _buildField(
     TextEditingController ctrl,
     String label,
@@ -583,7 +604,7 @@ class _RegisterState extends State<Register> {
     );
   }
 
-// selecteur de date de naissance
+  // selecteur de date de naissance
   Widget _buildDatePicker() {
     return InkWell(
       onTap: () => _selectionnerDate(context),
@@ -615,7 +636,7 @@ class _RegisterState extends State<Register> {
     );
   }
 
-// selecteur de groupe sanguin
+  // selecteur de groupe sanguin
   Widget _buildBloodSelector() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 15),
@@ -652,6 +673,39 @@ class _RegisterState extends State<Register> {
           onChanged: (value) => setState(() => _groupeSanguinChoisi = value),
           validator: (value) => value == null ? "Requis" : null,
         ),
+      ),
+    );
+  }
+
+  // Champ pour le nom de la pharmacie (spécifique au pharmacien)
+  Widget _buildPharmacieField() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 15),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.7),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: TextFormField(
+        controller: _pharmacieNom,
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textPrimary,
+        ),
+        decoration: InputDecoration(
+          labelText: "Nom de la pharmacie",
+          hintText: "Ex: Pharmacie Centrale",
+          prefixIcon: const Icon(
+            Icons.local_pharmacy,
+            color: AppColors.primary,
+            size: 20,
+          ),
+          border: InputBorder.none,
+        ),
+        validator: (value) {
+          if (value == null || value.isEmpty) return "Requis";
+          return null;
+        },
       ),
     );
   }

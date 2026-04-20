@@ -41,6 +41,7 @@ class _LoginState extends State<Login> {
           case 'MEDECIN':
             Navigator.pushReplacementNamed(context, "/dashboard_medecin");
             break;
+            
           case 'PHARMACIEN':
             Navigator.pushReplacementNamed(context, "/dashboard_pharmacien");
             break;

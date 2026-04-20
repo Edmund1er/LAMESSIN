@@ -13,7 +13,9 @@ class PharmacienProfilPage extends StatefulWidget {
 }
 
 class _PharmacienProfilPageState extends State<PharmacienProfilPage> {
+  // Profil du pharmacien (peut etre Pharmacien ou autre)
   dynamic _profil;
+  // Etat du chargement
   bool _chargement = true;
 
   @override
@@ -22,6 +24,7 @@ class _PharmacienProfilPageState extends State<PharmacienProfilPage> {
     _chargerDonnees();
   }
 
+  // Charge les donnees du profil
   Future<void> _chargerDonnees() async {
     setState(() => _chargement = true);
     try {
@@ -41,190 +44,217 @@ class _PharmacienProfilPageState extends State<PharmacienProfilPage> {
   Widget build(BuildContext context) {
     if (_chargement) {
       return const Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: Colors.transparent,
         body: Center(
-          child: CircularProgressIndicator(color: AppColors.primary),
+          child: CircularProgressIndicator(color: Color(0xFF00C2CB)),
         ),
       );
     }
 
+    // Extraction des informations du pharmacien
     String nom = "", prenom = "", tel = "", email = "", nomPharmacie = "";
 
     if (_profil is Pharmacien) {
       final p = _profil as Pharmacien;
       nom = p.compteUtilisateur.lastName;
       prenom = p.compteUtilisateur.firstName;
-      tel = p.compteUtilisateur.numeroTelephone ?? "Non renseigné";
-      email = p.compteUtilisateur.email ?? "Non renseigné";
+      tel = p.compteUtilisateur.numeroTelephone ?? "Non renseigne";
+      email = p.compteUtilisateur.email ?? "Non renseigne";
       nomPharmacie = p.nomPharmacie ?? "";
     }
+
     return Scaffold(
-      backgroundColor: AppColors.background,
-      body: RefreshIndicator(
-        onRefresh: _chargerDonnees,
-        color: AppColors.primary,
-        child: CustomScrollView(
-          slivers: [
-            SliverAppBar(
-              expandedHeight: 230,
-              pinned: true,
-              backgroundColor: AppColors.primary,
-              automaticallyImplyLeading: false,
-              flexibleSpace: FlexibleSpaceBar(
-                background: Container(
-                  color: AppColors.primary,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const SizedBox(height: 50),
-                      Container(
-                        width: 84,
-                        height: 84,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.5),
-                            width: 3,
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage("assets/images/fond_patient.jpg"),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: RefreshIndicator(
+          onRefresh: _chargerDonnees,
+          color: const Color(0xFF00C2CB),
+          child: CustomScrollView(
+            slivers: [
+              // En-tete avec photo et nom
+              SliverAppBar(
+                expandedHeight: 230,
+                pinned: true,
+                backgroundColor: Colors.transparent,
+                automaticallyImplyLeading: false,
+                flexibleSpace: FlexibleSpaceBar(
+                  background: Container(
+                    color: const Color(0xFF00C2CB),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const SizedBox(height: 50),
+                        // Avatar / Logo pharmacie
+                        Container(
+                          width: 84,
+                          height: 84,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.5),
+                              width: 3,
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.local_pharmacy_rounded,
+                            color: Colors.white,
+                            size: 44,
                           ),
                         ),
-                        child: const Icon(
-                          Icons.local_pharmacy_rounded,
-                          color: Colors.white,
-                          size: 44,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        "$prenom $nom",
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.18),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          nomPharmacie.isNotEmpty ? nomPharmacie : "Pharmacien",
+                        const SizedBox(height: 12),
+                        // Nom complet
+                        Text(
+                          "$prenom $nom",
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
                           ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 4),
+                        // Badge pharmacie ou role
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.18),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            nomPharmacie.isNotEmpty ? nomPharmacie : "Pharmacien",
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
 
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(18),
-                child: Column(
-                  children: [
-                    _sectionLabel("Informations de contact"),
-                    const SizedBox(height: 10),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.borderLight),
-                      ),
-                      child: Column(
-                        children: [
-                          _infoRow(
-                            Icons.phone_rounded,
-                            "Téléphone",
-                            tel,
-                            false,
+              // Contenu principal
+              SliverToBoxAdapter(
+                child: Container(
+                  color: Colors.white.withOpacity(0.75),
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Column(
+                      children: [
+                        // Section informations de contact
+                        _sectionLabel("Informations de contact"),
+                        const SizedBox(height: 10),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.85),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.grey[200]!),
                           ),
-                          _infoRow(Icons.email_rounded, "Email", email, false),
-                          _infoRow(
-                            Icons.local_pharmacy_rounded,
-                            "Pharmacie",
-                            nomPharmacie.isNotEmpty
-                                ? nomPharmacie
-                                : "Non renseigné",
-                            true,
+                          child: Column(
+                            children: [
+                              _infoRow(
+                                Icons.phone_rounded,
+                                "Telephone",
+                                tel,
+                                false,
+                              ),
+                              _infoRow(
+                                Icons.email_rounded,
+                                "Email",
+                                email,
+                                false,
+                              ),
+                              _infoRow(
+                                Icons.local_pharmacy_rounded,
+                                "Pharmacie",
+                                nomPharmacie.isNotEmpty
+                                    ? nomPharmacie
+                                    : "Non renseigne",
+                                true,
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 24),
+                        ),
+                        const SizedBox(height: 24),
 
-                    AppWidgets.primaryButton(
-                      label: "Modifier mon profil",
-                      icon: Icons.edit_rounded,
-                      onPressed: () {
-                        AppWidgets.showSnack(
-                          context,
-                          "Modification disponible prochainement",
-                          color: AppColors.primary,
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 12),
-
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: OutlinedButton.icon(
-                        onPressed: () async {
-                          await ApiService.logout();
-                          if (context.mounted) {
-                            Navigator.pushNamedAndRemoveUntil(
+                        // Bouton modifier profil
+                        AppWidgets.primaryButton(
+                          label: "Modifier mon profil",
+                          icon: Icons.edit_rounded,
+                          onPressed: () {
+                            AppWidgets.showSnack(
                               context,
-                              '/login',
-                              (r) => false,
+                              "Modification disponible prochainement",
+                              color: const Color(0xFF00C2CB),
                             );
-                          }
-                        },
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.danger,
-                          side: const BorderSide(
-                            color: AppColors.dangerLight,
-                            width: 1.5,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                          },
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Bouton deconnexion
+                        SizedBox(
+                          width: double.infinity,
+                          height: 50,
+                          child: OutlinedButton.icon(
+                            onPressed: () async {
+                              await ApiService.logout();
+                              if (context.mounted) {
+                                Navigator.pushNamedAndRemoveUntil(
+                                  context,
+                                  '/login',
+                                  (r) => false,
+                                );
+                              }
+                            },
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.danger,
+                              side: const BorderSide(
+                                color: AppColors.dangerLight,
+                                width: 1.5,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            icon: const Icon(
+                              Icons.power_settings_new_rounded,
+                              size: 18,
+                            ),
+                            label: const Text(
+                              "Se deconnecter",
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14,
+                              ),
+                            ),
                           ),
                         ),
-                        icon: const Icon(
-                          Icons.power_settings_new_rounded,
-                          size: 18,
-                        ),
-                        label: const Text(
-                          "Se déconnecter",
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
+                        const SizedBox(height: 20),
+                      ],
                     ),
-                    const SizedBox(height: 20),
-                  ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: _buildBottomNav(2),
     );
   }
 
+  // Titre de section
   Widget _sectionLabel(String label) => Align(
     alignment: Alignment.centerLeft,
     child: Text(
@@ -237,6 +267,7 @@ class _PharmacienProfilPageState extends State<PharmacienProfilPage> {
     ),
   );
 
+  // Ligne d'information avec icone
   Widget _infoRow(IconData icon, String label, String value, bool isLast) {
     return Column(
       children: [
@@ -248,10 +279,10 @@ class _PharmacienProfilPageState extends State<PharmacienProfilPage> {
                 width: 38,
                 height: 38,
                 decoration: BoxDecoration(
-                  color: AppColors.primaryLight,
+                  color: const Color(0xFF00C2CB).withOpacity(0.15),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(icon, color: AppColors.primary, size: 18),
+                child: Icon(icon, color: const Color(0xFF00C2CB), size: 18),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -282,17 +313,18 @@ class _PharmacienProfilPageState extends State<PharmacienProfilPage> {
         if (!isLast)
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Divider(height: 1, color: AppColors.borderLight),
+            child: Divider(height: 1, color: Colors.grey),
           ),
       ],
     );
   }
 
+  // Barre de navigation en bas
   Widget _buildBottomNav(int index) {
     return Container(
       decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(top: BorderSide(color: AppColors.borderLight)),
+        color: Colors.white,
+        border: Border(top: BorderSide(color: Colors.grey)),
       ),
       child: SafeArea(
         child: Padding(
@@ -315,9 +347,18 @@ class _PharmacienProfilPageState extends State<PharmacienProfilPage> {
                 "Produits",
                 1,
                 index,
-                () => Navigator.pushReplacementNamed(context, '/produits'),
+                () => Navigator.pushReplacementNamed(
+                  context,
+                  '/produits_pharmacien',
+                ),
               ),
-              _navItem(Icons.account_circle_rounded, "Profil", 2, index, () {}),
+              _navItem(
+                Icons.account_circle_rounded,
+                "Profil",
+                2,
+                index,
+                () {},
+              ),
             ],
           ),
         ),
@@ -325,6 +366,7 @@ class _PharmacienProfilPageState extends State<PharmacienProfilPage> {
     );
   }
 
+  // Element de la barre de navigation
   Widget _navItem(
     IconData icon,
     String label,
@@ -340,7 +382,7 @@ class _PharmacienProfilPageState extends State<PharmacienProfilPage> {
         children: [
           Icon(
             icon,
-            color: actif ? AppColors.primary : AppColors.textSecondary,
+            color: actif ? const Color(0xFF00C2CB) : Colors.grey,
             size: 24,
           ),
           const SizedBox(height: 3),
@@ -349,7 +391,7 @@ class _PharmacienProfilPageState extends State<PharmacienProfilPage> {
             style: TextStyle(
               fontSize: 10,
               fontWeight: actif ? FontWeight.w700 : FontWeight.w500,
-              color: actif ? AppColors.primary : AppColors.textSecondary,
+              color: actif ? const Color(0xFF00C2CB) : Colors.grey,
             ),
           ),
         ],

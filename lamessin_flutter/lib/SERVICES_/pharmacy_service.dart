@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'api_service.dart';
 
-// Imports de modèles
+// Imports des modèles necessaires
 import '../MODELS_/medicament_model.dart';
 import '../MODELS_/commande_model.dart';
 import '../MODELS_/ordonnance_model.dart';
@@ -11,14 +11,15 @@ import '../MODELS_/utilisateur_model.dart';
 import '../MODELS_/statistiques_pharmacien_model.dart';
 
 class PharmacyService {
-  
-  // ==================== BASE URL ====================
+  // Url de base de l'API
   static String get _baseUrl => ApiService.baseUrl;
+
+  // Headers avec token d'authentification
   static Future<Map<String, String>> get _headers => ApiService.getHeaders();
 
   // ==================== 1. TABLEAU DE BORD ====================
-  
-  /// Récupère les statistiques du tableau de bord pharmacien
+
+  // Recupere les statistiques pour le dashboard du pharmacien
   static Future<StatistiquesPharmacien?> getDashboard() async {
     try {
       final response = await http.get(
@@ -36,7 +37,7 @@ class PharmacyService {
     }
   }
 
-  /// Récupère les statistiques détaillées de la pharmacie
+  // Recupere les statistiques detaillees de la pharmacie
   static Future<Map<String, dynamic>?> getStatistiques() async {
     try {
       final response = await http.get(
@@ -56,7 +57,7 @@ class PharmacyService {
 
   // ==================== 2. GESTION DES STOCKS ====================
 
-  /// Récupère tous les stocks de la pharmacie
+  // Recupere la liste de tous les stocks de la pharmacie
   static Future<List<StockPharmacie>> getStocks() async {
     try {
       final response = await http.get(
@@ -75,7 +76,7 @@ class PharmacyService {
     }
   }
 
-  /// Met à jour la quantité d'un stock
+  // Met a jour la quantite d'un produit en stock
   static Future<bool> updateStock(int stockId, int quantite) async {
     try {
       final response = await http.patch(
@@ -91,7 +92,7 @@ class PharmacyService {
     }
   }
 
-  /// Récupère les alertes de stock (produits sous seuil)
+  // Recupere les alertes de stock (produits sous seuil d'alerte)
   static Future<List<StockPharmacie>> getAlertesStock() async {
     try {
       final response = await http.get(
@@ -110,7 +111,7 @@ class PharmacyService {
     }
   }
 
-  /// Ajoute ou met à jour un stock pour un médicament
+  // Ajoute ou met a jour un stock pour un medicament
   static Future<bool> ajouterOuUpdateStock({
     required int medicamentId,
     required int quantite,
@@ -138,8 +139,8 @@ class PharmacyService {
 
   // ==================== 3. GESTION DES COMMANDES ====================
 
-  /// Récupère toutes les commandes concernant la pharmacie
-  /// [filtre] : 'toutes', 'en_attente', 'payees'
+  // Recupere toutes les commandes concernant cette pharmacie
+  // filtre: 'toutes', 'en_attente', 'payees'
   static Future<List<Commande>> getCommandes({String filtre = 'toutes'}) async {
     try {
       final response = await http.get(
@@ -158,7 +159,7 @@ class PharmacyService {
     }
   }
 
-  /// Récupère les détails d'une commande
+  // Recupere les details d'une commande specifique
   static Future<Commande?> getCommandeDetails(int commandeId) async {
     try {
       final response = await http.get(
@@ -176,7 +177,7 @@ class PharmacyService {
     }
   }
 
-  /// Valide une commande (préparation terminée)
+  // Valide une commande (preparation terminee)
   static Future<bool> validerCommande(int commandeId) async {
     try {
       final response = await http.post(
@@ -193,7 +194,7 @@ class PharmacyService {
 
   // ==================== 4. GESTION DES MÉDICAMENTS ====================
 
-  /// Récupère le catalogue complet des médicaments
+  // Recupere le catalogue complet des medicaments
   static Future<List<Medicament>> getCatalogueMedicaments() async {
     try {
       final response = await http.get(
@@ -212,7 +213,7 @@ class PharmacyService {
     }
   }
 
-  /// Ajoute un nouveau médicament
+  // Ajoute un nouveau medicament au catalogue
   static Future<Medicament?> ajouterMedicament({
     required String nom,
     required String description,
@@ -241,7 +242,7 @@ class PharmacyService {
     }
   }
 
-  /// Modifie un médicament existant
+  // Modifie un medicament existant
   static Future<Medicament?> modifierMedicament({
     required int medicamentId,
     String? nom,
@@ -273,8 +274,10 @@ class PharmacyService {
 
   // ==================== 5. SCAN D'ORDONNANCE ====================
 
-  /// Scanne une ordonnance par son code de sécurité
-  static Future<Map<String, dynamic>?> scannerOrdonnance(String codeSecurite) async {
+  // Scanne une ordonnance par son code de securite
+  static Future<Map<String, dynamic>?> scannerOrdonnance(
+    String codeSecurite,
+  ) async {
     try {
       final response = await http.get(
         Uri.parse('$_baseUrl/pharmacien/ordonnance/scanner/$codeSecurite/'),
@@ -291,8 +294,10 @@ class PharmacyService {
     }
   }
 
-  /// Valide une ordonnance et prépare les médicaments
-  static Future<Map<String, dynamic>?> validerOrdonnance(int ordonnanceId) async {
+  // Valide une ordonnance et prepare les medicaments
+  static Future<Map<String, dynamic>?> validerOrdonnance(
+    int ordonnanceId,
+  ) async {
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl/pharmacien/ordonnance/$ordonnanceId/valider/'),
