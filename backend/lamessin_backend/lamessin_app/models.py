@@ -95,7 +95,7 @@ class Stock(models.Model):
     produit_concerne = models.ForeignKey(Medicament, on_delete=models.CASCADE)
     pharmacie_detentrice = models.ForeignKey(Pharmacie, on_delete=models.CASCADE)
     quantite_actuelle_en_stock = models.PositiveIntegerField()
-    seuil_alerte = models.PositiveIntegerField()
+    seuil_alerte = models.PositiveIntegerField(default=10)
     date_peremption = models.DateField()
 
     def __str__(self):
@@ -113,12 +113,20 @@ class PlageHoraire(models.Model):
     duree_consultation = models.PositiveIntegerField(default=60)
 
 class RendezVous(models.Model):
+    STATUTS_RDV = [
+        ('en_attente', 'En attente'),
+        ('confirme', 'Confirme'),
+        ('annule', 'Annule'),
+        ('termine', 'Termine'),
+        ('expire', 'Expire'),
+    ]
+
     patient_demandeur = models.ForeignKey(Patient, on_delete=models.CASCADE)
     medecin_concerne = models.ForeignKey(Medecin, on_delete=models.CASCADE)
     date_rdv = models.DateField()
     heure_rdv = models.TimeField()
     motif_consultation = models.CharField(max_length=255)
-    statut_actuel_rdv = models.CharField(max_length=50, default='en_attente')
+    statut_actuel_rdv = models.CharField(max_length=50, choices=STATUTS_RDV, default='en_attente')
 
     class Meta:
         unique_together = ('medecin_concerne', 'date_rdv', 'heure_rdv')
@@ -130,7 +138,6 @@ class Consultation(models.Model):
     actes_effectues = models.TextField()
     notes_medecin = models.TextField(blank=True, null=True)
     date_consultation = models.DateTimeField(auto_now_add=True)
-    # AJOUT : Document médical attaché (Analyse, compte-rendu PDF, etc.)
     document_joint = models.FileField(upload_to='consultations/documents/', null=True, blank=True)
 
 class Ordonnance(models.Model):
@@ -173,6 +180,7 @@ class Commande(models.Model):
         ('PAYE', 'Payé'),
         ('ANNULE', 'Annulé'),
         ('LIVRE', 'Livré'),
+
     ]
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name="mes_commandes")
     date_creation = models.DateTimeField(auto_now_add=True)

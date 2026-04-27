@@ -1,5 +1,3 @@
-# lamessin_app/views/pharma_views.py
-
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, generics
@@ -30,7 +28,6 @@ class DashboardPharmacienView(APIView):
     def get(self, request):
         try:
             pharmacien = Pharmacien.objects.get(compte_utilisateur=request.user)
-            # CORRECTION : Récupérer la pharmacie associée au pharmacien
             pharmacie = pharmacien.pharmacie
             if not pharmacie:
                 return Response({"error": "Aucune pharmacie associée à ce compte"}, status=404)
@@ -85,11 +82,13 @@ class GererStockView(APIView):
             if not pharmacie:
                 return Response({"error": "Aucune pharmacie associée"}, status=404)
             stocks = Stock.objects.filter(pharmacie_detentrice=pharmacie)
-            return Response(StockSerializer(stocks, many=True).data)
+            serializer = StockSerializer(stocks, many=True)
+            return Response(serializer.data)
         except Pharmacien.DoesNotExist:
             return Response({"error": "Pharmacien non trouvé"}, status=404)
 
     def post(self, request):
+        """Ajouter ou mettre à jour un stock pour un médicament existant"""
         try:
             pharmacien = Pharmacien.objects.get(compte_utilisateur=request.user)
             pharmacie = pharmacien.pharmacie
@@ -104,27 +103,32 @@ class GererStockView(APIView):
         date_peremption = request.data.get('date_peremption')
 
         if not medicament_id:
-            return Response({"error": "medicament_id requis"}, status=400)
+            return Response({"error": "ID du médicament requis"}, status=400)
 
-        medicament = get_object_or_404(Medicament, id=medicament_id)
+        try:
+            medicament = Medicament.objects.get(id=medicament_id)
+        except Medicament.DoesNotExist:
+            return Response({"error": "Médicament non trouvé"}, status=404)
 
+        # Éviter les doublons: get_or_create
         stock, created = Stock.objects.get_or_create(
             produit_concerne=medicament,
             pharmacie_detentrice=pharmacie,
             defaults={
                 'quantite_actuelle_en_stock': quantite,
                 'seuil_alerte': seuil_alerte,
-                'date_peremption': date_peremption,
+                'date_peremption': date_peremption or '2025-12-31'
             }
         )
 
         if not created:
             stock.quantite_actuelle_en_stock = quantite
             stock.seuil_alerte = seuil_alerte
-            stock.date_peremption = date_peremption
+            if date_peremption:
+                stock.date_peremption = date_peremption
             stock.save()
 
-        return Response(StockSerializer(stock).data)
+        return Response(StockSerializer(stock).data, status=status.HTTP_201_CREATED)
 
 
 class UpdateStockView(APIView):
@@ -231,44 +235,91 @@ class ValiderCommandeView(APIView):
         if commande.statut != 'PAYE':
             return Response({"error": "La commande n'est pas encore payée"}, status=400)
 
-        lignes = LigneCommande.objects.filter(commande=commande, pharmacie=pharmacie)
-        for ligne in lignes:
-            stock = Stock.objects.get(
-                produit_concerne=ligne.produit,
-                pharmacie_detentrice=pharmacie
-            )
-            stock.quantite_actuelle_en_stock -= ligne.quantite
-            stock.save()
-
-        commande.statut = 'LIVRE'
-        commande.save()
+        with transaction.atomic():
+            lignes = LigneCommande.objects.filter(commande=commande, pharmacie=pharmacie)
+            for ligne in lignes:
+                stock = Stock.objects.get(
+                    produit_concerne=ligne.produit,
+                    pharmacie_detentrice=pharmacie
+                )
+                stock.quantite_actuelle_en_stock -= ligne.quantite
+                stock.save()
+            commande.statut = 'LIVRE'
+            commande.save()
 
         return Response({"success": True, "message": "Commande validée et prête pour retrait"})
 
 
+class MarquerCommandeLivreeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, commande_id):
+        try:
+            pharmacien = Pharmacien.objects.get(compte_utilisateur=request.user)
+            commande = get_object_or_404(Commande, id=commande_id)
+            lignes = commande.lignes.filter(pharmacie=pharmacien.pharmacie)
+            if not lignes.exists():
+                return Response({"error": "Non autorisé"}, status=403)
+            commande.statut = 'LIVRE'
+            commande.save()
+            return Response({"success": True, "message": "Commande marquée comme livrée"})
+        except Pharmacien.DoesNotExist:
+            return Response({"error": "Pharmacien non trouvé"}, status=404)
+
+
 # ==================== 4. GESTION DES MÉDICAMENTS ====================
+
+class CatalogueMedicamentsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        medicaments = Medicament.objects.all().order_by('nom_commercial')
+        return Response(MedicamentSerializer(medicaments, many=True).data)
+
 
 class GererMedicamentView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        """Ajouter un nouveau médicament et créer son stock automatiquement"""
         try:
             pharmacien = Pharmacien.objects.get(compte_utilisateur=request.user)
+            pharmacie = pharmacien.pharmacie
+            if not pharmacie:
+                return Response({"error": "Aucune pharmacie associée"}, status=404)
         except Pharmacien.DoesNotExist:
             return Response({"error": "Pharmacien non trouvé"}, status=404)
 
-        data = {
-            'nom_commercial': request.data.get('nom'),
-            'description': request.data.get('description', ''),
-            'posologie_standard': request.data.get('posologie', ''),
-            'prix_vente': request.data.get('prix', 0),
-        }
+        nom = request.data.get('nom')
+        description = request.data.get('description', '')
+        posologie = request.data.get('posologie', '')
+        prix = request.data.get('prix', 0)
+        quantite_initiale = request.data.get('quantite_initiale', 0)
+        seuil_alerte = request.data.get('seuil_alerte', 10)
+        date_peremption = request.data.get('date_peremption', '2025-12-31')
 
-        serializer = MedicamentSerializer(data=data)
-        if serializer.is_valid():
-            medicament = serializer.save()
-            return Response(serializer.data, status=201)
-        return Response(serializer.errors, status=400)
+        if not nom or not prix:
+            return Response({"error": "Nom et prix requis"}, status=400)
+
+        with transaction.atomic():
+            # Créer le médicament
+            medicament = Medicament.objects.create(
+                nom_commercial=nom,
+                description=description,
+                posologie_standard=posologie,
+                prix_vente=prix
+            )
+
+            # Créer automatiquement le stock associé
+            Stock.objects.create(
+                produit_concerne=medicament,
+                pharmacie_detentrice=pharmacie,
+                quantite_actuelle_en_stock=quantite_initiale,
+                seuil_alerte=seuil_alerte,
+                date_peremption=date_peremption
+            )
+
+        return Response(MedicamentSerializer(medicament).data, status=status.HTTP_201_CREATED)
 
     def put(self, request, medicament_id):
         try:
@@ -282,14 +333,6 @@ class GererMedicamentView(APIView):
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=400)
-
-
-class CatalogueMedicamentsView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        medicaments = Medicament.objects.all().order_by('nom_commercial')
-        return Response(MedicamentSerializer(medicaments, many=True).data)
 
 
 # ==================== 5. SCAN ORDONNANCE ====================
@@ -422,3 +465,19 @@ class StatistiquesPharmacieView(APIView):
             'ventes_par_mois': list(ventes_par_mois),
             'top_medicaments': list(top_medicaments),
         })
+
+class SupprimerStockView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, stock_id):
+        try:
+            pharmacien = Pharmacien.objects.get(compte_utilisateur=request.user)
+            pharmacie = pharmacien.pharmacie
+            if not pharmacie:
+                return Response({"error": "Aucune pharmacie associée"}, status=404)
+            stock = get_object_or_404(Stock, id=stock_id, pharmacie_detentrice=pharmacie)
+            stock.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Pharmacien.DoesNotExist:
+            return Response({"error": "Pharmacien non trouvé"}, status=404)
+

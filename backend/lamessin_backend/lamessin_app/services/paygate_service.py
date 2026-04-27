@@ -1,9 +1,8 @@
-# lamessin_app/services/paygate_service.py
-
 import json
 import requests
 from django.conf import settings
 import os
+
 
 class PayGateService:
 
@@ -13,11 +12,12 @@ class PayGateService:
     PAY_URL = f"{BASE_URL}/pay"
     STATUS_URL = f"{BASE_URL}/status"
 
-    MODE_TEST = False
+    MODE_TEST = True
 
     @classmethod
     def initier_paiement(cls, montant: float, telephone: str, operateur: str, identifier: str):
-        """Initie un paiement mobile money"""
+
+#Initie un paiement mobile money
 
         if cls.MODE_TEST:
             print(f"MODE TEST - Paiement simule pour {montant} FCFA")
@@ -87,7 +87,8 @@ class PayGateService:
 
     @classmethod
     def verifier_statut(cls, tx_reference: str):
-        """Verifie le statut d'une transaction"""
+
+#Verifie le statut d'une transaction
 
         if cls.MODE_TEST and tx_reference.startswith('TEST_'):
             print(f"MODE TEST - Statut simule: SUCCES")
@@ -136,7 +137,8 @@ class PayGateService:
 
     @classmethod
     def verifier_solde(cls):
-        """Verifie le solde du compte PayGate"""
+
+#Verifie le solde du compte PayGate
         payload = {"auth_token": cls.API_KEY}
 
         try:

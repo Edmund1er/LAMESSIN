@@ -58,11 +58,14 @@ class MedecinSerializer(serializers.ModelSerializer):
 
 class PharmacienSerializer(serializers.ModelSerializer):
     compte_utilisateur = UtilisateurSerializer(read_only=True)
-    pharmacie_nom = serializers.ReadOnlyField(source='pharmacie.nom', read_only=True)
+    nom_pharmacie = serializers.ReadOnlyField(source='pharmacie.nom', read_only=True)
+    adresse_pharmacie = serializers.ReadOnlyField(source='pharmacie.adresse', read_only=True)
+    numero_pharmacie = serializers.ReadOnlyField(source='pharmacie.contact', read_only=True)
 
     class Meta:
         model = Pharmacien
-        fields = ('compte_utilisateur', 'numero_licence', 'pharmacie', 'pharmacie_nom')
+        fields = ('compte_utilisateur', 'numero_licence', 'pharmacie', 'nom_pharmacie', 'adresse_pharmacie', 'numero_pharmacie')
+
 
 
 class InscriptionSerializer(serializers.ModelSerializer):
@@ -337,12 +340,13 @@ class StockPharmacieSerializer(serializers.ModelSerializer):
     id_pharmacie = serializers.ReadOnlyField(source='pharmacie_detentrice.id')
     nom_pharmacie = serializers.ReadOnlyField(source='pharmacie_detentrice.nom')
     adresse_pharmacie = serializers.ReadOnlyField(source='pharmacie_detentrice.adresse')
+    nom_produit = serializers.ReadOnlyField(source='produit_concerne.nom_commercial')  # ← AJOUTER
     latitude = serializers.ReadOnlyField(source='pharmacie_detentrice.coordonnee_latitude_gps')
     longitude = serializers.ReadOnlyField(source='pharmacie_detentrice.coordonnee_longitude_gps')
 
     class Meta:
         model = Stock
-        fields = ('id_pharmacie', 'nom_pharmacie', 'adresse_pharmacie',
+        fields = ('id', 'id_pharmacie', 'nom_pharmacie', 'adresse_pharmacie', 'nom_produit',
                   'quantite_actuelle_en_stock', 'date_peremption', 'latitude', 'longitude')
 
 

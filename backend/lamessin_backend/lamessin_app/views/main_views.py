@@ -88,7 +88,7 @@ class UserProfil(APIView):
             data = MedecinSerializer(profile).data
         elif user.est_un_compte_pharmacien:
             profile = Pharmacien.objects.get(compte_utilisateur=user)
-            data = PharmacienSerializer(profile).data
+            data = PharmacienSerializer(profile).data  # ← ICI
         else:
             data = UtilisateurSerializer(user).data
         return Response(data)

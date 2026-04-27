@@ -1,3 +1,4 @@
+# lamessin_backend/settings.py
 """
 Django settings for lamessin_backend project.
 Optimisé pour Flutter & Firebase - Configuration Complète
@@ -8,6 +9,25 @@ from pathlib import Path
 from datetime import timedelta
 import firebase_admin
 from firebase_admin import credentials as fb_creds
+from dotenv import load_dotenv
+
+# ====================================================================================================
+# CHARGER LES VARIABLES D'ENVIRONNEMENT DEPUIS API.ENV
+# ====================================================================================================
+BASE_DIR = Path(__file__).resolve().parent.parent
+ENV_PATH = BASE_DIR / 'api.env'
+
+if ENV_PATH.exists():
+    load_dotenv(ENV_PATH)
+    print(f"✓ Fichier .env chargé depuis {ENV_PATH}")
+
+    groq_key = os.getenv('GROQ_API_KEY')
+    if groq_key:
+        print(f"✓ GROQ_API_KEY trouvée (commence par: {groq_key[:15]}...)")
+    else:
+        print("⚠️ GROQ_API_KEY non trouvée dans api.env - Veuillez vous inscrire sur console.groq.com")
+else:
+    print(f"⚠️ Fichier api.env introuvable à {ENV_PATH}")
 
 # ====================================================================================================
 # CONFIGURATION DES ACCÈS (BASE DE DONNÉES)
@@ -16,9 +36,6 @@ try:
     from . import credentials as db_creds
 except ImportError:
     db_creds = None
-
-# Build paths inside the project
-BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-*xx#hp=o=!zq@46*b#n#jc!2wiubmmz-l8dnh%p8fy6m=5$hph'
@@ -32,26 +49,21 @@ ALLOWED_HOSTS = ['*']
 # ====================================================================================================
 
 INSTALLED_APPS = [
-    # Applications Django de base
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
-    # Librairies Tierces (CORS, REST Framework, JWT)
     'corsheaders',
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
-
-    # Ton application locale
     'lamessin_app',
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware', # Doit être en haut pour Flutter
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -81,7 +93,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'lamessin_backend.wsgi.application'
 
 # ====================================================================================================
-# DATABASE CONFIGURATION (POSTGRESQL VIA CREDENTIALS.PY)
+# DATABASE CONFIGURATION
 # ====================================================================================================
 
 if db_creds:
@@ -96,7 +108,6 @@ if db_creds:
         }
     }
 else:
-    # Fallback SQLite si credentials.py est manquant (sécurité)
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -132,7 +143,7 @@ SIMPLE_JWT = {
 }
 
 # ====================================================================================================
-# CORS & SÉCURITÉ (AUTORISATION FLUTTER / NGROK)
+# CORS & SÉCURITÉ
 # ====================================================================================================
 
 CORS_ALLOW_ALL_ORIGINS = True
@@ -149,7 +160,7 @@ CORS_ALLOW_HEADERS = [
 ]
 
 # ====================================================================================================
-# FICHIERS STATIQUES ET MÉDIAS (STOCKAGE PHOTOS/ORDONNANCES)
+# FICHIERS STATIQUES ET MÉDIAS
 # ====================================================================================================
 
 STATIC_URL = 'static/'
@@ -166,7 +177,6 @@ FIREBASE_KEY_PATH = os.path.join(BASE_DIR, 'firebase-auth.json')
 
 if os.path.exists(FIREBASE_KEY_PATH):
     try:
-        # On vérifie si Firebase n'est pas déjà initialisé pour éviter l'erreur au reload
         if not firebase_admin._apps:
             certification_obj = fb_creds.Certificate(FIREBASE_KEY_PATH)
             firebase_admin.initialize_app(certification_obj)
@@ -177,7 +187,7 @@ else:
     print("Attention : firebase-auth.json introuvable. Les notifications ne fonctionneront pas.")
 
 # ====================================================================================================
-# INTERNATIONALISATION & SYSTÈME
+# INTERNATIONALISATION
 # ====================================================================================================
 
 LANGUAGE_CODE = 'fr-fr'

@@ -7,3 +7,9 @@ firebase-auth.json
 android/app/google-services.json
 # pour gemini
 api.env
+
+
+.env
+*.env
+
+credentials.py
