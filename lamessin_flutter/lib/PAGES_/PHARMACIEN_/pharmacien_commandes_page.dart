@@ -9,20 +9,18 @@ import 'pharmacien_profil_page.dart';
 
 class PharmacienCommandesPage extends StatefulWidget {
   const PharmacienCommandesPage({super.key});
+
   @override
   State<PharmacienCommandesPage> createState() => _PharmacienCommandesPageState();
 }
 
-class _PharmacienCommandesPageState extends State<PharmacienCommandesPage>
-    with SingleTickerProviderStateMixin {
-  // Controleur des onglets
+class _PharmacienCommandesPageState extends State<PharmacienCommandesPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  // Liste des commandes
   List<Commande> _commandes = [];
-  // Etat du chargement
   bool _chargement = true;
-  // Texte de recherche
   String _recherche = "";
+
+  final String _imageFond = "assets/images/fond_pharmacien_commandes.jpg";
 
   @override
   void initState() {
@@ -37,7 +35,6 @@ class _PharmacienCommandesPageState extends State<PharmacienCommandesPage>
     super.dispose();
   }
 
-  // Charge toutes les commandes
   Future<void> _chargerCommandes() async {
     setState(() => _chargement = true);
     try {
@@ -53,134 +50,82 @@ class _PharmacienCommandesPageState extends State<PharmacienCommandesPage>
     }
   }
 
-  // Filtre les commandes par recherche
-  List<Commande> get _commandesFiltrees => _commandes
-      .where(
-        (c) => c.patientNom.toLowerCase().contains(_recherche.toLowerCase()),
-      )
-      .toList();
+  List<Commande> get _commandesFiltrees => _commandes.where((c) => c.patientNom.toLowerCase().contains(_recherche.toLowerCase())).toList();
 
-  // Commandes en attente
-  List<Commande> get _commandesEnAttente => _commandesFiltrees
-      .where((c) => c.statut.toUpperCase() == 'EN_ATTENTE')
-      .toList();
+  List<Commande> get _commandesEnAttente => _commandesFiltrees.where((c) => c.statut.toUpperCase() == 'EN_ATTENTE').toList();
+  List<Commande> get _commandesPayees => _commandesFiltrees.where((c) => c.statut.toUpperCase() == 'PAYE').toList();
+  List<Commande> get _commandesLivrees => _commandesFiltrees.where((c) => c.statut.toUpperCase() == 'LIVRE').toList();
 
-  // Commandes payees
-  List<Commande> get _commandesPayees => _commandesFiltrees
-      .where((c) => c.statut.toUpperCase() == 'PAYE')
-      .toList();
-
-  // Commandes livrees
-  List<Commande> get _commandesLivrees => _commandesFiltrees
-      .where((c) => c.statut.toUpperCase() == 'LIVRE')
-      .toList();
+  void _onItemTapped(int index) {
+    if (index == 0) {
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const PharmacienDashboardPage()));
+    } else if (index == 1) {
+      return;
+    } else if (index == 2) {
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const PharmacienProduitsPage()));
+    } else if (index == 3) {
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const PharmacienProfilPage()));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage("assets/images/fond_patient.jpg"),
-            fit: BoxFit.cover,
-          ),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF00ACC1),
+        elevation: 0,
+        automaticallyImplyLeading: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+          onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const PharmacienDashboardPage())),
         ),
-        child: NestedScrollView(
-          headerSliverBuilder: (_, __) => [
-            SliverAppBar(
-              pinned: true,
-              backgroundColor: Colors.white.withOpacity(0.85),
-              elevation: 0,
-              automaticallyImplyLeading: false,
-              expandedHeight: 130,
-              flexibleSpace: FlexibleSpaceBar(
-                background: Container(
-                  color: Colors.white.withOpacity(0.85),
-                  padding: const EdgeInsets.only(
-                    left: 20,
-                    right: 20,
-                    bottom: 56,
-                    top: 50,
-                  ),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        "Commandes",
-                        style: TextStyle(
-                          color: Color(0xFF00C2CB),
-                          fontSize: 24,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              bottom: TabBar(
-                controller: _tabController,
-                indicatorColor: const Color(0xFF00C2CB),
-                indicatorWeight: 3,
-                labelColor: const Color(0xFF00C2CB),
-                unselectedLabelColor: Colors.grey,
-                labelStyle: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 13,
-                ),
-                tabs: const [
-                  Tab(text: "En attente"),
-                  Tab(text: "Payees"),
-                  Tab(text: "Livrees"),
-                ],
-              ),
-            ),
+        title: const Text("Commandes", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
+        centerTitle: true,
+        bottom: TabBar(
+          controller: _tabController,
+          indicatorColor: Colors.white,
+          indicatorWeight: 3,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+          tabs: const [
+            Tab(text: "En attente"),
+            Tab(text: "Payees"),
+            Tab(text: "Livrees"),
           ],
-          body: Container(
-            color: Colors.white.withOpacity(0.75),
-            child: _chargement
-                ? const Center(
-                    child: CircularProgressIndicator(color: Color(0xFF00C2CB)),
-                  )
-                : Column(
-                    children: [
-                      // Barre de recherche
-                      Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.85),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.grey[300]!),
-                          ),
-                          child: TextField(
-                            onChanged: (v) => setState(() => _recherche = v),
-                            style: const TextStyle(
-                              color: AppColors.textPrimary,
-                              fontSize: 14,
-                            ),
-                            decoration: InputDecoration(
-                              hintText: "Rechercher un patient...",
-                              hintStyle: const TextStyle(
-                                color: Colors.grey,
-                                fontSize: 14,
-                              ),
-                              prefixIcon: const Icon(
-                                Icons.search_rounded,
-                                color: Colors.grey,
-                              ),
-                              border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(
-                                vertical: 14,
-                                horizontal: 16,
-                              ),
-                            ),
-                          ),
-                        ),
+        ),
+      ),
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Image.asset(_imageFond, fit: BoxFit.cover, errorBuilder: (context, error, stackTrace) => Container(color: Colors.grey[100])),
+          ),
+          Container(
+            color: Colors.white.withOpacity(0.92),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Container(
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5)]),
+                    child: TextField(
+                      onChanged: (v) => setState(() => _recherche = v),
+                      style: const TextStyle(color: Colors.black87, fontSize: 14),
+                      decoration: InputDecoration(
+                        hintText: "Rechercher un patient...",
+                        hintStyle: const TextStyle(color: Colors.grey),
+                        prefixIcon: const Icon(Icons.search_rounded, color: Colors.grey),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
                       ),
-                      Expanded(
-                        child: TabBarView(
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: _chargement
+                      ? const Center(child: CircularProgressIndicator(color: Color(0xFF00ACC1)))
+                      : TabBarView(
                           controller: _tabController,
                           children: [
                             _buildListeCommandes(_commandesEnAttente, "en_attente"),
@@ -188,234 +133,113 @@ class _PharmacienCommandesPageState extends State<PharmacienCommandesPage>
                             _buildListeCommandes(_commandesLivrees, "livree"),
                           ],
                         ),
-                      ),
-                    ],
-                  ),
+                ),
+              ],
+            ),
           ),
-        ),
+        ],
       ),
       bottomNavigationBar: _buildBottomNav(1),
     );
   }
 
-  // Affiche la liste des commandes
   Widget _buildListeCommandes(List<Commande> commandes, String type) {
     if (commandes.isEmpty) {
-      return _buildEmpty(type);
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(_getEmptyIcon(type), size: 64, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(_getEmptyMessage(type), style: TextStyle(color: Colors.grey[600], fontSize: 16)),
+          ],
+        ),
+      );
     }
     return RefreshIndicator(
       onRefresh: _chargerCommandes,
-      color: const Color(0xFF00C2CB),
+      color: const Color(0xFF00ACC1),
       child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.all(16),
         itemCount: commandes.length,
         itemBuilder: (_, i) => _buildCommandeCard(commandes[i]),
       ),
     );
   }
 
-  // Carte d'une commande
-  Widget _buildCommandeCard(Commande c) {
-    Color statutColor;
-    Color statutBg;
-    String statutLabel;
-
-    switch (c.statut.toUpperCase()) {
-      case 'EN_ATTENTE':
-        statutColor = const Color(0xFFE65100);
-        statutBg = AppColors.warningLight;
-        statutLabel = "A preparer";
-        break;
-      case 'PAYE':
-        statutColor = const Color(0xFF22863A);
-        statutBg = AppColors.successLight;
-        statutLabel = "A livrer / retrait";
-        break;
-      default:
-        statutColor = AppColors.textSecondary;
-        statutBg = AppColors.surfaceVariant;
-        statutLabel = c.statut;
+  String _getEmptyMessage(String type) {
+    switch (type) {
+      case "en_attente": return "Aucune commande en attente";
+      case "payee": return "Aucune commande payee";
+      default: return "Aucune commande livree";
     }
+  }
 
+  IconData _getEmptyIcon(String type) {
+    switch (type) {
+      case "en_attente": return Icons.hourglass_empty_rounded;
+      case "payee": return Icons.payments_rounded;
+      default: return Icons.check_circle_rounded;
+    }
+  }
+
+  Widget _buildCommandeCard(Commande c) {
+    Map<String, dynamic> style = _getStatutStyle(c.statut);
     return GestureDetector(
       onTap: () => _voirDetails(c),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.85),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey[200]!),
-        ),
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))]),
         child: Row(
           children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: const Color(0xFF00C2CB).withOpacity(0.15),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(
-                Icons.shopping_bag_rounded,
-                color: Color(0xFF00C2CB),
-                size: 24,
-              ),
-            ),
-            const SizedBox(width: 12),
+            Container(width: 50, height: 50, decoration: BoxDecoration(color: style['bg'], borderRadius: BorderRadius.circular(15)), child: Icon(Icons.shopping_bag_rounded, color: style['color'], size: 24)),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    c.patientNom,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
+                  Text(c.patientNom, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87)),
                   const SizedBox(height: 4),
-                  Text(
-                    "${c.lignes.length} produit(s) · ${c.total.toStringAsFixed(0)} FCFA",
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  Text(
-                    c.dateCreation.substring(0, 10),
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey,
-                    ),
-                  ),
+                  Text("${c.lignes.length} produit(s)  ${c.total.toStringAsFixed(0)} FCFA", style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                  Text(c.dateCreation.substring(0, 10), style: const TextStyle(fontSize: 11, color: Colors.grey)),
                 ],
               ),
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: statutBg,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                statutLabel,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: statutColor,
-                ),
-              ),
-            ),
-            const Icon(
-              Icons.chevron_right_rounded,
-              color: Colors.grey,
-              size: 20,
-            ),
+            Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: style['bg'], borderRadius: BorderRadius.circular(20)), child: Text(style['label'], style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: style['color']))),
+            const Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 20),
           ],
         ),
       ),
     );
   }
 
-  // Navigation vers le detail de la commande
-  void _voirDetails(Commande commande) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (ctx) => PharmacienDetailCommandePage(commande: commande),
-      ),
-    ).then((_) => _chargerCommandes());
-  }
-
-  // Message quand liste vide
-  Widget _buildEmpty(String type) {
-    String message;
-    IconData icon;
-
-    switch (type) {
-      case "en_attente":
-        message = "Aucune commande en attente";
-        icon = Icons.hourglass_empty_rounded;
-        break;
-      case "payee":
-        message = "Aucune commande payee";
-        icon = Icons.payments_rounded;
-        break;
-      default:
-        message = "Aucune commande livree";
-        icon = Icons.check_circle_rounded;
+  Map<String, dynamic> _getStatutStyle(String statut) {
+    switch (statut.toUpperCase()) {
+      case 'EN_ATTENTE': return {'label': 'En attente', 'color': const Color(0xFFF57C00), 'bg': const Color(0xFFFFF3E0)};
+      case 'PAYE': return {'label': 'Payee', 'color': const Color(0xFF4CAF50), 'bg': const Color(0xFFE8F5E9)};
+      case 'LIVRE': return {'label': 'Livree', 'color': const Color(0xFF2196F3), 'bg': const Color(0xFFE3F2FD)};
+      default: return {'label': statut, 'color': Colors.grey, 'bg': Colors.grey[100]!};
     }
-
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: Colors.grey, size: 48),
-          const SizedBox(height: 12),
-          Text(
-            message,
-            style: const TextStyle(
-              color: Colors.grey,
-              fontSize: 14,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
-  // Barre de navigation en bas
+  void _voirDetails(Commande commande) {
+    Navigator.push(context, MaterialPageRoute(builder: (ctx) => PharmacienDetailCommandePage(commande: commande))).then((_) => _chargerCommandes());
+  }
+
   Widget _buildBottomNav(int index) {
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Colors.grey)),
-      ),
+      decoration: BoxDecoration(color: Colors.white, boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]),
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _navItem(
-                Icons.dashboard_rounded,
-                "Accueil",
-                0,
-                index,
-                () => Navigator.pushReplacementNamed(
-                  context,
-                  '/dashboard_pharmacien',
-                ),
-              ),
-              _navItem(
-                Icons.shopping_bag_rounded,
-                "Commandes",
-                1,
-                index,
-                () {},
-              ),
-              _navItem(
-                Icons.medication_rounded,
-                "Produits",
-                2,
-                index,
-                () => Navigator.pushReplacementNamed(
-                  context,
-                  '/produits_pharmacien',
-                ),
-              ),
-              _navItem(
-                Icons.account_circle_rounded,
-                "Profil",
-                3,
-                index,
-                () => Navigator.pushReplacementNamed(
-                  context,
-                  '/profil_pharmacien',
-                ),
-              ),
+              _navItem(Icons.dashboard_rounded, "Accueil", 0, index),
+              _navItem(Icons.shopping_bag_rounded, "Commandes", 1, index),
+              _navItem(Icons.medication_rounded, "Produits", 2, index),
+              _navItem(Icons.person_rounded, "Profil", 3, index),
             ],
           ),
         ),
@@ -423,34 +247,16 @@ class _PharmacienCommandesPageState extends State<PharmacienCommandesPage>
     );
   }
 
-  // Element de la barre de navigation
-  Widget _navItem(
-    IconData icon,
-    String label,
-    int idx,
-    int current,
-    VoidCallback onTap,
-  ) {
+  Widget _navItem(IconData icon, String label, int idx, int current) {
     bool actif = idx == current;
     return GestureDetector(
-      onTap: onTap,
+      onTap: () => _onItemTapped(idx),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            color: actif ? const Color(0xFF00C2CB) : Colors.grey,
-            size: 24,
-          ),
-          const SizedBox(height: 3),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: actif ? FontWeight.w700 : FontWeight.w500,
-              color: actif ? const Color(0xFF00C2CB) : Colors.grey,
-            ),
-          ),
+          Icon(icon, color: actif ? const Color(0xFF00ACC1) : Colors.grey, size: 24),
+          const SizedBox(height: 4),
+          Text(label, style: TextStyle(fontSize: 11, fontWeight: actif ? FontWeight.w600 : FontWeight.normal, color: actif ? const Color(0xFF00ACC1) : Colors.grey)),
         ],
       ),
     );

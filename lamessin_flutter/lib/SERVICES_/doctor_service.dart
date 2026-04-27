@@ -8,6 +8,8 @@ import '../MODELS_/utilisateur_model.dart';
 import '../MODELS_/rendezvous_model.dart';
 import '../MODELS_/notification_model.dart';
 import '../MODELS_/plage_horaire_model.dart';
+import '../MODELS_/consultation_model.dart';
+import '../MODELS_/ordonnance_model.dart';
 
 class DoctorService {
   // ========================= PROFIL =========================
@@ -103,7 +105,18 @@ class DoctorService {
       return false;
     }
   }
-
+static Future<bool> expirerRendezVous() async {
+  try {
+    final response = await http.get(
+      Uri.parse('${ApiService.baseUrl}/medecin/rendezvous/expirer/'),
+      headers: await ApiService.getHeaders(),
+    );
+    return response.statusCode == 200;
+  } catch (e) {
+    debugPrint("Erreur expirerRendezVous: $e");
+    return false;
+  }
+}
   // ========================= CONSULTATIONS =========================
 
   static Future<Map<String, dynamic>?> creerConsultation({
@@ -134,14 +147,10 @@ class DoctorService {
     }
   }
 
-  static Future<Map<String, dynamic>?> getConsultation(
-    int consultationId,
-  ) async {
+  static Future<Map<String, dynamic>?> getConsultation(int consultationId) async {
     try {
       final response = await http.get(
-        Uri.parse(
-          '${ApiService.baseUrl}/medecin/consultations/$consultationId/',
-        ),
+        Uri.parse('${ApiService.baseUrl}/medecin/consultations/$consultationId/'),
         headers: await ApiService.getHeaders(),
       );
 
@@ -151,6 +160,23 @@ class DoctorService {
       return null;
     } catch (e) {
       debugPrint("Erreur getConsultation: $e");
+      return null;
+    }
+  }
+
+  static Future<Map<String, dynamic>?> getConsultationByRdv(int rdvId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiService.baseUrl}/medecin/consultations/by-rdv/$rdvId/'),
+        headers: await ApiService.getHeaders(),
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(utf8.decode(response.bodyBytes));
+      }
+      return null;
+    } catch (e) {
+      debugPrint("Erreur getConsultationByRdv: $e");
       return null;
     }
   }
@@ -199,6 +225,7 @@ class DoctorService {
       return null;
     }
   }
+
   // ========================= DISPONIBILITÉS =========================
 
   static Future<List<PlageHoraire>> getPlagesHoraires() async {
@@ -257,6 +284,7 @@ class DoctorService {
       return false;
     }
   }
+
   // ========================= PATIENTS =========================
 
   static Future<List<dynamic>> getMesPatients() async {
@@ -296,10 +324,8 @@ class DoctorService {
   // ========================= DOCUMENTS =========================
 
   static Future<bool> uploadDocumentMedical({
-    required int patientId,
+    required int consultationId,
     required String filePath,
-    required String typeDocument,
-    String? description,
   }) async {
     try {
       var request = http.MultipartRequest(
@@ -307,22 +333,14 @@ class DoctorService {
         Uri.parse('${ApiService.baseUrl}/medecin/documents/upload/'),
       );
 
-      // Ajouter les headers
       final headers = await ApiService.getHeaders();
       request.headers.addAll(headers);
 
-      // Ajouter les champs
-      request.fields['patient_id'] = patientId.toString();
-      request.fields['type_document'] = typeDocument;
-      if (description != null) {
-        request.fields['description'] = description;
-      }
-
-      // Ajouter le fichier
-      request.files.add(await http.MultipartFile.fromPath('fichier', filePath));
+      request.fields['consultation_id'] = consultationId.toString();
+      request.files.add(await http.MultipartFile.fromPath('document', filePath));
 
       final response = await request.send();
-      return response.statusCode == 201;
+      return response.statusCode == 200;
     } catch (e) {
       debugPrint("Erreur uploadDocumentMedical: $e");
       return false;
@@ -349,5 +367,3 @@ class DoctorService {
     }
   }
 }
-
-// ✅ Bon - GET sur /medecin/plages-horaires/

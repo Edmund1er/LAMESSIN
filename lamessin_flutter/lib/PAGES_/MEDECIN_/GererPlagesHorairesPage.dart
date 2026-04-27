@@ -3,13 +3,16 @@ import 'package:intl/intl.dart';
 import '../../THEME_/app_theme.dart';
 import '../../SERVICES_/doctor_service.dart';
 import '../../MODELS_/plage_horaire_model.dart';
+import 'medecin_dashboard.dart';
+import 'medecin_rendezvous_page.dart';
+import 'medecin_consultations_page.dart';
+import 'medecin_profil_page.dart';
 
 class GererPlagesHorairesPage extends StatefulWidget {
   const GererPlagesHorairesPage({super.key});
 
   @override
-  State<GererPlagesHorairesPage> createState() =>
-      _GererPlagesHorairesPageState();
+  State<GererPlagesHorairesPage> createState() => _GererPlagesHorairesPageState();
 }
 
 class _GererPlagesHorairesPageState extends State<GererPlagesHorairesPage> {
@@ -22,6 +25,8 @@ class _GererPlagesHorairesPageState extends State<GererPlagesHorairesPage> {
   TimeOfDay? _selectedHeureDebut;
   TimeOfDay? _selectedHeureFin;
   final _dureeController = TextEditingController(text: '60');
+
+  final String _imageFond = "assets/images/fond_medecin_disponibilites.jpg";
 
   @override
   void initState() {
@@ -55,32 +60,24 @@ class _GererPlagesHorairesPageState extends State<GererPlagesHorairesPage> {
 
   Future<void> _ajouterPlageHoraire() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_selectedDate == null ||
-        _selectedHeureDebut == null ||
-        _selectedHeureFin == null) {
+    if (_selectedDate == null || _selectedHeureDebut == null || _selectedHeureFin == null) {
       _showSnackBar('Veuillez remplir tous les champs', isError: true);
       return;
     }
-
     setState(() => _isAdding = true);
-
     try {
       final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate!);
-      final heureDebutStr =
-          '${_selectedHeureDebut!.hour.toString().padLeft(2, '0')}:${_selectedHeureDebut!.minute.toString().padLeft(2, '0')}';
-      final heureFinStr =
-          '${_selectedHeureFin!.hour.toString().padLeft(2, '0')}:${_selectedHeureFin!.minute.toString().padLeft(2, '0')}';
-
+      final heureDebutStr = '${_selectedHeureDebut!.hour.toString().padLeft(2, '0')}:${_selectedHeureDebut!.minute.toString().padLeft(2, '0')}';
+      final heureFinStr = '${_selectedHeureFin!.hour.toString().padLeft(2, '0')}:${_selectedHeureFin!.minute.toString().padLeft(2, '0')}';
       final success = await DoctorService.ajouterPlageHoraire(
         date: dateStr,
         heureDebut: heureDebutStr,
         heureFin: heureFinStr,
         dureeConsultation: int.parse(_dureeController.text),
       );
-
       if (mounted) {
         if (success) {
-          _showSnackBar('Plage horaire ajoutée avec succès');
+          _showSnackBar('Plage horaire ajoutee avec succes');
           _resetForm();
           await _loadPlagesHoraires();
         } else {
@@ -98,29 +95,25 @@ class _GererPlagesHorairesPageState extends State<GererPlagesHorairesPage> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Confirmer la suppression'),
-        content: Text('Supprimer la plage du ${_formatDate(plage.date)} ?'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text("Confirmer la suppression"),
+        content: Text("Supprimer la plage du ${_formatDate(plage.date)} ?"),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Annuler'),
-          ),
-          TextButton(
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Annuler", style: TextStyle(color: Colors.grey))),
+          ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            child: const Text('Supprimer'),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text("Supprimer"),
           ),
         ],
       ),
     );
-
     if (confirm != true) return;
-
     try {
       final success = await DoctorService.supprimerPlageHoraire(plage.id);
       if (mounted) {
         if (success) {
-          _showSnackBar('Plage horaire supprimée');
+          _showSnackBar('Plage horaire supprimee');
           await _loadPlagesHoraires();
         } else {
           _showSnackBar('Erreur lors de la suppression', isError: true);
@@ -142,6 +135,7 @@ class _GererPlagesHorairesPageState extends State<GererPlagesHorairesPage> {
   }
 
   String _formatDate(String dateStr) {
+    if (dateStr.isEmpty) return 'Date inconnue';
     try {
       final date = DateTime.parse(dateStr);
       return DateFormat('EEEE d MMMM yyyy', 'fr_FR').format(date);
@@ -151,13 +145,11 @@ class _GererPlagesHorairesPageState extends State<GererPlagesHorairesPage> {
   }
 
   void _showSnackBar(String message, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? AppColors.danger : AppColors.success,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(message),
+      backgroundColor: isError ? Colors.red : Colors.green,
+      behavior: SnackBarBehavior.floating,
+    ));
   }
 
   Future<void> _selectDate() async {
@@ -166,6 +158,14 @@ class _GererPlagesHorairesPageState extends State<GererPlagesHorairesPage> {
       initialDate: DateTime.now(),
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(primary: Color(0xFF00ACC1)),
+          ),
+          child: child!,
+        );
+      },
     );
     if (date != null) setState(() => _selectedDate = date);
   }
@@ -174,6 +174,14 @@ class _GererPlagesHorairesPageState extends State<GererPlagesHorairesPage> {
     final time = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(primary: Color(0xFF00ACC1)),
+          ),
+          child: child!,
+        );
+      },
     );
     if (time != null) {
       setState(() {
@@ -186,212 +194,187 @@ class _GererPlagesHorairesPageState extends State<GererPlagesHorairesPage> {
     }
   }
 
+  void _onItemTapped(int index) {
+    if (index == 0) {
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MedecinDashboardPage()));
+    } else if (index == 1) {
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MedecinRendezVousPage()));
+    } else if (index == 2) {
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MedecinConsultationsPage()));
+    } else if (index == 3) {
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MedecinProfilPage()));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: const Text('Gérer mes disponibilités'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
+        title: const Text("Gerer mes disponibilites", style: TextStyle(color: Colors.white)),
+        backgroundColor: const Color(0xFF00ACC1),
         elevation: 0,
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
-      body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            )
-          : RefreshIndicator(
-              onRefresh: _loadPlagesHoraires,
-              color: AppColors.primary,
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildAddForm(),
-                    const SizedBox(height: 24),
-                    Row(
-                      children: [
-                        const Text(
-                          'Mes plages horaires',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryLight,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            '${_plagesHoraires.length}',
-                            style: const TextStyle(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.bold,
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Image.asset(_imageFond, fit: BoxFit.cover, errorBuilder: (context, error, stackTrace) => Container(color: Colors.grey[100])),
+          ),
+          _isLoading
+              ? const Center(child: CircularProgressIndicator(color: Color(0xFF00ACC1)))
+              : Container(
+                  color: Colors.white.withOpacity(0.92),
+                  child: RefreshIndicator(
+                    onRefresh: _loadPlagesHoraires,
+                    color: const Color(0xFF00ACC1),
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))],
+                            ),
+                            child: Form(
+                              key: _formKey,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text("Ajouter une plage horaire", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87)),
+                                  const SizedBox(height: 16),
+                                  _buildFormField(
+                                    label: "Date",
+                                    value: _selectedDate != null ? _formatDate(_selectedDate!.toIso8601String().split('T')[0]) : "Selectionner une date",
+                                    icon: Icons.calendar_today_rounded,
+                                    onTap: _selectDate,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  _buildFormField(
+                                    label: "Heure de debut",
+                                    value: _selectedHeureDebut != null ? _selectedHeureDebut!.format(context) : "Selectionner une heure",
+                                    icon: Icons.access_time_rounded,
+                                    onTap: () => _selectTime(true),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  _buildFormField(
+                                    label: "Heure de fin",
+                                    value: _selectedHeureFin != null ? _selectedHeureFin!.format(context) : "Selectionner une heure",
+                                    icon: Icons.access_time_rounded,
+                                    onTap: () => _selectTime(false),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  TextFormField(
+                                    controller: _dureeController,
+                                    keyboardType: TextInputType.number,
+                                    decoration: InputDecoration(
+                                      labelText: "Duree (minutes)",
+                                      prefixIcon: const Icon(Icons.timer_outlined, color: Color(0xFF00ACC1)),
+                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                      filled: true,
+                                      fillColor: Colors.grey[50],
+                                    ),
+                                    validator: (value) {
+                                      if (value == null || value.isEmpty) return 'Champ requis';
+                                      final duree = int.tryParse(value);
+                                      if (duree == null || duree < 15 || duree > 120) return 'Entre 15 et 120 minutes';
+                                      return null;
+                                    },
+                                  ),
+                                  const SizedBox(height: 20),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    height: 48,
+                                    child: ElevatedButton.icon(
+                                      onPressed: _isAdding ? null : _ajouterPlageHoraire,
+                                      icon: _isAdding ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.add_rounded),
+                                      label: Text(_isAdding ? 'Ajout en cours...' : 'Ajouter la plage'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFF00ACC1),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 24),
+                          Row(
+                            children: [
+                              const Text("Mes plages horaires", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87)),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(color: const Color(0xFFE0F7FA), borderRadius: BorderRadius.circular(20)),
+                                child: Text('${_plagesHoraires.length}', style: const TextStyle(color: Color(0xFF00ACC1), fontWeight: FontWeight.bold)),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          _buildPlagesList(),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 12),
-                    _buildPlagesList(),
-                  ],
-                ),
-              ),
-            ),
-    );
-  }
-
-  Widget _buildAddForm() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderLight),
-      ),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Ajouter une plage horaire',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildFormField(
-              label: 'Date',
-              value: _selectedDate != null
-                  ? _formatDate(_selectedDate!.toIso8601String().split('T')[0])
-                  : 'Sélectionner une date',
-              icon: Icons.calendar_today_rounded,
-              onTap: _selectDate,
-            ),
-            const SizedBox(height: 12),
-            _buildFormField(
-              label: 'Heure de début',
-              value: _selectedHeureDebut != null
-                  ? _selectedHeureDebut!.format(context)
-                  : 'Sélectionner une heure',
-              icon: Icons.access_time_rounded,
-              onTap: () => _selectTime(true),
-            ),
-            const SizedBox(height: 12),
-            _buildFormField(
-              label: 'Heure de fin',
-              value: _selectedHeureFin != null
-                  ? _selectedHeureFin!.format(context)
-                  : 'Sélectionner une heure',
-              icon: Icons.access_time_rounded,
-              onTap: () => _selectTime(false),
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _dureeController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Durée (minutes)',
-                prefixIcon: Icon(Icons.timer_outlined),
-                border: OutlineInputBorder(),
-              ),
-              validator: (value) {
-                if (value == null || value.isEmpty) return 'Champ requis';
-                final duree = int.tryParse(value);
-                if (duree == null || duree < 15 || duree > 120)
-                  return 'Entre 15 et 120 minutes';
-                return null;
-              },
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: ElevatedButton.icon(
-                onPressed: _isAdding ? null : _ajouterPlageHoraire,
-                icon: _isAdding
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.add_rounded),
-                label: Text(
-                  _isAdding ? 'Ajout en cours...' : 'Ajouter la plage',
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-              ),
+        ],
+      ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildNavItem(Icons.dashboard_rounded, "Accueil", 0),
+                _buildNavItem(Icons.calendar_today_rounded, "Rendez-vous", 1),
+                _buildNavItem(Icons.history_rounded, "Consultations", 2),
+                _buildNavItem(Icons.person_rounded, "Profil", 3),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildFormField({
-    required String label,
-    required String value,
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
+  Widget _buildFormField({required String label, required String value, required IconData icon, required VoidCallback onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         decoration: BoxDecoration(
-          border: Border.all(color: AppColors.borderLight),
-          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.grey[300]!),
+          borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
           children: [
-            Icon(icon, size: 20, color: AppColors.textSecondary),
+            Icon(icon, size: 20, color: const Color(0xFF00ACC1)),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    label,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
+                  Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
                   const SizedBox(height: 2),
-                  Text(
-                    value,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
+                  Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.black87)),
                 ],
               ),
             ),
-            const Icon(
-              Icons.arrow_drop_down_rounded,
-              color: AppColors.textSecondary,
-            ),
+            const Icon(Icons.arrow_drop_down_rounded, color: Colors.grey),
           ],
         ),
       ),
@@ -403,85 +386,73 @@ class _GererPlagesHorairesPageState extends State<GererPlagesHorairesPage> {
       return Container(
         padding: const EdgeInsets.symmetric(vertical: 40),
         decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.borderLight),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))],
         ),
         child: Center(
           child: Column(
             children: [
-              Icon(
-                Icons.event_busy_rounded,
-                size: 48,
-                color: AppColors.textSecondary.withOpacity(0.5),
-              ),
+              Icon(Icons.event_busy_rounded, size: 48, color: Colors.grey[400]),
               const SizedBox(height: 12),
-              const Text(
-                'Aucune plage horaire',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
-              ),
+              const Text("Aucune plage horaire", style: TextStyle(color: Colors.grey, fontSize: 14)),
             ],
           ),
         ),
       );
     }
-
-    final sortedPlages = [..._plagesHoraires];
-    sortedPlages.sort((a, b) => b.date.compareTo(a.date));
-
+    final List<PlageHoraire> sortedPlages = List.from(_plagesHoraires)..sort((a, b) => b.date.compareTo(a.date));
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderLight),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))],
       ),
       child: Column(
-        children: sortedPlages.asMap().entries.map((entry) {
-          final plage = entry.value;
-          final isLast = entry.key == sortedPlages.length - 1;
+        children: sortedPlages.asMap().entries.map((MapEntry<int, PlageHoraire> entry) {
+          final PlageHoraire plage = entry.value;
+          final bool isLast = entry.key == sortedPlages.length - 1;
           return Column(
             children: [
               ListTile(
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 leading: Container(
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: AppColors.primaryLight,
-                    borderRadius: BorderRadius.circular(10),
+                    color: const Color(0xFFE0F7FA),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(
-                    Icons.calendar_month_rounded,
-                    color: AppColors.primary,
-                  ),
+                  child: const Icon(Icons.calendar_month_rounded, color: Color(0xFF00ACC1)),
                 ),
-                title: Text(
-                  _formatDate(plage.date),
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
+                title: Text(_formatDate(plage.date), style: const TextStyle(fontWeight: FontWeight.w500, color: Colors.black87)),
                 subtitle: Text(
-                  '${plage.heureDebut} - ${plage.heureFin} • ${plage.dureeConsultation} min',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: AppColors.textSecondary,
-                  ),
+                  '${plage.heureDebut} - ${plage.heureFin}  ${plage.dureeConsultation} min',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
                 trailing: IconButton(
-                  icon: const Icon(
-                    Icons.delete_outline_rounded,
-                    color: AppColors.danger,
-                  ),
+                  icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
                   onPressed: () => _supprimerPlageHoraire(plage),
-                  tooltip: 'Supprimer',
                 ),
               ),
-              if (!isLast) const Divider(height: 1, indent: 72),
+              if (!isLast) const Divider(height: 1, indent: 72, color: Colors.grey),
             ],
           );
         }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(IconData icon, String label, int index) {
+    return GestureDetector(
+      onTap: () => _onItemTapped(index),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.grey, size: 24),
+          const SizedBox(height: 4),
+          Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+        ],
       ),
     );
   }

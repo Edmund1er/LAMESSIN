@@ -7,7 +7,6 @@ class NotificationService {
   static final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
 
   static Future<void> initialiser() async {
-
     await _messaging.requestPermission(
       alert: true,
       badge: true,
@@ -21,10 +20,9 @@ class NotificationService {
       android: initializationSettingsAndroid,
     );
 
-    await _localNotifications.initialize(
-      settings: initializationSettings,
+    await _localNotifications.initialize(settings:initializationSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) {
-        print("Notification cliquée : ${response.payload}");
+        print("Notification cliquee : ${response.payload}");
       },
     );
 
@@ -39,12 +37,12 @@ class NotificationService {
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(channel);
 
-
     try {
       String? token = await _messaging.getToken();
+      print("FCM Token recupere : $token");
       if (token != null) {
-        print("Token FCM récupéré : $token");
-        await ApiService.enregistrerFCMToken(token);
+        bool success = await ApiService.enregistrerFCMToken(token);
+        print("Enregistrement token : ${success ? 'OK' : 'ECHEC'}");
       }
     } catch (e) {
       print("Erreur Token FCM : $e");
@@ -61,9 +59,9 @@ class NotificationService {
     if (notification != null) {
       _localNotifications.show(
         id: DateTime.now().millisecondsSinceEpoch % 100000,
-        title: notification.title,                      
-        body: notification.body,                           
-        notificationDetails: const NotificationDetails(     
+        title: notification.title,
+        body: notification.body,
+        notificationDetails: const NotificationDetails(
           android: AndroidNotificationDetails(
             'paiement_channel_id',
             'Paiements Lamessin',
@@ -73,7 +71,7 @@ class NotificationService {
             icon: '@mipmap/ic_launcher',
           ),
         ),
-        payload: message.data.toString(),                 
+        payload: message.data.toString(),
       );
     }
   }

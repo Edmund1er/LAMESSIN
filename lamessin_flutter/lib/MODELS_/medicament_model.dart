@@ -41,6 +41,7 @@ class Medicament {
 class StockPharmacie {
   final int idStock;
   final int idPharmacie;
+  final String nomProduit;        // NOUVEAU: nom du medicament
   final String nomPharmacie;
   final String adressePharmacie;
   final int quantiteEnStock;
@@ -51,6 +52,7 @@ class StockPharmacie {
   StockPharmacie({
     required this.idStock,
     required this.idPharmacie,
+    required this.nomProduit,
     required this.nomPharmacie,
     required this.adressePharmacie,
     required this.quantiteEnStock,
@@ -61,18 +63,15 @@ class StockPharmacie {
 
   factory StockPharmacie.fromJson(Map<String, dynamic> json) {
     return StockPharmacie(
-      idStock: json['id_pharmacie'],
+      idStock: json['id'] ?? 0,
       idPharmacie: json['id_pharmacie'] ?? 0,
-      nomPharmacie: json['nom_pharmacie'] ?? 'Pharmacie inconnue',
+      nomProduit: json['nom_produit'] ?? json['produit_concerne']?['nom_commercial'] ?? "Produit inconnu",
+      nomPharmacie: json['nom_pharmacie'] ?? "Ma pharmacie",
       adressePharmacie: json['adresse_pharmacie'] ?? '',
       quantiteEnStock: json['quantite_actuelle_en_stock'] ?? 0,
       datePeremption: json['date_peremption'] ?? '',
-      latitude: (json['latitude'] != null)
-          ? double.parse(json['latitude'].toString())
-          : 0.0,
-      longitude: (json['longitude'] != null)
-          ? double.parse(json['longitude'].toString())
-          : 0.0,
+      latitude: (json['latitude'] != null) ? double.parse(json['latitude'].toString()) : 0.0,
+      longitude: (json['longitude'] != null) ? double.parse(json['longitude'].toString()) : 0.0,
     );
   }
 }

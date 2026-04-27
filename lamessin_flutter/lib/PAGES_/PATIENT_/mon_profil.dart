@@ -6,6 +6,7 @@ import 'edit_profil_page.dart';
 
 class ProfilPatientPage extends StatefulWidget {
   const ProfilPatientPage({super.key});
+
   @override
   State<ProfilPatientPage> createState() => _ProfilPatientPageState();
 }
@@ -13,206 +14,256 @@ class ProfilPatientPage extends StatefulWidget {
 class _ProfilPatientPageState extends State<ProfilPatientPage> {
   dynamic _user;
   bool _chargement = true;
+  int _selectedIndex = 4;
+
+  final String _imageFond = "assets/images/fond_patient.jpg";
 
   @override
-  void initState() { super.initState(); _chargerProfil(); }
+  void initState() {
+    super.initState();
+    _chargerProfil();
+  }
 
   @override
-  void didChangeDependencies() { super.didChangeDependencies(); _chargerProfil(); }
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _chargerProfil();
+  }
 
   Future<void> _chargerProfil() async {
     final data = await ApiService.getProfil();
-    if (mounted) setState(() { _user = data; _chargement = false; });
+    if (mounted) setState(() {
+      _user = data;
+      _chargement = false;
+    });
+  }
+
+  void _onItemTapped(int index) {
+    setState(() => _selectedIndex = index);
+    if (index == 0) {
+      Navigator.pushReplacementNamed(context, '/page_utilisateur');
+    } else if (index == 1) {
+      Navigator.pushReplacementNamed(context, '/recherches_services_medicaux');
+    } else if (index == 2) {
+      Navigator.pushReplacementNamed(context, '/mes_rendez_vous_page');
+    } else if (index == 3) {
+      Navigator.pushReplacementNamed(context, '/assistant');
+    } else if (index == 4) {
+      return;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_chargement) return const Scaffold(
-        backgroundColor: AppColors.background,
-        body: Center(child: CircularProgressIndicator(color: Color(0xFF00C2CB))));
-    if (_user == null) return const Scaffold(
-        body: Center(child: Text("Erreur de chargement")));
+    if (_chargement) {
+      return const Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Center(child: CircularProgressIndicator(color: Color(0xFF00ACC1))),
+      );
+    }
+    if (_user == null) {
+      return const Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Center(child: Text("Erreur de chargement")),
+      );
+    }
 
     String nom = "", prenom = "", tel = "", email = "", infoSante = "";
 
     if (_user is Patient) {
       final p = _user as Patient;
-      nom    = p.compteUtilisateur.lastName;
+      nom = p.compteUtilisateur.lastName;
       prenom = p.compteUtilisateur.firstName;
-      tel    = p.compteUtilisateur.numeroTelephone ?? "Non renseigné";
+      tel = p.compteUtilisateur.numeroTelephone ?? "Non renseigne";
       final rawEmail = p.compteUtilisateur.email ?? "";
-      email  = rawEmail.isEmpty ? "Non renseigné" : rawEmail;
+      email = rawEmail.isEmpty ? "Non renseigne" : rawEmail;
       infoSante = p.groupeSanguin ?? "Inconnu";
     } else if (_user is Utilisateur) {
       final u = _user as Utilisateur;
-      nom    = u.lastName;
+      nom = u.lastName;
       prenom = u.firstName;
-      tel    = u.numeroTelephone;
-      email  = u.email.isEmpty ? "Non renseigné" : u.email;
+      tel = u.numeroTelephone;
+      email = u.email.isEmpty ? "Non renseigne" : u.email;
       infoSante = "Compte Utilisateur";
     }
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage("assets/images/fond_patient.jpg"),
-            fit: BoxFit.cover,
-          ),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF00ACC1),
+        elevation: 0,
+        automaticallyImplyLeading: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+          onPressed: () => Navigator.pushReplacementNamed(context, '/page_utilisateur'),
         ),
-        child: RefreshIndicator(
-          onRefresh: _chargerProfil,
-          color: const Color(0xFF00C2CB),
-          child: CustomScrollView(
-            slivers: [
-              // ── HEADER ──
-              SliverAppBar(
-                expandedHeight: 230,
-                pinned: true,
-                backgroundColor: const Color(0xFF00C2CB),
-                iconTheme: const IconThemeData(color: Colors.white),
-                flexibleSpace: FlexibleSpaceBar(
-                  background: Container(
-                    color: const Color(0xFF00C2CB),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const SizedBox(height: 50),
-                        Container(
-                          width: 78, height: 78,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white.withOpacity(0.5), width: 3),
+        title: const Text("Mon profil", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
+        centerTitle: true,
+      ),
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Image.asset(_imageFond, fit: BoxFit.cover, errorBuilder: (context, error, stackTrace) => Container(color: Colors.grey[100])),
+          ),
+          RefreshIndicator(
+            onRefresh: _chargerProfil,
+            color: const Color(0xFF00ACC1),
+            child: CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Container(
+                    color: Colors.white.withOpacity(0.92),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        children: [
+                          Container(
+                            width: 100, height: 100,
+                            decoration: BoxDecoration(color: const Color(0xFFE0F7FA), shape: BoxShape.circle, border: Border.all(color: const Color(0xFF00ACC1), width: 3)),
+                            child: const Icon(Icons.person_rounded, color: Color(0xFF00ACC1), size: 50),
                           ),
-                          child: const Icon(Icons.person_rounded, color: Colors.white, size: 40),
-                        ),
-                        const SizedBox(height: 12),
-                        Text("$prenom $nom", style: const TextStyle(
-                            color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)),
-                        const SizedBox(height: 4),
-                        Text(tel, style: TextStyle(
-                            color: Colors.white.withOpacity(0.7), fontSize: 13)),
-                        const SizedBox(height: 10),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.18),
-                            borderRadius: BorderRadius.circular(20),
+                          const SizedBox(height: 16),
+                          Text("$prenom $nom", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.black87)),
+                          const SizedBox(height: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                            decoration: BoxDecoration(color: const Color(0xFFE0F7FA), borderRadius: BorderRadius.circular(20)),
+                            child: const Text("Patient", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF00ACC1))),
                           ),
-                          child: const Text("Patient", style: TextStyle(
-                              color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
-                        ),
-                      ],
+                          const SizedBox(height: 30),
+                          const Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text("Informations personnelles", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87)),
+                          ),
+                          const SizedBox(height: 12),
+                          Container(
+                            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))]),
+                            child: Column(
+                              children: [
+                                _infoRow(Icons.phone_rounded, "Telephone", tel, false),
+                                _infoRow(Icons.email_rounded, "Email", email, true),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          const Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text("Dossier medical", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87)),
+                          ),
+                          const SizedBox(height: 12),
+                          Container(
+                            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))]),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Row(
+                                children: [
+                                  Container(width: 40, height: 40, decoration: BoxDecoration(color: AppColors.dangerLight, borderRadius: BorderRadius.circular(11)), child: const Icon(Icons.water_drop_rounded, color: AppColors.danger, size: 20)),
+                                  const SizedBox(width: 12),
+                                  const Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text("Groupe sanguin", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                                        Text("Non modifiable", style: TextStyle(fontSize: 11, color: Colors.grey)),
+                                      ],
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                                    decoration: BoxDecoration(color: AppColors.dangerLight, borderRadius: BorderRadius.circular(8)),
+                                    child: Text(infoSante, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.danger)),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 30),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                if (_user is Patient) {
+                                  Navigator.push(context, MaterialPageRoute(builder: (_) => EditProfilPage(patient: _user))).then((_) => _chargerProfil());
+                                } else {
+                                  AppWidgets.showSnack(context, "Modification disponible pour le profil patient complet");
+                                }
+                              },
+                              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00ACC1), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), padding: const EdgeInsets.symmetric(vertical: 14)),
+                              child: const Text("Modifier mes informations", style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white)),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed: () async {
+                                await ApiService.logout();
+                                if (context.mounted) Navigator.pushNamedAndRemoveUntil(context, '/login', (r) => false);
+                              },
+                              style: OutlinedButton.styleFrom(foregroundColor: Colors.red, side: const BorderSide(color: Colors.red), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), padding: const EdgeInsets.symmetric(vertical: 14)),
+                              icon: const Icon(Icons.logout_rounded, size: 20),
+                              label: const Text("Se deconnecter", style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                            ),
+                          ),
+                          const SizedBox(height: 30),
+                        ],
+                      ),
                     ),
                   ),
                 ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      bottomNavigationBar: _buildBottomNav(_selectedIndex),
+    );
+  }
+
+  Widget _infoRow(IconData icon, String label, String value, bool isLast) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Container(
+                width: 40, height: 40,
+                decoration: BoxDecoration(color: const Color(0xFFE0F7FA), borderRadius: BorderRadius.circular(12)),
+                child: Icon(icon, color: const Color(0xFF00ACC1), size: 20),
               ),
-
-              // ── CONTENU PLUS TRANSPARENT ──
-              SliverToBoxAdapter(
-                child: Container(
-                  color: Colors.white.withOpacity(0.75),
-                  child: Padding(
-                    padding: const EdgeInsets.all(18),
-                    child: Column(children: [
-                      // Infos personnelles
-                      _sectionLabel("Informations personnelles"),
-                      const SizedBox(height: 10),
-                      Container(
-                        decoration: BoxDecoration(color: Colors.white.withOpacity(0.85),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: AppColors.borderLight)),
-                        child: Column(children: [
-                          _infoRow(Icons.phone_rounded, "Téléphone", tel, false),
-                          _infoRow(Icons.email_rounded, "Email", email, true),
-                        ]),
-                      ),
-                      const SizedBox(height: 18),
-
-                      // Dossier médical
-                      _sectionLabel("Dossier médical"),
-                      const SizedBox(height: 10),
-                      Container(
-                        decoration: BoxDecoration(color: Colors.white.withOpacity(0.85),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: AppColors.borderLight)),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Row(children: [
-                            Container(
-                              width: 40, height: 40,
-                              decoration: BoxDecoration(color: AppColors.dangerLight,
-                                  borderRadius: BorderRadius.circular(11)),
-                              child: const Icon(Icons.water_drop_rounded,
-                                  color: AppColors.danger, size: 20),
-                            ),
-                            const SizedBox(width: 12),
-                            const Expanded(child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text("Groupe sanguin", style: TextStyle(
-                                    fontSize: 12, color: AppColors.textSecondary)),
-                                Text("Non modifiable", style: TextStyle(
-                                    fontSize: 11, color: AppColors.textHint)),
-                              ],
-                            )),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                              decoration: BoxDecoration(color: AppColors.dangerLight,
-                                  borderRadius: BorderRadius.circular(8)),
-                              child: Text(infoSante, style: const TextStyle(
-                                  fontSize: 18, fontWeight: FontWeight.w900,
-                                  color: AppColors.danger)),
-                            ),
-                          ]),
-                        ),
-                      ),
-                      const SizedBox(height: 28),
-
-                      AppWidgets.primaryButton(
-                        label: "Modifier mes informations",
-                        icon: Icons.edit_rounded,
-                        onPressed: () {
-                          if (_user is Patient) {
-                            Navigator.push(context, MaterialPageRoute(
-                              builder: (_) => EditProfilPage(patient: _user),
-                            )).then((_) => _chargerProfil());
-                          } else {
-                            AppWidgets.showSnack(context,
-                                "Modification disponible pour le profil patient complet");
-                          }
-                        },
-                      ),
-                      const SizedBox(height: 12),
-
-                      SizedBox(
-                        width: double.infinity, height: 50,
-                        child: OutlinedButton.icon(
-                          onPressed: () async {
-                            await ApiService.logout();
-                            if (context.mounted) {
-                              Navigator.pushNamedAndRemoveUntil(
-                                  context, '/login', (r) => false);
-                            }
-                          },
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.danger,
-                            side: const BorderSide(color: AppColors.dangerLight, width: 1.5),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12)),
-                          ),
-                          icon: const Icon(Icons.power_settings_new_rounded, size: 18),
-                          label: const Text("Se déconnecter",
-                              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                    ]),
-                  ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                    Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.black87)),
+                  ],
                 ),
               ),
+            ],
+          ),
+        ),
+        if (!isLast) const Divider(height: 1, indent: 68, color: Colors.grey),
+      ],
+    );
+  }
+
+  Widget _buildBottomNav(int currentIndex) {
+    return Container(
+      decoration: BoxDecoration(color: Colors.white, boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _navItem(Icons.home_rounded, "Accueil", 0, currentIndex),
+              _navItem(Icons.local_pharmacy_rounded, "Services", 1, currentIndex),
+              _navItem(Icons.calendar_month_rounded, "RDV", 2, currentIndex),
+              _navItem(Icons.smart_toy_rounded, "Assistant", 3, currentIndex),
+              _navItem(Icons.person_rounded, "Profil", 4, currentIndex),
             ],
           ),
         ),
@@ -220,35 +271,18 @@ class _ProfilPatientPageState extends State<ProfilPatientPage> {
     );
   }
 
-  Widget _sectionLabel(String label) => Align(
-    alignment: Alignment.centerLeft,
-    child: Text(label, style: const TextStyle(fontSize: 15,
-        fontWeight: FontWeight.w800, color: Color(0xFF00C2CB))),
-  );
-
-  Widget _infoRow(IconData icon, String label, String value, bool isLast) {
-    return Column(children: [
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Row(children: [
-          Container(
-            width: 38, height: 38,
-            decoration: BoxDecoration(color: const Color(0xFF00C2CB).withOpacity(0.15),
-                borderRadius: BorderRadius.circular(10)),
-            child: Icon(icon, color: const Color(0xFF00C2CB), size: 18),
-          ),
-          const SizedBox(width: 12),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(label, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-            Text(value, style: const TextStyle(fontSize: 14,
-                fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-          ])),
-        ]),
+  Widget _navItem(IconData icon, String label, int idx, int current) {
+    bool actif = idx == current;
+    return GestureDetector(
+      onTap: () => _onItemTapped(idx),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: actif ? const Color(0xFF00ACC1) : Colors.grey, size: 24),
+          const SizedBox(height: 4),
+          Text(label, style: TextStyle(fontSize: 11, fontWeight: actif ? FontWeight.w600 : FontWeight.normal, color: actif ? const Color(0xFF00ACC1) : Colors.grey)),
+        ],
       ),
-      if (!isLast) const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16),
-        child: Divider(height: 1, color: AppColors.borderLight),
-      ),
-    ]);
+    );
   }
 }

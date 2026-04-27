@@ -1,28 +1,30 @@
 import 'package:flutter/material.dart';
 import '../../THEME_/app_theme.dart';
 import '../../SERVICES_/pharmacy_service.dart';
+import '../../SERVICES_/api_service.dart';
 import '../../MODELS_/medicament_model.dart';
+import '../../MODELS_/utilisateur_model.dart';
 import 'pharmacien_dashboard_page.dart';
+import 'pharmacien_commandes_page.dart';
 import 'pharmacien_profil_page.dart';
+import 'pharmacien_alertes_stock_page.dart';
 
 class PharmacienProduitsPage extends StatefulWidget {
   const PharmacienProduitsPage({super.key});
+
   @override
   State<PharmacienProduitsPage> createState() => _PharmacienProduitsPageState();
 }
 
-class _PharmacienProduitsPageState extends State<PharmacienProduitsPage>
-    with SingleTickerProviderStateMixin {
-  // Controleur des onglets (Catalogue / Stocks)
+class _PharmacienProduitsPageState extends State<PharmacienProduitsPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  // Liste des medicaments du catalogue
   List<Medicament> _medicaments = [];
-  // Liste des stocks de la pharmacie
   List<StockPharmacie> _stocks = [];
-  // Etat du chargement
   bool _chargement = true;
-  // Texte de recherche
   String _recherche = "";
+  String _nomPharmacie = "Ma pharmacie";
+
+  final String _imageFond = "assets/images/fond_pharmacien_produits.jpg";
 
   @override
   void initState() {
@@ -37,10 +39,13 @@ class _PharmacienProduitsPageState extends State<PharmacienProduitsPage>
     super.dispose();
   }
 
-  // Charge le catalogue et les stocks
   Future<void> _chargerDonnees() async {
     setState(() => _chargement = true);
     try {
+      final profil = await ApiService.getProfil();
+      if (profil != null && profil is Pharmacien) {
+        _nomPharmacie = profil.nomPharmacie;
+      }
       final results = await Future.wait([
         PharmacyService.getCatalogueMedicaments(),
         PharmacyService.getStocks(),
@@ -54,248 +59,143 @@ class _PharmacienProduitsPageState extends State<PharmacienProduitsPage>
       }
     } catch (e) {
       if (mounted) setState(() => _chargement = false);
+      debugPrint("Erreur chargement: $e");
     }
   }
 
-  // Filtre les medicaments par recherche
-  List<Medicament> get _medicamentsFiltres => _medicaments
-      .where(
-        (m) => m.nomCommercial.toLowerCase().contains(_recherche.toLowerCase()),
-      )
-      .toList();
+  List<Medicament> get _medicamentsFiltres => _medicaments.where((m) => m.nomCommercial.toLowerCase().contains(_recherche.toLowerCase())).toList();
+  List<StockPharmacie> get _stocksFiltres => _stocks.toList();
 
-  // Filtre les stocks par recherche
-  List<StockPharmacie> get _stocksFiltres => _stocks
-      .where(
-        (s) => s.nomPharmacie.toLowerCase().contains(_recherche.toLowerCase()),
-      )
-      .toList();
+  void _onItemTapped(int index) {
+    if (index == 0) {
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const PharmacienDashboardPage()));
+    } else if (index == 1) {
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const PharmacienCommandesPage()));
+    } else if (index == 2) {
+      return;
+    } else if (index == 3) {
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const PharmacienProfilPage()));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage("assets/images/fond_patient.jpg"),
-            fit: BoxFit.cover,
-          ),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF00ACC1),
+        elevation: 0,
+        automaticallyImplyLeading: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+          onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const PharmacienDashboardPage())),
         ),
-        child: NestedScrollView(
-          headerSliverBuilder: (_, __) => [
-            SliverAppBar(
-              pinned: true,
-              backgroundColor: Colors.white.withOpacity(0.85),
-              elevation: 0,
-              automaticallyImplyLeading: false,
-              expandedHeight: 130,
-              flexibleSpace: FlexibleSpaceBar(
-                background: Container(
-                  color: Colors.white.withOpacity(0.85),
-                  padding: const EdgeInsets.only(
-                    left: 20,
-                    right: 20,
-                    bottom: 56,
-                    top: 50,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      const Text(
-                        "Mes Produits",
-                        style: TextStyle(
-                          color: Color(0xFF00C2CB),
-                          fontSize: 24,
-                          fontWeight: FontWeight.w900,
-                        ),
+        title: const Text("Mes Produits", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
+        centerTitle: true,
+        actions: [
+          IconButton(icon: const Icon(Icons.refresh_rounded, color: Colors.white), onPressed: _chargerDonnees),
+        ],
+        bottom: TabBar(
+          controller: _tabController,
+          indicatorColor: Colors.white,
+          indicatorWeight: 3,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+          tabs: const [Tab(text: "Catalogue"), Tab(text: "Stocks")],
+        ),
+      ),
+      body: Stack(
+        children: [
+          Positioned.fill(child: Image.asset(_imageFond, fit: BoxFit.cover, errorBuilder: (context, error, stackTrace) => Container(color: Colors.grey[100]))),
+          Container(
+            color: Colors.white.withOpacity(0.92),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Container(
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5)]),
+                    child: TextField(
+                      onChanged: (v) => setState(() => _recherche = v),
+                      style: const TextStyle(color: Colors.black87, fontSize: 14),
+                      decoration: InputDecoration(
+                        hintText: "Rechercher un produit...",
+                        hintStyle: const TextStyle(color: Colors.grey),
+                        prefixIcon: const Icon(Icons.search_rounded, color: Colors.grey),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
                       ),
-                      TextButton.icon(
-                        onPressed: () => _showAjouterProduitDialog(),
-                        style: TextButton.styleFrom(
-                          backgroundColor: const Color(0xFF00C2CB).withOpacity(0.1),
-                          foregroundColor: const Color(0xFF00C2CB),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                        ),
-                        icon: const Icon(Icons.add_rounded, size: 18),
-                        label: const Text(
-                          "Ajouter",
-                          style: TextStyle(fontWeight: FontWeight.w700),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
-              ),
-              bottom: TabBar(
-                controller: _tabController,
-                indicatorColor: const Color(0xFF00C2CB),
-                indicatorWeight: 3,
-                labelColor: const Color(0xFF00C2CB),
-                unselectedLabelColor: Colors.grey,
-                labelStyle: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 13,
-                ),
-                tabs: const [
-                  Tab(text: "Catalogue"),
-                  Tab(text: "Stocks"),
-                ],
-              ),
-            ),
-          ],
-          body: Container(
-            color: Colors.white.withOpacity(0.75),
-            child: _chargement
-                ? const Center(
-                    child: CircularProgressIndicator(color: Color(0xFF00C2CB)),
-                  )
-                : Column(
-                    children: [
-                      // Barre de recherche
-                      Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.85),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.grey[300]!),
-                          ),
-                          child: TextField(
-                            onChanged: (v) => setState(() => _recherche = v),
-                            style: const TextStyle(
-                              color: AppColors.textPrimary,
-                              fontSize: 14,
-                            ),
-                            decoration: InputDecoration(
-                              hintText: "Rechercher un produit...",
-                              hintStyle: const TextStyle(
-                                color: Colors.grey,
-                                fontSize: 14,
-                              ),
-                              prefixIcon: const Icon(
-                                Icons.search_rounded,
-                                color: Colors.grey,
-                              ),
-                              border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(
-                                vertical: 14,
-                                horizontal: 16,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: TabBarView(
+                Expanded(
+                  child: _chargement
+                      ? const Center(child: CircularProgressIndicator(color: Color(0xFF00ACC1)))
+                      : TabBarView(
                           controller: _tabController,
                           children: [_buildCatalogue(), _buildStocks()],
                         ),
-                      ),
-                    ],
-                  ),
+                ),
+              ],
+            ),
           ),
-        ),
+        ],
       ),
-      bottomNavigationBar: _buildBottomNav(1),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAjouterProduitDialog(),
-        backgroundColor: const Color(0xFF00C2CB),
-        child: const Icon(Icons.add_rounded, color: Colors.white),
-      ),
+      bottomNavigationBar: _buildBottomNav(2),
     );
   }
 
-  // ========================= CATALOGUE =========================
+  // ==================== CATALOGUE (Lecture seule) ====================
 
-  // Affiche la liste des medicaments du catalogue
   Widget _buildCatalogue() {
     if (_medicamentsFiltres.isEmpty) {
-      return _buildEmpty("Aucun produit trouvé", Icons.medication_outlined);
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.medication_outlined, size: 64, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text("Aucun produit dans le catalogue", style: TextStyle(color: Colors.grey[600])),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: () => _showAjouterNouveauProduitDialog(),
+              icon: const Icon(Icons.add_rounded),
+              label: const Text("Ajouter un produit"),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00ACC1), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+            ),
+          ],
+        ),
+      );
     }
     return RefreshIndicator(
       onRefresh: _chargerDonnees,
-      color: const Color(0xFF00C2CB),
+      color: const Color(0xFF00ACC1),
       child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.all(16),
         itemCount: _medicamentsFiltres.length,
         itemBuilder: (_, i) => _buildMedicamentCard(_medicamentsFiltres[i]),
       ),
     );
   }
 
-  // Carte d'un medicament du catalogue
   Widget _buildMedicamentCard(Medicament m) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.85),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey[200]!),
-      ),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))]),
       child: Row(
         children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: const Color(0xFF00C2CB).withOpacity(0.15),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(
-              Icons.medication_rounded,
-              color: Color(0xFF00C2CB),
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 12),
+          Container(width: 50, height: 50, decoration: BoxDecoration(color: const Color(0xFFE0F7FA), borderRadius: BorderRadius.circular(15)), child: const Icon(Icons.medication_rounded, color: Color(0xFF00ACC1), size: 26)),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  m.nomCommercial,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                if (m.description.isNotEmpty)
-                  Text(
-                    m.description,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                Text(
-                  "${m.prixVente.toStringAsFixed(0)} FCFA",
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF00C2CB),
-                  ),
-                ),
+                Text(m.nomCommercial, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87)),
+                if (m.description.isNotEmpty) Text(m.description, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                Text("${m.prixVente.toStringAsFixed(0)} FCFA", style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF00ACC1))),
               ],
-            ),
-          ),
-          IconButton(
-            onPressed: () => _showModifierProduitDialog(m),
-            icon: const Icon(
-              Icons.edit_rounded,
-              color: Colors.grey,
-              size: 20,
             ),
           ),
         ],
@@ -303,143 +203,117 @@ class _PharmacienProduitsPageState extends State<PharmacienProduitsPage>
     );
   }
 
-  // ========================= STOCKS =========================
+  // ==================== STOCKS (Gestion complete) ====================
 
-  // Affiche la liste des stocks
   Widget _buildStocks() {
     if (_stocksFiltres.isEmpty) {
-      return _buildEmpty("Aucun stock enregistré", Icons.inventory_2_outlined);
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text("Aucun stock enregistre", style: TextStyle(color: Colors.grey[600])),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: () => _showAjouterNouveauProduitDialog(),
+              icon: const Icon(Icons.add_rounded),
+              label: const Text("Ajouter un produit"),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00ACC1), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+            ),
+          ],
+        ),
+      );
     }
     return RefreshIndicator(
       onRefresh: _chargerDonnees,
-      color: const Color(0xFF00C2CB),
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: _stocksFiltres.length,
-        itemBuilder: (_, i) => _buildStockCard(_stocksFiltres[i]),
+      color: const Color(0xFF00ACC1),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: ElevatedButton.icon(
+                onPressed: () => _showAjouterNouveauProduitDialog(),
+                icon: const Icon(Icons.add_rounded, size: 18),
+                label: const Text("Ajouter un produit"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF00ACC1),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: _stocksFiltres.length,
+              itemBuilder: (_, i) => _buildStockCard(_stocksFiltres[i]),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  // Carte d'un stock avec statut et actions
   Widget _buildStockCard(StockPharmacie s) {
-    // Determination du statut du stock
     final bool enRupture = s.quantiteEnStock == 0;
     final bool enAlerte = s.quantiteEnStock > 0 && s.quantiteEnStock <= 10;
-
     Color statusColor;
     Color statusBg;
     String statusLabel;
-
     if (enRupture) {
-      statusColor = const Color(0xFFB71C1C);
+      statusColor = const Color(0xFFEF5350);
       statusBg = const Color(0xFFFFEBEE);
       statusLabel = "Rupture";
     } else if (enAlerte) {
-      statusColor = const Color(0xFFE65100);
-      statusBg = AppColors.warningLight;
+      statusColor = const Color(0xFFF57C00);
+      statusBg = const Color(0xFFFFF3E0);
       statusLabel = "Alerte";
     } else {
-      statusColor = const Color(0xFF22863A);
-      statusBg = AppColors.successLight;
+      statusColor = const Color(0xFF4CAF50);
+      statusBg = const Color(0xFFE8F5E9);
       statusLabel = "En stock";
     }
-
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.85),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: enRupture ? const Color(0xFFFFCDD2) : Colors.grey[200]!,
-          width: enRupture ? 1.5 : 1,
-        ),
-      ),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))]),
       child: Row(
         children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: statusBg,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              Icons.inventory_2_rounded,
-              color: statusColor,
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 12),
+          Container(width: 50, height: 50, decoration: BoxDecoration(color: statusBg, borderRadius: BorderRadius.circular(15)), child: Icon(Icons.inventory_2_rounded, color: statusColor, size: 26)),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  s.nomPharmacie,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                Text(
-                  "Quantite: ${s.quantiteEnStock}",
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                if (s.datePeremption.isNotEmpty)
-                  Text(
-                    "Peremption: ${s.datePeremption}",
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey,
-                    ),
-                  ),
+                Text(s.nomProduit, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87)),
+                const SizedBox(height: 4),
+                Text("Quantite: ${s.quantiteEnStock}", style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                if (s.datePeremption.isNotEmpty) Text("Peremption: ${s.datePeremption}", style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                Text("Seuil alerte: 10", style: const TextStyle(fontSize: 11, color: Colors.grey)),
               ],
             ),
           ),
           Column(
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: statusBg,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  statusLabel,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: statusColor,
-                  ),
-                ),
-              ),
+              Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), decoration: BoxDecoration(color: statusBg, borderRadius: BorderRadius.circular(20)), child: Text(statusLabel, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: statusColor))),
               const SizedBox(height: 6),
-              GestureDetector(
-                onTap: () => _showUpdateStockDialog(s),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
+              Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => _showUpdateStockDialog(s),
+                    child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5), decoration: BoxDecoration(color: const Color(0xFF00ACC1).withOpacity(0.1), borderRadius: BorderRadius.circular(8)), child: const Text("Modifier", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF00ACC1)))),
                   ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF00C2CB).withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(8),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () => _confirmerSuppressionStock(s),
+                    child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5), decoration: BoxDecoration(color: Colors.red.withOpacity(0.1), borderRadius: BorderRadius.circular(8)), child: const Text("Supprimer", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.red))),
                   ),
-                  child: const Text(
-                    "Modifier",
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF00C2CB),
-                    ),
-                  ),
-                ),
+                ],
               ),
             ],
           ),
@@ -448,103 +322,145 @@ class _PharmacienProduitsPageState extends State<PharmacienProduitsPage>
     );
   }
 
-  // ========================= DIALOGS =========================
+  // ==================== DIALOGUE AJOUT NOUVEAU PRODUIT ====================
 
-  // Dialogue pour ajouter un nouveau produit
-  void _showAjouterProduitDialog() {
+  void _showAjouterNouveauProduitDialog() {
     final nomCtrl = TextEditingController();
     final descCtrl = TextEditingController();
     final prixCtrl = TextEditingController();
-    final posCtrl = TextEditingController();
+    final qteCtrl = TextEditingController();
+    DateTime? selectedDate;
     bool loading = false;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModal) => Container(
-          decoration: const BoxDecoration(
-            image: DecorationImage(
-              image: AssetImage("assets/images/fond_patient.jpg"),
-              fit: BoxFit.cover,
-            ),
-          ),
+          decoration: const BoxDecoration(image: DecorationImage(image: AssetImage("assets/images/fond_patient.jpg"), fit: BoxFit.cover)),
           child: Container(
             color: Colors.white.withOpacity(0.95),
-            child: Padding(
-              padding: EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 20,
-                bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "Ajouter un produit",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary,
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Center(child: Text("Ajouter un nouveau produit", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600))),
+                    const SizedBox(height: 16),
+                    
+                    const Text("Informations produit", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey)),
+                    const SizedBox(height: 8),
+                    
+                    _inputField(nomCtrl, "Nom du produit *", Icons.medication_rounded),
+                    const SizedBox(height: 12),
+                    _inputField(descCtrl, "Description", Icons.description_rounded, maxLines: 3),
+                    const SizedBox(height: 12),
+                    _inputField(prixCtrl, "Prix de vente (FCFA) *", Icons.payments_rounded, isNumber: true),
+                    
+                    const SizedBox(height: 20),
+                    const Divider(),
+                    const SizedBox(height: 12),
+                    
+                    const Text("Informations stock", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey)),
+                    const SizedBox(height: 8),
+                    
+                    _inputField(qteCtrl, "Quantite initiale", Icons.inventory_2_rounded, isNumber: true),
+                    const SizedBox(height: 12),
+                    
+                    // Date de péremption avec calendrier
+                    GestureDetector(
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: ctx,
+                          initialDate: selectedDate ?? DateTime.now(),
+                          firstDate: DateTime.now(),
+                          lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+                          builder: (context, child) {
+                            return Theme(
+                              data: Theme.of(context).copyWith(
+                                colorScheme: const ColorScheme.light(primary: Color(0xFF00ACC1)),
+                              ),
+                              child: child!,
+                            );
+                          },
+                        );
+                        if (picked != null) {
+                          setModal(() => selectedDate = picked);
+                        }
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(color: Colors.grey[50], borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey[300]!)),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.calendar_today_rounded, color: Color(0xFF00ACC1), size: 20),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                selectedDate != null 
+                                  ? "${selectedDate!.year}-${selectedDate!.month.toString().padLeft(2, '0')}-${selectedDate!.day.toString().padLeft(2, '0')}"
+                                  : "Selectionner une date de peremption",
+                                style: TextStyle(color: selectedDate != null ? Colors.black87 : Colors.grey),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  _inputField(nomCtrl, "Nom du produit", Icons.medication_rounded),
-                  const SizedBox(height: 12),
-                  _inputField(descCtrl, "Description", Icons.description_rounded),
-                  const SizedBox(height: 12),
-                  _inputField(posCtrl, "Posologie standard", Icons.info_rounded),
-                  const SizedBox(height: 12),
-                  _inputField(
-                    prixCtrl,
-                    "Prix de vente (FCFA)",
-                    Icons.payments_rounded,
-                    isNumber: true,
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    child: AppWidgets.primaryButton(
-                      label: loading ? "Ajout en cours..." : "Ajouter le produit",
-                      icon: Icons.add_rounded,
-                      onPressed: loading
-                          ? () {}
-                          : () async {
-                              if (nomCtrl.text.isEmpty || prixCtrl.text.isEmpty)
-                                return;
-                              setModal(() => loading = true);
-                              final result =
-                                  await PharmacyService.ajouterMedicament(
-                                    nom: nomCtrl.text,
-                                    description: descCtrl.text,
-                                    posologie: posCtrl.text,
-                                    prix: double.tryParse(prixCtrl.text) ?? 0,
-                                  );
-                              if (ctx.mounted) Navigator.pop(ctx);
-                              if (result != null) {
-                                _chargerDonnees();
-                                AppWidgets.showSnack(
-                                  context,
-                                  "Produit ajoute avec succes",
-                                  color: const Color(0xFF22863A),
-                                );
-                              } else {
-                                AppWidgets.showSnack(
-                                  context,
-                                  "Erreur lors de l'ajout",
-                                  color: AppColors.danger,
-                                );
-                              }
-                            },
+                    
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: loading ? null : () async {
+                          if (nomCtrl.text.isEmpty) {
+                            AppWidgets.showSnack(ctx, "Veuillez entrer le nom du produit", color: Colors.orange);
+                            return;
+                          }
+                          if (prixCtrl.text.isEmpty) {
+                            AppWidgets.showSnack(ctx, "Veuillez entrer le prix", color: Colors.orange);
+                            return;
+                          }
+                          setModal(() => loading = true);
+                          
+                          // 1. Ajouter le médicament
+                          final medicament = await PharmacyService.ajouterMedicament(
+                            nom: nomCtrl.text,
+                            description: descCtrl.text,
+                            posologie: "",
+                            prix: double.tryParse(prixCtrl.text) ?? 0,
+                          );
+                          
+                          if (medicament != null && selectedDate != null) {
+                            // 2. Ajouter le stock
+                            final dateStr = "${selectedDate!.year}-${selectedDate!.month.toString().padLeft(2, '0')}-${selectedDate!.day.toString().padLeft(2, '0')}";
+                            final ok = await PharmacyService.ajouterOuUpdateStock(
+                              medicamentId: medicament.id,
+                              quantite: int.tryParse(qteCtrl.text) ?? 0,
+                              datePeremption: dateStr
+                            );
+                            if (ctx.mounted) Navigator.pop(ctx);
+                            if (ok) {
+                              _chargerDonnees();
+                              AppWidgets.showSnack(context, "Produit ajoute avec succes", color: const Color(0xFF4CAF50));
+                            } else {
+                              AppWidgets.showSnack(context, "Erreur lors de l'ajout du stock", color: Colors.red);
+                            }
+                          } else if (ctx.mounted) {
+                            Navigator.pop(ctx);
+                            AppWidgets.showSnack(context, "Erreur lors de l'ajout", color: Colors.red);
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00ACC1), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), padding: const EdgeInsets.symmetric(vertical: 14)),
+                        child: loading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text("Ajouter le produit", style: TextStyle(fontWeight: FontWeight.w600)),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -553,198 +469,51 @@ class _PharmacienProduitsPageState extends State<PharmacienProduitsPage>
     );
   }
 
-  // Dialogue pour modifier un produit existant
-  void _showModifierProduitDialog(Medicament m) {
-    final nomCtrl = TextEditingController(text: m.nomCommercial);
-    final descCtrl = TextEditingController(text: m.description);
-    final prixCtrl = TextEditingController(
-      text: m.prixVente.toStringAsFixed(0),
-    );
-    final posCtrl = TextEditingController(text: m.posologieStandard);
-    bool loading = false;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setModal) => Container(
-          decoration: const BoxDecoration(
-            image: DecorationImage(
-              image: AssetImage("assets/images/fond_patient.jpg"),
-              fit: BoxFit.cover,
-            ),
-          ),
-          child: Container(
-            color: Colors.white.withOpacity(0.95),
-            child: Padding(
-              padding: EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 20,
-                bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "Modifier le produit",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  _inputField(nomCtrl, "Nom commercial", Icons.medication_rounded),
-                  const SizedBox(height: 12),
-                  _inputField(descCtrl, "Description", Icons.description_rounded),
-                  const SizedBox(height: 12),
-                  _inputField(posCtrl, "Posologie standard", Icons.info_rounded),
-                  const SizedBox(height: 12),
-                  _inputField(
-                    prixCtrl,
-                    "Prix de vente (FCFA)",
-                    Icons.payments_rounded,
-                    isNumber: true,
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    child: AppWidgets.primaryButton(
-                      label: loading ? "Modification..." : "Enregistrer",
-                      icon: Icons.save_rounded,
-                      onPressed: loading
-                          ? () {}
-                          : () async {
-                              setModal(() => loading = true);
-                              final result =
-                                  await PharmacyService.modifierMedicament(
-                                    medicamentId: m.id,
-                                    nom: nomCtrl.text,
-                                    description: descCtrl.text,
-                                    posologie: posCtrl.text,
-                                    prix: double.tryParse(prixCtrl.text),
-                                  );
-                              if (ctx.mounted) Navigator.pop(ctx);
-                              if (result != null) {
-                                _chargerDonnees();
-                                AppWidgets.showSnack(
-                                  context,
-                                  "Produit modifie",
-                                  color: const Color(0xFF22863A),
-                                );
-                              } else {
-                                AppWidgets.showSnack(
-                                  context,
-                                  "Erreur lors de la modification",
-                                  color: AppColors.danger,
-                                );
-                              }
-                            },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // Dialogue pour mettre a jour le stock
   void _showUpdateStockDialog(StockPharmacie s) {
     final qteCtrl = TextEditingController(text: s.quantiteEnStock.toString());
     bool loading = false;
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModal) => Container(
-          decoration: const BoxDecoration(
-            image: DecorationImage(
-              image: AssetImage("assets/images/fond_patient.jpg"),
-              fit: BoxFit.cover,
-            ),
-          ),
+          decoration: const BoxDecoration(image: DecorationImage(image: AssetImage("assets/images/fond_patient.jpg"), fit: BoxFit.cover)),
           child: Container(
             color: Colors.white.withOpacity(0.95),
             child: Padding(
-              padding: EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 20,
-                bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
-              ),
+              padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    s.nomPharmacie,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
+                  Text(s.nomProduit, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.black87)),
                   const SizedBox(height: 4),
-                  Text(
-                    "Stock actuel: ${s.quantiteEnStock} unites",
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
+                  Text("Stock actuel: ${s.quantiteEnStock} unites", style: const TextStyle(fontSize: 13, color: Colors.grey)),
                   const SizedBox(height: 16),
-                  _inputField(
-                    qteCtrl,
-                    "Nouvelle quantite",
-                    Icons.inventory_2_rounded,
-                    isNumber: true,
-                  ),
+                  _inputField(qteCtrl, "Nouvelle quantite", Icons.inventory_2_rounded, isNumber: true),
                   const SizedBox(height: 20),
                   SizedBox(
                     width: double.infinity,
-                    child: AppWidgets.primaryButton(
-                      label: loading ? "Mise a jour..." : "Mettre a jour le stock",
-                      icon: Icons.update_rounded,
-                      onPressed: loading
-                          ? () {}
-                          : () async {
-                              final qte = int.tryParse(qteCtrl.text);
-                              if (qte == null) return;
-                              setModal(() => loading = true);
-                              final ok = await PharmacyService.updateStock(
-                                s.idStock,
-                                qte,
-                              );
-                              if (ctx.mounted) Navigator.pop(ctx);
-                              if (ok) {
-                                _chargerDonnees();
-                                AppWidgets.showSnack(
-                                  context,
-                                  "Stock mis a jour",
-                                  color: const Color(0xFF22863A),
-                                );
-                              } else {
-                                AppWidgets.showSnack(
-                                  context,
-                                  "Erreur mise a jour stock",
-                                  color: AppColors.danger,
-                                );
-                              }
-                            },
+                    child: ElevatedButton(
+                      onPressed: loading ? null : () async {
+                        final qte = int.tryParse(qteCtrl.text);
+                        if (qte == null || qte < 0) {
+                          AppWidgets.showSnack(ctx, "Veuillez entrer une quantite valide", color: Colors.orange);
+                          return;
+                        }
+                        setModal(() => loading = true);
+                        final ok = await PharmacyService.updateStock(s.idStock, qte);
+                        if (ctx.mounted) Navigator.pop(ctx);
+                        if (ok) {
+                          _chargerDonnees();
+                          AppWidgets.showSnack(context, "Stock mis a jour", color: const Color(0xFF4CAF50));
+                        } else {
+                          AppWidgets.showSnack(context, "Erreur mise a jour stock", color: Colors.red);
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00ACC1), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), padding: const EdgeInsets.symmetric(vertical: 14)),
+                      child: loading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text("Mettre a jour le stock", style: TextStyle(fontWeight: FontWeight.w600)),
                     ),
                   ),
                 ],
@@ -756,94 +525,66 @@ class _PharmacienProduitsPageState extends State<PharmacienProduitsPage>
     );
   }
 
-  // Champ de saisie generique
-  Widget _inputField(
-    TextEditingController ctrl,
-    String hint,
-    IconData icon, {
-    bool isNumber = false,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[300]!),
-      ),
-      child: TextField(
-        controller: ctrl,
-        keyboardType: isNumber ? TextInputType.number : TextInputType.text,
-        style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
-          prefixIcon: Icon(icon, color: const Color(0xFF00C2CB), size: 20),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 14),
-        ),
-      ),
-    );
-  }
-
-  // Message quand liste vide
-  Widget _buildEmpty(String msg, IconData icon) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: Colors.grey, size: 48),
-          const SizedBox(height: 12),
-          Text(
-            msg,
-            style: const TextStyle(
-              color: Colors.grey,
-              fontSize: 14,
-            ),
+  void _confirmerSuppressionStock(StockPharmacie s) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text("Supprimer ce stock ?", style: TextStyle(fontWeight: FontWeight.w600)),
+        content: Text("Voulez-vous vraiment supprimer le stock de ${s.nomProduit} ?\nLe produit restera dans le catalogue."),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Annuler")),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final ok = await PharmacyService.supprimerStock(s.idStock);
+              if (ok) {
+                _chargerDonnees();
+                AppWidgets.showSnack(context, "Stock supprime", color: const Color(0xFF4CAF50));
+              } else {
+                AppWidgets.showSnack(context, "Erreur lors de la suppression", color: Colors.red);
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text("Supprimer"),
           ),
         ],
       ),
     );
   }
 
-  // Barre de navigation en bas
+  Widget _inputField(TextEditingController ctrl, String hint, IconData icon, {bool isNumber = false, int maxLines = 1}) {
+    return Container(
+      decoration: BoxDecoration(color: Colors.grey[50], borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey[200]!)),
+      child: TextField(
+        controller: ctrl,
+        keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+        maxLines: maxLines,
+        style: const TextStyle(fontSize: 14, color: Colors.black87),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: const TextStyle(color: Colors.grey),
+          prefixIcon: Icon(icon, color: const Color(0xFF00ACC1), size: 20),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+        ),
+      ),
+    );
+  }
+
   Widget _buildBottomNav(int index) {
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Colors.grey)),
-      ),
+      decoration: BoxDecoration(color: Colors.white, boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]),
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _navItem(
-                Icons.dashboard_rounded,
-                "Accueil",
-                0,
-                index,
-                () => Navigator.pushReplacementNamed(
-                  context,
-                  '/dashboard_pharmacien',
-                ),
-              ),
-              _navItem(
-                Icons.medication_rounded,
-                "Produits",
-                1,
-                index,
-                () {},
-              ),
-              _navItem(
-                Icons.account_circle_rounded,
-                "Profil",
-                2,
-                index,
-                () => Navigator.pushReplacementNamed(
-                  context,
-                  '/profil_pharmacien',
-                ),
-              ),
+              _navItem(Icons.dashboard_rounded, "Accueil", 0, index),
+              _navItem(Icons.shopping_bag_rounded, "Commandes", 1, index),
+              _navItem(Icons.medication_rounded, "Produits", 2, index),
+              _navItem(Icons.person_rounded, "Profil", 3, index),
             ],
           ),
         ),
@@ -851,34 +592,16 @@ class _PharmacienProduitsPageState extends State<PharmacienProduitsPage>
     );
   }
 
-  // Element de la barre de navigation
-  Widget _navItem(
-    IconData icon,
-    String label,
-    int idx,
-    int current,
-    VoidCallback onTap,
-  ) {
+  Widget _navItem(IconData icon, String label, int idx, int current) {
     bool actif = idx == current;
     return GestureDetector(
-      onTap: onTap,
+      onTap: () => _onItemTapped(idx),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            color: actif ? const Color(0xFF00C2CB) : Colors.grey,
-            size: 24,
-          ),
-          const SizedBox(height: 3),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: actif ? FontWeight.w700 : FontWeight.w500,
-              color: actif ? const Color(0xFF00C2CB) : Colors.grey,
-            ),
-          ),
+          Icon(icon, color: actif ? const Color(0xFF00ACC1) : Colors.grey, size: 24),
+          const SizedBox(height: 4),
+          Text(label, style: TextStyle(fontSize: 11, fontWeight: actif ? FontWeight.w600 : FontWeight.normal, color: actif ? const Color(0xFF00ACC1) : Colors.grey)),
         ],
       ),
     );

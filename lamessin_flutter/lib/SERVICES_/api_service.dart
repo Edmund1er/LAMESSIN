@@ -4,42 +4,31 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
-// Imports modèles
 import '../MODELS_/utilisateur_model.dart';
 import '../MODELS_/notification_model.dart';
 
 class ApiService {
-  static const bool useNgrok = false;
+  static const bool useNgrok = true;
+  
+  static const String pcIp = "172.26.160.1";
 
   static String get baseUrl {
     if (useNgrok) return "https://budlike-kai-unflickering.ngrok-free.dev/api";
     if (kIsWeb) return "http://127.0.0.1:8000/api";
-    if (Platform.isAndroid) return "http://10.0.2.2:8000/api";
+    if (Platform.isAndroid) return "http://$pcIp:8000/api";
     return "http://localhost:8000/api";
   }
 
   static String get mediaBaseUrl {
     if (useNgrok) return "https://budlike-kai-unflickering.ngrok-free.dev";
     if (kIsWeb) return "http://127.0.0.1:8000";
-    if (Platform.isAndroid) return "http://10.0.2.2:8000";
+    if (Platform.isAndroid) return "http://$pcIp:8000";
     return "http://localhost:8000";
   }
-
-  // ========================= TOKEN =========================
 
   static Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('access_token');
-  }
-
-  static Future<String?> getRefreshToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('refresh_token');
-  }
-
-  static Future<String?> getUserRole() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('user_role');
   }
 
   static Future<bool> estConnecte() async {
@@ -95,8 +84,6 @@ class ApiService {
     };
   }
 
-  // ========================= AUTH =========================
-
   static Future<String?> login(String telephone, String password) async {
     try {
       final response = await http.post(
@@ -118,22 +105,17 @@ class ApiService {
         String role = data['role'] ?? 'INCONNU';
         await prefs.setString('user_role', role);
 
-        print("Connexion réussie - Rôle: $role");
         return role;
       }
 
-      print(" Erreur Login: ${response.body}");
       return null;
     } catch (e) {
-      print(" Erreur Connexion: $e");
       return null;
     }
   }
 
   static Future<bool> inscription(Map<String, dynamic> donnees) async {
     try {
-      print(" Envoi inscription: ${donnees.keys}");
-      
       final response = await http.post(
         Uri.parse('$baseUrl/inscription/'),
         headers: {
@@ -143,17 +125,12 @@ class ApiService {
         body: jsonEncode(donnees),
       );
 
-      print("Réponse inscription: ${response.statusCode}");
-      
       if (response.statusCode == 201) {
-        print(" Inscription réussie");
         return true;
       } else {
-        print(" Erreur inscription: ${response.body}");
         return false;
       }
     } catch (e) {
-      print(" ERREUR RÉSEAU: $e");
       return false;
     }
   }
@@ -167,9 +144,9 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final data = json.decode(utf8.decode(response.bodyBytes));
+        
         final userData = data['compte_utilisateur'] ?? data;
 
-        // Détection du rôle et retour du bon modèle
         if (userData['est_un_compte_pharmacien'] == true) {
           return Pharmacien.fromJson(data);
         }
@@ -183,7 +160,6 @@ class ApiService {
       }
       return null;
     } catch (e) {
-      print("PROFIL ERREUR: $e");
       return null;
     }
   }
@@ -207,10 +183,7 @@ class ApiService {
     await prefs.remove('access_token');
     await prefs.remove('refresh_token');
     await prefs.remove('user_role');
-    print(" Déconnexion réussie");
   }
-
-  // ========================= NOTIFICATIONS =========================
 
   static Future<bool> enregistrerFCMToken(String fcmToken) async {
     try {
@@ -239,7 +212,6 @@ class ApiService {
       }
       return [];
     } catch (e) {
-      print("NOTIFS ERREUR: $e");
       return [];
     }
   }

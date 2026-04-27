@@ -79,12 +79,16 @@ class PharmacyService {
   // Met a jour la quantite d'un produit en stock
   static Future<bool> updateStock(int stockId, int quantite) async {
     try {
+      debugPrint("updateStock - ID: $stockId, Quantite: $quantite");
       final response = await http.patch(
-        Uri.parse('$_baseUrl/pharmacien/stocks/$stockId/'),
-        headers: await _headers,
+        Uri.parse('${ApiService.baseUrl}/pharmacien/stocks/$stockId/'),
+        headers: await ApiService.getHeaders(),
         body: jsonEncode({'quantite': quantite}),
       );
-
+      debugPrint("updateStock - Status: ${response.statusCode}");
+      if (response.statusCode != 200) {
+        debugPrint("updateStock - Response: ${response.body}");
+      }
       return response.statusCode == 200;
     } catch (e) {
       debugPrint("Erreur updateStock: $e");
@@ -92,24 +96,24 @@ class PharmacyService {
     }
   }
 
-  // Recupere les alertes de stock (produits sous seuil d'alerte)
-  static Future<List<StockPharmacie>> getAlertesStock() async {
-    try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/pharmacien/stocks/alertes/'),
-        headers: await _headers,
-      );
+// Recupere les alertes de stock (produits sous seuil d'alerte)
+static Future<List<StockPharmacie>> getAlertesStock() async {
+  try {
+    final response = await http.get(
+      Uri.parse('$_baseUrl/pharmacien/stocks/alertes/'),
+      headers: await _headers,
+    );
 
-      if (response.statusCode == 200) {
-        List data = json.decode(utf8.decode(response.bodyBytes));
-        return data.map((item) => StockPharmacie.fromJson(item)).toList();
-      }
-      return [];
-    } catch (e) {
-      debugPrint("Erreur getAlertesStock: $e");
-      return [];
+    if (response.statusCode == 200) {
+      List data = json.decode(utf8.decode(response.bodyBytes));
+      return data.map((item) => StockPharmacie.fromJson(item)).toList();
     }
+    return [];
+  } catch (e) {
+    debugPrint("Erreur getAlertesStock: $e");
+    return [];
   }
+}
 
   // Ajoute ou met a jour un stock pour un medicament
   static Future<bool> ajouterOuUpdateStock({
@@ -313,4 +317,52 @@ class PharmacyService {
       return null;
     }
   }
+
+  // Marque une commande comme livree (statut LIVRE)
+  static Future<bool> marquerCommandeLivree(int commandeId) async {
+    try {
+      final response = await http.patch(
+        Uri.parse(
+          '${ApiService.baseUrl}/pharmacien/commandes/$commandeId/livrer/',
+        ),
+        headers: await ApiService.getHeaders(),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint("Erreur marquerCommandeLivree: $e");
+      return false;
+    }
+  }
+  // Recupere les commandes avec un filtre specifique
+static Future<List<Commande>> getCommandesParStatut(String statut) async {
+  try {
+    final response = await http.get(
+      Uri.parse('$_baseUrl/pharmacien/commandes/?statut=$statut'),
+      headers: await _headers,
+    );
+
+    if (response.statusCode == 200) {
+      List data = json.decode(utf8.decode(response.bodyBytes));
+      return data.map((item) => Commande.fromJson(item)).toList();
+    }
+    return [];
+  } catch (e) {
+    debugPrint("Erreur getCommandesParStatut: $e");
+    return [];
+  }
+}
+
+// Supprimer un stock
+static Future<bool> supprimerStock(int stockId) async {
+  try {
+    final response = await http.delete(
+      Uri.parse('$_baseUrl/pharmacien/stocks/$stockId/supprimer/'),  // Ajouter /supprimer/
+      headers: await _headers,
+    );
+    return response.statusCode == 204 || response.statusCode == 200;
+  } catch (e) {
+    debugPrint("Erreur supprimerStock: $e");
+    return false;
+  }
+}
 }

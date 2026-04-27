@@ -17,7 +17,6 @@ import 'PAGES_/AUTH_/splash.dart';
 import 'PAGES_/AUTH_/login.dart';
 import 'PAGES_/AUTH_/register.dart';
 
-
 // Pages Patient
 import 'PAGES_/PATIENT_/patient_dashbord.dart';
 import 'PAGES_/PATIENT_/recherches_services_medicaux.dart';
@@ -37,13 +36,17 @@ import 'PAGES_/MEDECIN_/medecin_dashboard.dart';
 import 'PAGES_/MEDECIN_/medecin_profil_page.dart';
 import 'PAGES_/MEDECIN_/medecin_rendezvous_page.dart';
 import 'PAGES_/MEDECIN_/GererPlagesHorairesPage.dart';
+import 'PAGES_/MEDECIN_/medecin_consultations_page.dart';
+import 'PAGES_/MEDECIN_/medecin_detail_consultation_page.dart';
+import 'PAGES_/MEDECIN_/medecin_ordonnances_page.dart';
+import 'PAGES_/MEDECIN_/medecin_patients_page.dart';
+import 'PAGES_/MEDECIN_/medecin_dossier_patient_page.dart';
 
 // Pages Pharmacien
 import 'PAGES_/PHARMACIEN_/pharmacien_dashboard_page.dart';
 import 'PAGES_/PHARMACIEN_/pharmacien_produits_page.dart';
 import 'PAGES_/PHARMACIEN_/pharmacien_profil_page.dart';
 import 'PAGES_/PHARMACIEN_/pharmacien_commandes_page.dart';
-import 'PAGES_/PHARMACIEN_/pharmacien_scan_ordonnance_page.dart';
 import 'PAGES_/PHARMACIEN_/pharmacien_alertes_stock_page.dart';
 
 import 'MODELS_/utilisateur_model.dart';
@@ -91,45 +94,103 @@ class MyApp extends StatelessWidget {
       supportedLocales: const [Locale('fr', 'FR')],
       locale: const Locale('fr', 'FR'),
       initialRoute: "/splash",
-      routes: {
-        // Auth
-        "/splash": (context) => const Splash(),
-        "/login": (context) => const Login(),
-        "/register": (context) => const Register(),
+      onGenerateRoute: (settings) {
+        // Gestion des routes avec paramètres
+        switch (settings.name) {
+          // ==================== AUTH ====================
+          case "/splash":
+            return MaterialPageRoute(builder: (_) => const Splash());
+          case "/login":
+            return MaterialPageRoute(builder: (_) => const Login());
+          case "/register":
+            return MaterialPageRoute(builder: (_) => const Register());
 
-        // Patient
-        "/profil_patient": (context) => const ProfilPatientPage(),
-        "/edit_profil": (context) {
-          final args = ModalRoute.of(context)!.settings.arguments;
-          if (args is Patient) return EditProfilPage(patient: args);
-          return const Scaffold(
-            body: Center(child: Text("Erreur : Aucun profil fourni")),
-          );
-        },
-        "/page_utilisateur": (context) => const PageUtilisateur(),
-        "/recherches_services_medicaux": (context) => const RechercheServicesPage(),
-        "/assistant": (context) => const AssistantPage(),
-        "/suivi_traitements": (context) => const SuiviTraitementsPage(),
-        "/mes_commandes": (context) => const MesCommandesPage(),
-        "/rendez_vous_page": (context) => const RendezVousPage(),
-        "/mes_rendez_vous_page": (context) => const MesRendezVousPage(),
-        "/historique_chatbot": (context) => const AssistantHistoriquePage(),
-        "/historique_notifications": (context) => const NotificationHistoryPage(),
-        "/paiement": (context) => const PaiementPage(commandeId: 0, montant: 0),
+          // ==================== PATIENT ====================
+          case "/profil_patient":
+            return MaterialPageRoute(builder: (_) => const ProfilPatientPage());
+          case "/edit_profil":
+            final args = settings.arguments;
+            if (args is Patient) {
+              return MaterialPageRoute(builder: (_) => EditProfilPage(patient: args));
+            }
+            return MaterialPageRoute(builder: (_) => const Scaffold(body: Center(child: Text("Erreur : Aucun profil fourni"))));
+          case "/page_utilisateur":
+            return MaterialPageRoute(builder: (_) => const PageUtilisateur());
+          case "/recherches_services_medicaux":
+            return MaterialPageRoute(builder: (_) => const RechercheServicesPage());
+          case "/assistant":
+            return MaterialPageRoute(builder: (_) => const AssistantPage());
+          case "/suivi_traitements":
+            return MaterialPageRoute(builder: (_) => const SuiviTraitementsPage());
+          case "/mes_commandes":
+            return MaterialPageRoute(builder: (_) => const MesCommandesPage());
+          case "/rendez_vous_page":
+            return MaterialPageRoute(builder: (_) => const RendezVousPage());
+          case "/mes_rendez_vous_page":
+            return MaterialPageRoute(builder: (_) => const MesRendezVousPage());
+          case "/historique_chatbot":
+            return MaterialPageRoute(builder: (_) => const AssistantHistoriquePage());
+          case "/historique_notifications":
+            return MaterialPageRoute(builder: (_) => const NotificationHistoryPage());
+          case "/paiement":
+            final args = settings.arguments as Map<String, dynamic>?;
+            if (args != null) {
+              return MaterialPageRoute(
+                builder: (_) => PaiementPage(
+                  commandeId: args['commandeId'] ?? 0,
+                  montant: args['montant'] ?? 0,
+                ),
+              );
+            }
+            return MaterialPageRoute(builder: (_) => const PaiementPage(commandeId: 0, montant: 0));
 
-        // Medecin
-        "/dashboard_medecin": (context) => const MedecinDashboardPage(),
-        "/medecin_rendezvous": (context) => const MedecinRendezVousPage(),
-        "/medecin_profil": (context) => const MedecinProfilPage(),
-        "/GererPlages": (context) => const GererPlagesHorairesPage(),
+          // ==================== MÉDECIN ====================
+          case "/dashboard_medecin":
+            return MaterialPageRoute(builder: (_) => const MedecinDashboardPage());
+          case "/medecin_rendezvous":
+            return MaterialPageRoute(builder: (_) => const MedecinRendezVousPage());
+          case "/medecin_profil":
+            return MaterialPageRoute(builder: (_) => const MedecinProfilPage());
+          case "/GererPlages":
+            return MaterialPageRoute(builder: (_) => const GererPlagesHorairesPage());
+          case "/medecin_consultations":
+            return MaterialPageRoute(builder: (_) => const MedecinConsultationsPage());
+          case "/medecin_detail_consultation":
+            final args = settings.arguments as Map<String, dynamic>?;
+            if (args != null && args.containsKey('rdvId')) {
+              return MaterialPageRoute(
+                builder: (_) => MedecinDetailConsultationPage(rdvId: args['rdvId']),
+              );
+            }
+            return MaterialPageRoute(builder: (_) => const Scaffold(body: Center(child: Text("Erreur: RDV ID manquant"))));
+          case "/medecin_ordonnances":
+            return MaterialPageRoute(builder: (_) => const MedecinOrdonnancesPage());
+          case "/medecin_patients":
+            return MaterialPageRoute(builder: (_) => const MedecinPatientsPage());
+          case "/medecin_dossier_patient":
+            final args = settings.arguments as Map<String, dynamic>?;
+            if (args != null && args.containsKey('patientId')) {
+              return MaterialPageRoute(
+                builder: (_) => MedecinDossierPatientPage(patientId: args['patientId']),
+              );
+            }
+            return MaterialPageRoute(builder: (_) => const Scaffold(body: Center(child: Text("Erreur: Patient ID manquant"))));
 
-        // Pharmacien
-        "/dashboard_pharmacien": (context) => const PharmacienDashboardPage(),
-        "/produits_pharmacien": (context) => const PharmacienProduitsPage(),
-        "/profil_pharmacien": (context) => const PharmacienProfilPage(),
-        "/commandes_pharmacien": (context) => const PharmacienCommandesPage(),
-        "/scan_ordonnance_pharmacien": (context) => const PharmacienScanOrdonnancePage(),
-        "/alertes_stock_pharmacien": (context) => const PharmacienAlertesStockPage(),
+          // ==================== PHARMACIEN ====================
+          case "/dashboard_pharmacien":
+            return MaterialPageRoute(builder: (_) => const PharmacienDashboardPage());
+          case "/produits_pharmacien":
+            return MaterialPageRoute(builder: (_) => const PharmacienProduitsPage());
+          case "/profil_pharmacien":
+            return MaterialPageRoute(builder: (_) => const PharmacienProfilPage());
+          case "/commandes_pharmacien":
+            return MaterialPageRoute(builder: (_) => const PharmacienCommandesPage());
+          case "/alertes_stock_pharmacien":
+            return MaterialPageRoute(builder: (_) => const PharmacienAlertesStockPage());
+
+          default:
+            return MaterialPageRoute(builder: (_) => const Splash());
+        }
       },
     );
   }

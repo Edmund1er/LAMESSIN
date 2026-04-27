@@ -5,9 +5,12 @@ import '../../SERVICES_/api_service.dart';
 import '../../MODELS_/rendezvous_model.dart';
 import 'medecin_dashboard.dart';
 import 'medecin_profil_page.dart';
+import 'medecin_consultations_page.dart';
+import 'medecin_detail_consultation_page.dart';
 
 class MedecinRendezVousPage extends StatefulWidget {
   const MedecinRendezVousPage({super.key});
+
   @override
   State<MedecinRendezVousPage> createState() => _MedecinRendezVousPageState();
 }
@@ -16,8 +19,16 @@ class _MedecinRendezVousPageState extends State<MedecinRendezVousPage> {
   List<RendezVous> _tousRdv = [];
   bool _chargement = true;
   String _filtre = "Tous";
+  final List<String> _filtres = [
+    "Tous",
+    "En attente",
+    "Confirmes",
+    "Termines",
+    "Annules",
+    "Expires",
+  ];
 
-  final List<String> _filtres = ["Tous", "En attente", "Confirmés", "Annulés"];
+  final String _imageFond = "assets/images/fond_medecin_rendezvous.jpg";
 
   @override
   void initState() {
@@ -28,12 +39,14 @@ class _MedecinRendezVousPageState extends State<MedecinRendezVousPage> {
   Future<void> _chargerRdv() async {
     setState(() => _chargement = true);
     try {
+      await DoctorService.expirerRendezVous();
       final data = await DoctorService.getMesRendezVousMedecin();
-      if (mounted)
+      if (mounted) {
         setState(() {
           _tousRdv = data;
           _chargement = false;
         });
+      }
     } catch (e) {
       if (mounted) setState(() => _chargement = false);
     }
@@ -44,307 +57,564 @@ class _MedecinRendezVousPageState extends State<MedecinRendezVousPage> {
     if (ok) {
       AppWidgets.showSnack(
         context,
-        "Rendez-vous confirmé ✓",
-        color: AppColors.success,
+        "Rendez-vous confirme",
+        color: const Color(0xFF4CAF50),
       );
       _chargerRdv();
     } else {
       AppWidgets.showSnack(
         context,
         "Erreur lors de la confirmation",
-        color: AppColors.danger,
+        color: Colors.red,
       );
     }
   }
 
-  Future<void> _refuserRdv(int id) async {
+  Future<void> _annulerRdv(int id) async {
     final ok = await DoctorService.updateRendezVousStatut(id, 'annule');
     if (ok) {
-      AppWidgets.showSnack(
-        context,
-        "Rendez-vous refusé",
-        color: AppColors.warning,
-      );
+      AppWidgets.showSnack(context, "Rendez-vous annule", color: Colors.orange);
       _chargerRdv();
     } else {
       AppWidgets.showSnack(
         context,
-        "Erreur lors du refus",
-        color: AppColors.danger,
+        "Erreur lors de l'annulation",
+        color: Colors.red,
       );
     }
   }
 
+  void _ouvrirFormulaireConsultation(int rdvId) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => MedecinDetailConsultationPage(rdvId: rdvId),
+      ),
+    ).then((_) => _chargerRdv());
+  }
+
   List<RendezVous> get _rdvFiltres {
-    if (_filtre == "Tous") return _tousRdv;
-    if (_filtre == "En attente")
-      return _tousRdv.where((r) => r.statutActuelRdv == 'en_attente').toList();
-    if (_filtre == "Confirmés")
-      return _tousRdv
-          .where(
-            (r) =>
-                r.statutActuelRdv == 'confirme' ||
-                r.statutActuelRdv == 'validé',
-          )
-          .toList();
-    if (_filtre == "Annulés")
-      return _tousRdv.where((r) => r.statutActuelRdv == 'annulé').toList();
-    return _tousRdv;
+    switch (_filtre) {
+      case "En attente":
+        return _tousRdv
+            .where((r) => r.statutActuelRdv == 'en_attente')
+            .toList();
+      case "Confirmes":
+        return _tousRdv.where((r) => r.statutActuelRdv == 'confirme').toList();
+      case "Termines":
+        return _tousRdv.where((r) => r.statutActuelRdv == 'termine').toList();
+      case "Annules":
+        return _tousRdv.where((r) => r.statutActuelRdv == 'annule').toList();
+      case "Expires":
+        return _tousRdv.where((r) => r.statutActuelRdv == 'expire').toList();
+      default:
+        return _tousRdv;
+    }
+  }
+
+  Color _getStatusColor(String statut) {
+    switch (statut) {
+      case 'en_attente':
+        return const Color(0xFFF57C00);
+      case 'confirme':
+        return const Color(0xFF00ACC1);
+      case 'termine':
+        return const Color(0xFF4CAF50);
+      case 'annule':
+        return const Color(0xFFEF5350);
+      case 'expire':
+        return Colors.grey[600]!;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  String _getStatusText(String statut) {
+    switch (statut) {
+      case 'en_attente':
+        return "En attente";
+      case 'confirme':
+        return "Confirme";
+      case 'termine':
+        return "Termine";
+      case 'annule':
+        return "Annule";
+      case 'expire':
+        return "Expire";
+      default:
+        return statut;
+    }
+  }
+
+  void _onItemTapped(int index) {
+    if (index == 0) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const MedecinDashboardPage()),
+      );
+    } else if (index == 1) {
+      return;
+    } else if (index == 2) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const MedecinConsultationsPage()),
+      );
+    } else if (index == 3) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const MedecinProfilPage()),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
-        backgroundColor: AppColors.primary,
+        backgroundColor: const Color(0xFF00ACC1),
         elevation: 0,
-        automaticallyImplyLeading: false,
+        automaticallyImplyLeading: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+          onPressed: () => Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const MedecinDashboardPage()),
+          ),
+        ),
         title: const Text(
           "Mes rendez-vous",
           style: TextStyle(
             color: Colors.white,
             fontSize: 18,
-            fontWeight: FontWeight.w800,
+            fontWeight: FontWeight.w600,
           ),
         ),
+        centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded, color: Colors.white),
             onPressed: _chargerRdv,
           ),
-          const SizedBox(width: 8),
         ],
       ),
-      body: Column(
+      body: Stack(
         children: [
-          // Filtres
-          Container(
-            color: AppColors.primary,
-            padding: const EdgeInsets.only(left: 14, right: 14, bottom: 14),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: _filtres.map((f) {
-                  bool sel = _filtre == f;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: GestureDetector(
-                      onTap: () => setState(() => _filtre = f),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: sel
-                              ? Colors.white
-                              : Colors.white.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          f,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: sel ? AppColors.primary : Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
+          Positioned.fill(
+            child: Image.asset(
+              _imageFond,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) =>
+                  Container(color: Colors.grey[100]),
             ),
           ),
-
-          // Liste
-          Expanded(
-            child: _chargement
-                ? const Center(
-                    child: CircularProgressIndicator(color: AppColors.primary),
-                  )
-                : RefreshIndicator(
-                    onRefresh: _chargerRdv,
-                    color: AppColors.primary,
-                    child: _rdvFiltres.isEmpty
-                        ? _buildEmpty()
-                        : ListView.builder(
-                            padding: const EdgeInsets.all(16),
-                            itemCount: _rdvFiltres.length,
-                            itemBuilder: (_, i) =>
-                                _buildRdvCard(_rdvFiltres[i]),
+          Column(
+            children: [
+              Container(
+                color: const Color(0xFF00ACC1),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: _filtres.map((f) {
+                      final isSelected = _filtre == f;
+                      return GestureDetector(
+                        onTap: () => setState(() => _filtre = f),
+                        child: Container(
+                          margin: const EdgeInsets.only(right: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
                           ),
-                  ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: _buildBottomNav(1),
-    );
-  }
-
-  Widget _buildRdvCard(RendezVous rdv) {
-    final nomPatient =
-        rdv.patientDemandeur?.compteUtilisateur.firstName ?? "Patient";
-    final prenomPatient =
-        rdv.patientDemandeur?.compteUtilisateur.lastName ?? "";
-    final enAttente = rdv.statutActuelRdv == 'en_attente';
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: enAttente
-              ? AppColors.warning.withOpacity(0.4)
-              : AppColors.borderLight,
-          width: enAttente ? 1.5 : 1,
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            // Infos patient
-            Row(
-              children: [
-                Container(
-                  width: 46,
-                  height: 46,
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryLight,
-                    borderRadius: BorderRadius.circular(13),
-                  ),
-                  child: const Icon(
-                    Icons.person_rounded,
-                    color: AppColors.primary,
-                    size: 24,
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? Colors.white
+                                : Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            f,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: isSelected
+                                  ? const Color(0xFF00ACC1)
+                                  : Colors.white,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "$nomPatient $prenomPatient",
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.textPrimary,
+              ),
+              Expanded(
+                child: Container(
+                  color: Colors.white.withOpacity(0.92),
+                  child: _chargement
+                      ? const Center(
+                          child: CircularProgressIndicator(
+                            color: Color(0xFF00ACC1),
+                          ),
+                        )
+                      : RefreshIndicator(
+                          onRefresh: _chargerRdv,
+                          color: const Color(0xFF00ACC1),
+                          child: _rdvFiltres.isEmpty
+                              ? Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.event_busy_rounded,
+                                        size: 64,
+                                        color: Colors.grey[400],
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        "Aucun rendez-vous",
+                                        style: TextStyle(
+                                          color: Colors.grey[600],
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : ListView.builder(
+                                  padding: const EdgeInsets.all(16),
+                                  itemCount: _rdvFiltres.length,
+                                  itemBuilder: (_, i) {
+                                    final rdv = _rdvFiltres[i];
+                                    final isEnAttente =
+                                        rdv.statutActuelRdv == 'en_attente';
+                                    final isConfirme =
+                                        rdv.statutActuelRdv == 'confirme';
+                                    final isExpire =
+                                        rdv.statutActuelRdv == 'expire';
+                                    final nomPatient =
+                                        rdv
+                                            .patientDemandeur
+                                            ?.compteUtilisateur
+                                            .firstName ??
+                                        "Patient";
+                                    final prenomPatient =
+                                        rdv
+                                            .patientDemandeur
+                                            ?.compteUtilisateur
+                                            .lastName ??
+                                        "";
+                                    return Container(
+                                      margin: const EdgeInsets.only(bottom: 16),
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(20),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(
+                                              0.05,
+                                            ),
+                                            blurRadius: 10,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Container(
+                                                width: 50,
+                                                height: 50,
+                                                decoration: BoxDecoration(
+                                                  color: const Color(
+                                                    0xFFE0F7FA,
+                                                  ),
+                                                  borderRadius:
+                                                      BorderRadius.circular(15),
+                                                ),
+                                                child: const Icon(
+                                                  Icons.person_rounded,
+                                                  color: Color(0xFF00ACC1),
+                                                  size: 26,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 14),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      "$nomPatient $prenomPatient",
+                                                      style: const TextStyle(
+                                                        fontSize: 16,
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                        color: Colors.black87,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 5),
+                                                    Text(
+                                                      rdv.motifConsultation ??
+                                                          "Consultation generale",
+                                                      style: const TextStyle(
+                                                        fontSize: 12,
+                                                        color: Colors.grey,
+                                                      ),
+                                                      maxLines: 1,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 12,
+                                                      vertical: 6,
+                                                    ),
+                                                decoration: BoxDecoration(
+                                                  color: _getStatusColor(
+                                                    rdv.statutActuelRdv,
+                                                  ).withOpacity(0.1),
+                                                  borderRadius:
+                                                      BorderRadius.circular(20),
+                                                ),
+                                                child: Text(
+                                                  _getStatusText(
+                                                    rdv.statutActuelRdv,
+                                                  ),
+                                                  style: TextStyle(
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: _getStatusColor(
+                                                      rdv.statutActuelRdv,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 16),
+                                          Container(
+                                            padding: const EdgeInsets.all(12),
+                                            decoration: BoxDecoration(
+                                              color: Colors.grey[50],
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                Icon(
+                                                  Icons.calendar_today_rounded,
+                                                  size: 16,
+                                                  color: Colors.grey[600],
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                  rdv.dateRdv,
+                                                  style: TextStyle(
+                                                    fontSize: 13,
+                                                    color: Colors.grey[700],
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 20),
+                                                Icon(
+                                                  Icons.access_time_rounded,
+                                                  size: 16,
+                                                  color: Colors.grey[600],
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                  rdv.heureRdv,
+                                                  style: TextStyle(
+                                                    fontSize: 13,
+                                                    color: Colors.grey[700],
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          const SizedBox(height: 16),
+                                          if (isEnAttente && !isExpire)
+                                            Row(
+                                              children: [
+                                                Expanded(
+                                                  child: OutlinedButton(
+                                                    onPressed: () =>
+                                                        _confirmerDialog(
+                                                          rdv.id,
+                                                        ),
+                                                    style: OutlinedButton.styleFrom(
+                                                      backgroundColor:
+                                                          const Color(
+                                                            0xFF4CAF50,
+                                                          ),
+                                                      foregroundColor:
+                                                          Colors.white,
+                                                      side: BorderSide.none,
+                                                      shape: RoundedRectangleBorder(
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              12,
+                                                            ),
+                                                      ),
+                                                      padding:
+                                                          const EdgeInsets.symmetric(
+                                                            vertical: 12,
+                                                          ),
+                                                    ),
+                                                    child: const Text(
+                                                      "Confirmer",
+                                                      style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 12),
+                                                Expanded(
+                                                  child: OutlinedButton(
+                                                    onPressed: () =>
+                                                        _annulerDialog(rdv.id),
+                                                    style: OutlinedButton.styleFrom(
+                                                      backgroundColor:
+                                                          Colors.white,
+                                                      foregroundColor:
+                                                          const Color(
+                                                            0xFFEF5350,
+                                                          ),
+                                                      side: const BorderSide(
+                                                        color: Color(
+                                                          0xFFEF5350,
+                                                        ),
+                                                      ),
+                                                      shape: RoundedRectangleBorder(
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              12,
+                                                            ),
+                                                      ),
+                                                      padding:
+                                                          const EdgeInsets.symmetric(
+                                                            vertical: 12,
+                                                          ),
+                                                    ),
+                                                    child: const Text(
+                                                      "Annuler",
+                                                      style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          if (isConfirme && !isExpire)
+                                            SizedBox(
+                                              width: double.infinity,
+                                              child: ElevatedButton(
+                                                onPressed: () =>
+                                                    _ouvrirFormulaireConsultation(
+                                                      rdv.id,
+                                                    ),
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: const Color(
+                                                    0xFF00ACC1,
+                                                  ),
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          12,
+                                                        ),
+                                                  ),
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        vertical: 12,
+                                                      ),
+                                                ),
+                                                child: const Text(
+                                                  "Remplir la consultation",
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          if (isExpire)
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.all(12),
+                                              decoration: BoxDecoration(
+                                                color: Colors.grey[100],
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                              child: const Row(
+                                                children: [
+                                                  Icon(
+                                                    Icons.access_time_rounded,
+                                                    color: Colors.grey,
+                                                    size: 16,
+                                                  ),
+                                                  SizedBox(width: 8),
+                                                  Expanded(
+                                                    child: Text(
+                                                      "Ce rendez-vous a expire",
+                                                      style: TextStyle(
+                                                        fontSize: 12,
+                                                        color: Colors.grey,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
                         ),
-                      ),
-                      Text(
-                        rdv.motifConsultation ?? "Consultation générale",
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
                 ),
-                AppWidgets.statusBadge(rdv.statutActuelRdv),
-              ],
-            ),
-
-            const SizedBox(height: 12),
-
-            // Date/Heure
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: AppColors.background,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.calendar_today_rounded,
-                    size: 14,
-                    color: AppColors.textSecondary,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    rdv.dateRdv,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  const Icon(
-                    Icons.access_time_rounded,
-                    size: 14,
-                    color: AppColors.textSecondary,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    rdv.heureRdv,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Boutons (seulement si en attente)
-            if (enAttente) ...[
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => _confirmerDialog(rdv.id),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF22863A),
-                        side: const BorderSide(
-                          color: Color(0xFF22863A),
-                          width: 1.5,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                      ),
-                      icon: const Icon(Icons.check_rounded, size: 16),
-                      label: const Text(
-                        "Confirmer",
-                        style: TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => _refusDialog(rdv.id),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.danger,
-                        side: const BorderSide(
-                          color: AppColors.danger,
-                          width: 1.5,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                      ),
-                      icon: const Icon(Icons.close_rounded, size: 16),
-                      label: const Text(
-                        "Refuser",
-                        style: TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                  ),
-                ],
               ),
             ],
+          ),
+        ],
+      ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
           ],
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildNavItem(Icons.dashboard_rounded, "Accueil", 0, 1),
+                _buildNavItem(
+                  Icons.calendar_today_rounded,
+                  "Rendez-vous",
+                  1,
+                  1,
+                ),
+                _buildNavItem(Icons.history_rounded, "Consultations", 2, 1),
+                _buildNavItem(Icons.person_rounded, "Profil", 3, 1),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -356,193 +626,92 @@ class _MedecinRendezVousPageState extends State<MedecinRendezVousPage> {
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text(
-          "Confirmer ce rendez-vous ?",
-          style: TextStyle(fontWeight: FontWeight.w800),
+          "Confirmer",
+          style: TextStyle(fontWeight: FontWeight.w600),
         ),
-        content: const Text("Le patient sera notifié de la confirmation."),
+        content: const Text("Voulez-vous confirmer ce rendez-vous ?"),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text(
-              "Annuler",
-              style: TextStyle(color: AppColors.textSecondary),
-            ),
+            child: const Text("Annuler", style: TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF22863A),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
             onPressed: () {
               Navigator.pop(ctx);
               _confirmerRdv(id);
             },
-            child: const Text(
-              "Confirmer",
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF4CAF50),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
               ),
             ),
+            child: const Text("Confirmer"),
           ),
         ],
       ),
     );
   }
 
-  void _refusDialog(int id) {
+  void _annulerDialog(int id) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text(
-          "Refuser ce rendez-vous ?",
-          style: TextStyle(fontWeight: FontWeight.w800),
+          "Annuler",
+          style: TextStyle(fontWeight: FontWeight.w600),
         ),
-        content: const Text("Cette action est irréversible."),
+        content: const Text(
+          "Voulez-vous annuler ce rendez-vous ? Cette action est irreversible.",
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text(
-              "Annuler",
-              style: TextStyle(color: AppColors.textSecondary),
-            ),
+            child: const Text("Retour", style: TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _annulerRdv(id);
+            },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.danger,
+              backgroundColor: const Color(0xFFEF5350),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
-            onPressed: () {
-              Navigator.pop(ctx);
-              _refuserRdv(id);
-            },
-            child: const Text(
-              "Refuser",
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
+            child: const Text("Annuler"),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildEmpty() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(
-              color: AppColors.primaryLight,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Icon(
-              Icons.event_busy_rounded,
-              size: 36,
-              color: AppColors.primary,
-            ),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            "Aucun rendez-vous",
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            "Filtre actuel : $_filtre",
-            style: const TextStyle(
-              fontSize: 13,
-              color: AppColors.textSecondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBottomNav(int index) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(top: BorderSide(color: AppColors.borderLight)),
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _navItem(
-                Icons.dashboard_rounded,
-                "Accueil",
-                0,
-                index,
-                () => Navigator.pushReplacementNamed(
-                  context,
-                  '/dashboard_medecin',
-                ),
-              ),
-              _navItem(
-                Icons.calendar_month_rounded,
-                "Rendez-vous",
-                1,
-                index,
-                () {},
-              ),
-              _navItem(
-                Icons.account_circle_rounded,
-                "Profil",
-                2,
-                index,
-                () =>
-                    Navigator.pushReplacementNamed(context, '/medecin_profil'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _navItem(
+  Widget _buildNavItem(
     IconData icon,
     String label,
-    int idx,
-    int current,
-    VoidCallback onTap,
+    int index,
+    int currentIndex,
   ) {
-    bool actif = idx == current;
+    final isSelected = index == currentIndex;
     return GestureDetector(
-      onTap: onTap,
+      onTap: () => _onItemTapped(index),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
             icon,
-            color: actif ? AppColors.primary : AppColors.textSecondary,
+            color: isSelected ? const Color(0xFF00ACC1) : Colors.grey,
             size: 24,
           ),
-          const SizedBox(height: 3),
+          const SizedBox(height: 4),
           Text(
             label,
             style: TextStyle(
-              fontSize: 10,
-              fontWeight: actif ? FontWeight.w700 : FontWeight.w500,
-              color: actif ? AppColors.primary : AppColors.textSecondary,
+              fontSize: 11,
+              color: isSelected ? const Color(0xFF00ACC1) : Colors.grey,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
             ),
           ),
         ],

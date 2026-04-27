@@ -27,7 +27,6 @@ class Utilisateur {
     return Utilisateur(
       id: json['id'],
       username: json['username'],
-      // CORRECTION ICI : On caste en String? pour autoriser le ??
       email: (json['email'] as String?) ?? '',
       numeroTelephone: (json['numero_telephone'] as String?) ?? '',
       firstName: (json['first_name'] as String?) ?? '',
@@ -79,8 +78,7 @@ class Medecin {
   factory Medecin.fromJson(Map<String, dynamic> json) {
     return Medecin(
       compteUtilisateur: Utilisateur.fromJson(json['compte_utilisateur']),
-      specialiteMedicale:
-          (json['specialite_medicale'] as String?) ?? 'Généraliste',
+      specialiteMedicale: (json['specialite_medicale'] as String?) ?? 'Generaliste',
       numeroLicence: (json['numero_licence'] as String?) ?? '0000',
       photoProfil: json['photo_profil'],
     );
@@ -89,26 +87,23 @@ class Medecin {
 
 class Pharmacien {
   final Utilisateur compteUtilisateur;
-  final String? nomPharmacie;
-  final String? adressePharmacie;
-  final String? numeroPharmacie;
-  final String? photoProfil;
+  final String nomPharmacie;
+  final String adressePharmacie;
+  final String numeroPharmacie;
 
   Pharmacien({
     required this.compteUtilisateur,
-    this.nomPharmacie,
-    this.adressePharmacie,
-    this.numeroPharmacie,
-    this.photoProfil,
+    required this.nomPharmacie,
+    required this.adressePharmacie,
+    required this.numeroPharmacie,
   });
 
   factory Pharmacien.fromJson(Map<String, dynamic> json) {
     return Pharmacien(
       compteUtilisateur: Utilisateur.fromJson(json['compte_utilisateur']),
-      nomPharmacie: json['nom_pharmacie'],
-      adressePharmacie: json['adresse_pharmacie'],
-      numeroPharmacie: json['numero_licence'], 
-      photoProfil: json['photo_profil'],
+      nomPharmacie: json['nom_pharmacie'] ?? "Non renseigne",
+      adressePharmacie: json['adresse_pharmacie'] ?? "",
+      numeroPharmacie: json['numero_pharmacie'] ?? "",
     );
   }
 }

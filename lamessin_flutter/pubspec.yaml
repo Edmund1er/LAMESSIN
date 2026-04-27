@@ -71,11 +71,25 @@ flutter:
 
   # Déclaration des assets (images)
   assets:
+    # Images patient
+    - assets/images/fond_patient.jpg
+    - assets/images/rdv.jpeg
     - assets/images/accueil_image.jpeg
     - assets/images/login.jpeg
     - assets/images/register.jpeg
-    - assets/images/fond_patient.jpg
-    - assets/images/rdv.jpeg
+    
+    # Images médecin
+    - assets/images/fond_medecin_dashboard.jpg
+    - assets/images/fond_medecin_rendezvous.jpg
+    - assets/images/fond_medecin_consultations.jpg
+    - assets/images/fond_medecin_detail_consultation.jpg
+    - assets/images/fond_medecin_ordonnances.jpg
+    - assets/images/fond_medecin_patients.jpg
+    - assets/images/fond_medecin_dossier_patient.jpg
+    - assets/images/fond_medecin_disponibilites.jpg
+    - assets/images/fond_medecin_profil.jpg
+    
+    # Images pharmacien
     - assets/images/fond_pharmacien_dashboard.jpg
     - assets/images/fond_pharmacien_produits.jpg
     - assets/images/fond_pharmacien_profil.jpg
@@ -84,9 +98,6 @@ flutter:
     - assets/images/fond_pharmacien_scan.jpg
     - assets/images/fond_pharmacien_detail_ordonnance.jpg
     - assets/images/fond_pharmacien_alertes.jpg
-
-
-
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 

@@ -6,23 +6,27 @@ import '../../MODELS_/utilisateur_model.dart';
 import '../../MODELS_/rendezvous_model.dart';
 import '../../MODELS_/notification_model.dart';
 import 'medecin_rendezvous_page.dart';
+import 'medecin_consultations_page.dart';
 import 'medecin_profil_page.dart';
+import 'medecin_notifications_page.dart';
 
 class MedecinDashboardPage extends StatefulWidget {
   const MedecinDashboardPage({super.key});
+
   @override
   State<MedecinDashboardPage> createState() => _MedecinDashboardPageState();
 }
 
 class _MedecinDashboardPageState extends State<MedecinDashboardPage> {
   String _nomMedecin = "Docteur";
+  String _prenomMedecin = "";
   String _specialite = "";
-  String _email = "";
-  String _telephone = "";
-
+  Map<String, dynamic>? _dashboardData;
   List<RendezVous> _rdv = [];
   List<NotificationModel> _notifications = [];
   bool _chargement = true;
+
+  final String _imageFond = "assets/images/fond_medecin_dashboard.jpg";
 
   @override
   void initState() {
@@ -34,18 +38,18 @@ class _MedecinDashboardPageState extends State<MedecinDashboardPage> {
     setState(() => _chargement = true);
     try {
       final profil = await DoctorService.getProfil();
-      final notifs = await ApiService.getNotifications();
+      final dashboard = await DoctorService.getDashboard();
       final rdvData = await DoctorService.getMesRendezVousMedecin();
+      final notifs = await ApiService.getNotifications();
 
       if (mounted) {
         setState(() {
           if (profil is Medecin) {
-            _nomMedecin =
-                "${profil.compteUtilisateur.firstName} ${profil.compteUtilisateur.lastName}";
+            _prenomMedecin = profil.compteUtilisateur.firstName;
+            _nomMedecin = profil.compteUtilisateur.lastName;
             _specialite = profil.specialiteMedicale;
-            _email = profil.compteUtilisateur.email ?? "";
-            _telephone = profil.compteUtilisateur.numeroTelephone ?? "";
           }
+          _dashboardData = dashboard;
           _rdv = rdvData;
           _notifications = notifs;
           _chargement = false;
@@ -56,454 +60,338 @@ class _MedecinDashboardPageState extends State<MedecinDashboardPage> {
     }
   }
 
-  int get _rdvAujourdhui {
-    final today = DateTime.now();
-    return _rdv.where((r) {
-      final d = DateTime.tryParse(r.dateRdv);
-      return d != null &&
-          d.year == today.year &&
-          d.month == today.month &&
-          d.day == today.day;
-    }).length;
-  }
-
+  int get _rdvAujourdhui => _dashboardData?['rdv_aujourdhui'] ?? 0;
   int get _rdvEnAttente =>
       _rdv.where((r) => r.statutActuelRdv == 'en_attente').length;
+  int get _consultationsTotal => _dashboardData?['consultations_total'] ?? 0;
 
   List<RendezVous> get _prochains =>
-      _rdv.where((r) => r.statutActuelRdv != 'annulé').take(5).toList();
+      _rdv.where((r) => r.statutActuelRdv != 'annule').take(5).toList();
 
-  // ========================= DRAWER =========================
-
-  Widget _buildDrawer() {
-    return Drawer(
-      backgroundColor: AppColors.surface,
-      child: SafeArea(
-        child: Column(
-          children: [
-            // En-tête du drawer
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-              color: AppColors.primary,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.5),
-                        width: 2,
-                      ),
-                    ),
-                    child: const Icon(
-                      Icons.person_rounded,
-                      color: Colors.white,
-                      size: 30,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    "Dr $_nomMedecin",
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  if (_specialite.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.18),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        _specialite,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                  if (_email.isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    Text(
-                      _email,
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.7),
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 8),
-
-            // Items de navigation
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 4,
-                ),
-                children: [
-                  _drawerItem(
-                    icon: Icons.dashboard_rounded,
-                    label: "Tableau de bord",
-                    actif: true,
-                    onTap: () => Navigator.pop(context),
-                  ),
-                  _drawerItem(
-                    icon: Icons.calendar_month_rounded,
-                    label: "Rendez-vous",
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const MedecinRendezVousPage(),
-                        ),
-                      );
-                    },
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8),
-                    child: Divider(color: AppColors.borderLight),
-                  ),
-                  _drawerItem(
-                    icon: Icons.account_circle_rounded,
-                    label: "Mon profil",
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const MedecinProfilPage(),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-
-            // Bouton déconnexion en bas
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () async {
-                    Navigator.pop(context);
-                    await ApiService.logout();
-                    if (context.mounted) {
-                      Navigator.pushNamedAndRemoveUntil(
-                        context,
-                        '/login',
-                        (r) => false,
-                      );
-                    }
-                  },
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.danger,
-                    side: const BorderSide(
-                      color: AppColors.dangerLight,
-                      width: 1.5,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  icon: const Icon(Icons.power_settings_new_rounded, size: 18),
-                  label: const Text(
-                    "Se déconnecter",
-                    style: TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+  void _onItemTapped(int index) {
+    if (index == 0) return;
+    if (index == 1) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const MedecinRendezVousPage()),
+      );
+    } else if (index == 2) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const MedecinConsultationsPage()),
+      );
+    } else if (index == 3) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const MedecinProfilPage()),
+      );
+    }
   }
 
-  Widget _drawerItem({
-    required IconData icon,
-    required String label,
-    bool actif = false,
-    int badge = 0,
-    required VoidCallback onTap,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 2),
-      decoration: BoxDecoration(
-        color: actif ? AppColors.primaryLight : Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: ListTile(
-        onTap: onTap,
-        dense: true,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        leading: Icon(
-          icon,
-          color: actif ? AppColors.primary : AppColors.textSecondary,
-          size: 22,
-        ),
-        title: Text(
-          label,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: actif ? FontWeight.w700 : FontWeight.w500,
-            color: actif ? AppColors.primary : AppColors.textPrimary,
-          ),
-        ),
-        trailing: badge > 0
-            ? Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  "$badge",
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              )
-            : null,
-      ),
+  void _openNotifications() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const MedecinNotificationsPage()),
     );
   }
-
-  // ========================= BUILD =========================
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      drawer: _buildDrawer(),
+      backgroundColor: Colors.transparent,
       body: _chargement
           ? const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
+              child: CircularProgressIndicator(color: Color(0xFF00ACC1)),
             )
           : RefreshIndicator(
               onRefresh: _chargerDonnees,
-              color: AppColors.primary,
-              child: CustomScrollView(
-                slivers: [
-                  _buildHeader(),
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.all(18),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildStats(),
-                          const SizedBox(height: 24),
-                          _sectionTitle("Prochains rendez-vous"),
-                          const SizedBox(height: 12),
-                          _prochains.isEmpty
-                              ? _buildEmpty(
-                                  "Aucun rendez-vous à venir",
-                                  Icons.event_busy_rounded,
-                                )
-                              : Column(
-                                  children: _prochains
-                                      .map((r) => _buildRdvCard(r))
-                                      .toList(),
-                                ),
-                          const SizedBox(height: 24),
-                          _sectionTitle("Notifications récentes"),
-                          const SizedBox(height: 12),
-                          _notifications.isEmpty
-                              ? _buildEmpty(
-                                  "Aucune notification",
-                                  Icons.notifications_off_outlined,
-                                )
-                              : Column(
-                                  children: _notifications
-                                      .take(3)
-                                      .map((n) => _buildNotifCard(n))
-                                      .toList(),
-                                ),
-                          const SizedBox(height: 20),
-                        ],
-                      ),
+              color: const Color(0xFF00ACC1),
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: Image.asset(
+                      _imageFond,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          Container(color: Colors.grey[100]),
                     ),
+                  ),
+                  CustomScrollView(
+                    slivers: [
+                      SliverAppBar(
+                        expandedHeight: 180,
+                        pinned: true,
+                        elevation: 0,
+                        backgroundColor: Colors.transparent,
+                        automaticallyImplyLeading: false,
+                        actions: [
+                          IconButton(
+                            icon: const Icon(
+                              Icons.notifications_outlined,
+                              color: Colors.white,
+                            ),
+                            onPressed: _openNotifications,
+                          ),
+
+                          IconButton(
+                            icon: const Icon(
+                              Icons.logout_rounded,
+                              color: Colors.white,
+                            ),
+                            onPressed: () => _confirmerDeconnexion(context),
+                          ),
+                        ],
+                        flexibleSpace: FlexibleSpaceBar(
+                          background: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  const Color(0xFF00ACC1).withOpacity(0.85),
+                                  const Color(0xFF00ACC1).withOpacity(0.7),
+                                ],
+                              ),
+                            ),
+                            padding: const EdgeInsets.only(
+                              left: 20,
+                              right: 20,
+                              top: 50,
+                              bottom: 16,
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "Bonjour,",
+                                  style: TextStyle(
+                                    color: Colors.white.withOpacity(0.9),
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  "Dr $_prenomMedecin $_nomMedecin",
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                if (_specialite.isNotEmpty)
+                                  Text(
+                                    _specialite,
+                                    style: TextStyle(
+                                      color: Colors.white.withOpacity(0.85),
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      SliverToBoxAdapter(
+                        child: Container(
+                          color: Colors.white.withOpacity(0.92),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: _buildStatCard(
+                                        "Aujourd'hui",
+                                        _rdvAujourdhui,
+                                        Icons.today_rounded,
+                                        const Color(0xFF00ACC1),
+                                        Colors.white,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: _buildStatCard(
+                                        "En attente",
+                                        _rdvEnAttente,
+                                        Icons.hourglass_empty_rounded,
+                                        const Color(0xFFF57C00),
+                                        Colors.white,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: _buildStatCard(
+                                        "Consultations",
+                                        _consultationsTotal,
+                                        Icons.medical_services_rounded,
+                                        const Color(0xFF4CAF50),
+                                        Colors.white,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 24),
+                                const Text(
+                                  "Prochains rendez-vous",
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                _prochains.isEmpty
+                                    ? Container(
+                                        padding: const EdgeInsets.all(40),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(
+                                            16,
+                                          ),
+                                        ),
+                                        child: Column(
+                                          children: [
+                                            Icon(
+                                              Icons.event_busy_rounded,
+                                              size: 48,
+                                              color: Colors.grey[400],
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              "Aucun rendez-vous a venir",
+                                              style: TextStyle(
+                                                color: Colors.grey[500],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      )
+                                    : Column(
+                                        children: _prochains
+                                            .map((r) => _buildRdvCard(r))
+                                            .toList(),
+                                      ),
+                                const SizedBox(height: 24),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Text(
+                                      "Notifications recentes",
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                    TextButton(
+                                      onPressed: _openNotifications,
+                                      child: const Text(
+                                        "Voir tout",
+                                        style: TextStyle(
+                                          color: Color(0xFF00ACC1),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                _notifications.isEmpty
+                                    ? Container(
+                                        padding: const EdgeInsets.all(40),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(
+                                            16,
+                                          ),
+                                        ),
+                                        child: Column(
+                                          children: [
+                                            Icon(
+                                              Icons.notifications_off_outlined,
+                                              size: 48,
+                                              color: Colors.grey[400],
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              "Aucune notification",
+                                              style: TextStyle(
+                                                color: Colors.grey[500],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      )
+                                    : Column(
+                                        children: _notifications
+                                            .take(3)
+                                            .map((n) => _buildNotifCard(n))
+                                            .toList(),
+                                      ),
+                                const SizedBox(height: 30),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
-      bottomNavigationBar: _buildBottomNav(0),
-    );
-  }
-
-  Widget _buildHeader() {
-    return SliverAppBar(
-      expandedHeight: 180,
-      pinned: true,
-      elevation: 0,
-      backgroundColor: AppColors.primary,
-      automaticallyImplyLeading: false,
-      leading: Builder(
-        builder: (context) => IconButton(
-          icon: Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(
-              Icons.menu_rounded,
-              color: Colors.white,
-              size: 20,
-            ),
-          ),
-          onPressed: () => Scaffold.of(context).openDrawer(),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
+          ],
         ),
-      ),
-      actions: [
-        IconButton(
-          icon: Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(10),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildNavItem(Icons.dashboard_rounded, "Accueil", 0, 0),
+                _buildNavItem(
+                  Icons.calendar_today_rounded,
+                  "Rendez-vous",
+                  1,
+                  0,
+                ),
+                _buildNavItem(Icons.history_rounded, "Consultations", 2, 0),
+                _buildNavItem(Icons.person_rounded, "Profil", 3, 0),
+              ],
             ),
-            child: const Icon(
-              Icons.power_settings_new_rounded,
-              color: Colors.white,
-              size: 20,
-            ),
-          ),
-          onPressed: () async {
-            await ApiService.logout();
-            if (context.mounted) {
-              Navigator.pushNamedAndRemoveUntil(
-                context,
-                '/login',
-                (r) => false,
-              );
-            }
-          },
-        ),
-        const SizedBox(width: 8),
-      ],
-      flexibleSpace: FlexibleSpaceBar(
-        background: Container(
-          color: AppColors.primary,
-          padding: const EdgeInsets.only(left: 22, bottom: 24, top: 60),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.end,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "Bonjour,",
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.75),
-                  fontSize: 15,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                "Dr $_nomMedecin 👨‍⚕️",
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              if (_specialite.isNotEmpty)
-                Text(
-                  _specialite,
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.7),
-                    fontSize: 13,
-                  ),
-                ),
-            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildStats() {
-    return Row(
-      children: [
-        Expanded(
-          child: _statCard(
-            "Aujourd'hui",
-            _rdvAujourdhui,
-            Icons.today_rounded,
-            AppColors.primary,
-            AppColors.primaryLight,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _statCard(
-            "En attente",
-            _rdvEnAttente,
-            Icons.hourglass_empty_rounded,
-            const Color(0xFFE65100),
-            AppColors.warningLight,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _statCard(
-            "Total",
-            _rdv.length,
-            Icons.calendar_month_rounded,
-            const Color(0xFF22863A),
-            AppColors.successLight,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _statCard(
+  Widget _buildStatCard(
     String label,
     int value,
     IconData icon,
     Color color,
-    Color bg,
+    Color bgColor,
   ) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: bgColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderLight),
       ),
       child: Column(
         children: [
           Container(
-            width: 38,
-            height: 38,
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: bg,
-              borderRadius: BorderRadius.circular(10),
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: color, size: 20),
           ),
@@ -511,18 +399,14 @@ class _MedecinDashboardPageState extends State<MedecinDashboardPage> {
           Text(
             "$value",
             style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
               color: color,
             ),
           ),
           Text(
             label,
-            style: const TextStyle(
-              fontSize: 10,
-              color: AppColors.textSecondary,
-              fontWeight: FontWeight.w600,
-            ),
+            style: const TextStyle(fontSize: 11, color: Colors.grey),
             textAlign: TextAlign.center,
           ),
         ],
@@ -535,27 +419,32 @@ class _MedecinDashboardPageState extends State<MedecinDashboardPage> {
         rdv.patientDemandeur?.compteUtilisateur.firstName ?? "Patient";
     final prenomPatient =
         rdv.patientDemandeur?.compteUtilisateur.lastName ?? "";
-
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderLight),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 5,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Container(
-            width: 42,
-            height: 42,
+            width: 45,
+            height: 45,
             decoration: BoxDecoration(
-              color: AppColors.primaryLight,
+              color: const Color(0xFFE0F7FA),
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(
               Icons.person_rounded,
-              color: AppColors.primary,
+              color: Color(0xFF00ACC1),
               size: 22,
             ),
           ),
@@ -568,21 +457,33 @@ class _MedecinDashboardPageState extends State<MedecinDashboardPage> {
                   "$nomPatient $prenomPatient",
                   style: const TextStyle(
                     fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
                   ),
                 ),
+                const SizedBox(height: 4),
                 Text(
-                  "${rdv.dateRdv} · ${rdv.heureRdv}",
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textSecondary,
-                  ),
+                  "${rdv.dateRdv} à ${rdv.heureRdv}",
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
               ],
             ),
           ),
-          AppWidgets.statusBadge(rdv.statutActuelRdv),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: _getStatusColor(rdv.statutActuelRdv).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              _getStatusText(rdv.statutActuelRdv),
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: _getStatusColor(rdv.statutActuelRdv),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -593,15 +494,14 @@ class _MedecinDashboardPageState extends State<MedecinDashboardPage> {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border(left: BorderSide(color: AppColors.primary, width: 3)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
-          const Icon(
+          Icon(
             Icons.notifications_rounded,
-            color: AppColors.primary,
+            color: const Color(0xFF00ACC1),
             size: 18,
           ),
           const SizedBox(width: 10),
@@ -610,10 +510,7 @@ class _MedecinDashboardPageState extends State<MedecinDashboardPage> {
               n.message ?? "",
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 13,
-                color: AppColors.textPrimary,
-              ),
+              style: const TextStyle(fontSize: 12, color: Colors.black87),
             ),
           ),
         ],
@@ -621,107 +518,95 @@ class _MedecinDashboardPageState extends State<MedecinDashboardPage> {
     );
   }
 
-  Widget _sectionTitle(String t) => Text(
-    t,
-    style: const TextStyle(
-      fontSize: 16,
-      fontWeight: FontWeight.w800,
-      color: AppColors.textPrimary,
-    ),
-  );
-
-  Widget _buildEmpty(String msg, IconData icon) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 24),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.borderLight),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: AppColors.textSecondary, size: 32),
-          const SizedBox(height: 8),
-          Text(
-            msg,
-            style: const TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 13,
-            ),
-          ),
-        ],
-      ),
-    );
+  Color _getStatusColor(String statut) {
+    switch (statut) {
+      case 'en_attente':
+        return const Color(0xFFF57C00);
+      case 'confirme':
+        return const Color(0xFF00ACC1);
+      case 'termine':
+        return const Color(0xFF4CAF50);
+      case 'annule':
+        return const Color(0xFFEF5350);
+      default:
+        return Colors.grey;
+    }
   }
 
-  Widget _buildBottomNav(int index) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(top: BorderSide(color: AppColors.borderLight)),
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _navItem(Icons.dashboard_rounded, "Accueil", 0, index, () {}),
-              _navItem(
-                Icons.calendar_month_rounded,
-                "Rendez-vous",
-                1,
-                index,
-                () => Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const MedecinRendezVousPage(),
-                  ),
-                ),
-              ),
-              _navItem(
-                Icons.account_circle_rounded,
-                "Profil",
-                2,
-                index,
-                () => Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => const MedecinProfilPage()),
-                ),
-              ),
-            ],
-          ),
+  String _getStatusText(String statut) {
+    switch (statut) {
+      case 'en_attente':
+        return "En attente";
+      case 'confirme':
+        return "Confirme";
+      case 'termine':
+        return "Termine";
+      case 'annule':
+        return "Annule";
+      default:
+        return statut;
+    }
+  }
+
+  void _confirmerDeconnexion(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          "Deconnexion",
+          style: TextStyle(fontWeight: FontWeight.w600),
         ),
+        content: const Text("Voulez-vous vraiment vous deconnecter ?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Annuler"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await ApiService.logout();
+              if (context.mounted) {
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/login',
+                  (route) => false,
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text("Se deconnecter"),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _navItem(
+  Widget _buildNavItem(
     IconData icon,
     String label,
-    int idx,
-    int current,
-    VoidCallback onTap,
+    int index,
+    int currentIndex,
   ) {
-    bool actif = idx == current;
+    final isSelected = index == currentIndex;
     return GestureDetector(
-      onTap: onTap,
+      onTap: () => _onItemTapped(index),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
             icon,
-            color: actif ? AppColors.primary : AppColors.textSecondary,
+            color: isSelected ? const Color(0xFF00ACC1) : Colors.grey,
             size: 24,
           ),
-          const SizedBox(height: 3),
+          const SizedBox(height: 4),
           Text(
             label,
             style: TextStyle(
-              fontSize: 10,
-              fontWeight: actif ? FontWeight.w700 : FontWeight.w500,
-              color: actif ? AppColors.primary : AppColors.textSecondary,
+              fontSize: 11,
+              color: isSelected ? const Color(0xFF00ACC1) : Colors.grey,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
             ),
           ),
         ],
