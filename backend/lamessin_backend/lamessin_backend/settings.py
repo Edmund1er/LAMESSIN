@@ -7,6 +7,7 @@ Optimisé pour Flutter & Firebase - Configuration Complète
 import os
 from pathlib import Path
 from datetime import timedelta
+from django.utils import timezone
 import firebase_admin
 from firebase_admin import credentials as fb_creds
 from dotenv import load_dotenv
@@ -19,25 +20,24 @@ ENV_PATH = BASE_DIR / 'api.env'
 
 if ENV_PATH.exists():
     load_dotenv(ENV_PATH)
-    print(f"✓ Fichier .env chargé depuis {ENV_PATH}")
+    print(f"✓ Fichier .env charge depuis {ENV_PATH}")
 
     groq_key = os.getenv('GROQ_API_KEY')
     if groq_key:
-        print(f"✓ GROQ_API_KEY trouvée (commence par: {groq_key[:15]}...)")
+        print(f"✓ GROQ_API_KEY trouvee (commence par: {groq_key[:15]}...)")
     else:
-        print("⚠️ GROQ_API_KEY non trouvée dans api.env - Veuillez vous inscrire sur console.groq.com")
+        print("⚠️ GROQ_API_KEY non trouvee dans api.env - Veuillez vous inscrire sur console.groq.com")
 else:
-    print(f"⚠️ Fichier api.env introuvable à {ENV_PATH}")
+    print(f"⚠️ Fichier api.env introuvable a {ENV_PATH}")
 
 # ====================================================================================================
-# CONFIGURATION DES ACCÈS (BASE DE DONNÉES)
+# CONFIGURATION DES ACCES (BASE DE DONNEES)
 # ====================================================================================================
 try:
     from . import credentials as db_creds
 except ImportError:
     db_creds = None
 
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-*xx#hp=o=!zq@46*b#n#jc!2wiubmmz-l8dnh%p8fy6m=5$hph'
 
 DEBUG = True
@@ -45,7 +45,7 @@ DEBUG = True
 ALLOWED_HOSTS = ['*']
 
 # ====================================================================================================
-# APPLICATION DEFINITION
+# APPLICATION DEFINITION - SANS UNFOLD
 # ====================================================================================================
 
 INSTALLED_APPS = [
@@ -60,7 +60,33 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'lamessin_app',
+    'chartjs',
 ]
+
+# ====================================================================================================
+# TEMPLATES
+# ====================================================================================================
+
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [
+            os.path.join(BASE_DIR, 'lamessin_app', 'templates'),
+        ],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
+
+# ====================================================================================================
+# MIDDLEWARE
+# ====================================================================================================
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
@@ -74,21 +100,6 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'lamessin_backend.urls'
-
-TEMPLATES = [
-    {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
-            ],
-        },
-    },
-]
 
 WSGI_APPLICATION = 'lamessin_backend.wsgi.application'
 
@@ -143,7 +154,7 @@ SIMPLE_JWT = {
 }
 
 # ====================================================================================================
-# CORS & SÉCURITÉ
+# CORS & SECURITE
 # ====================================================================================================
 
 CORS_ALLOW_ALL_ORIGINS = True
@@ -160,7 +171,7 @@ CORS_ALLOW_HEADERS = [
 ]
 
 # ====================================================================================================
-# FICHIERS STATIQUES ET MÉDIAS
+# FICHIERS STATIQUES ET MEDIAS
 # ====================================================================================================
 
 STATIC_URL = 'static/'
@@ -180,7 +191,7 @@ if os.path.exists(FIREBASE_KEY_PATH):
         if not firebase_admin._apps:
             certification_obj = fb_creds.Certificate(FIREBASE_KEY_PATH)
             firebase_admin.initialize_app(certification_obj)
-            print("Firebase Admin SDK initialisé avec succès !")
+            print("Firebase Admin SDK initialise avec succes !")
     except Exception as e:
         print(f"Erreur initialisation Firebase : {e}")
 else:

@@ -14,8 +14,8 @@ class UtilisateurSerializer(serializers.ModelSerializer):
     class Meta:
         model = Utilisateur
         fields = ('id', 'username', 'email', 'numero_telephone', 'first_name', 'last_name',
-                  'est_un_compte_patient', 'est_un_compte_medecin', 'est_un_compte_pharmacien')
-
+                  'est_un_compte_patient', 'est_un_compte_medecin', 'est_un_compte_pharmacien',
+                  'is_superuser')
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def __init__(self, *args, **kwargs):
@@ -28,7 +28,11 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         data = super().validate(attrs)
 
         user = self.user
-        if user.est_un_compte_patient:
+
+        # Verifier d'abord si c'est un superuser
+        if user.is_superuser:
+            data['role'] = 'SUPERUSER'
+        elif user.est_un_compte_patient:
             data['role'] = 'PATIENT'
         elif user.est_un_compte_medecin:
             data['role'] = 'MEDECIN'
@@ -340,7 +344,7 @@ class StockPharmacieSerializer(serializers.ModelSerializer):
     id_pharmacie = serializers.ReadOnlyField(source='pharmacie_detentrice.id')
     nom_pharmacie = serializers.ReadOnlyField(source='pharmacie_detentrice.nom')
     adresse_pharmacie = serializers.ReadOnlyField(source='pharmacie_detentrice.adresse')
-    nom_produit = serializers.ReadOnlyField(source='produit_concerne.nom_commercial')  # ← AJOUTER
+    nom_produit = serializers.ReadOnlyField(source='produit_concerne.nom_commercial')
     latitude = serializers.ReadOnlyField(source='pharmacie_detentrice.coordonnee_latitude_gps')
     longitude = serializers.ReadOnlyField(source='pharmacie_detentrice.coordonnee_longitude_gps')
 

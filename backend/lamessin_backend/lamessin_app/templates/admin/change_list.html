@@ -1,0 +1,297 @@
+{% extends "admin/base.html" %}
+{% load i18n admin_urls static admin_list %}
+
+{% block content %}
+<div id="content-main">
+    <div class="card">
+        <div class="card-header">
+            <h3>{{ cl.opts.verbose_name_plural|capfirst }}</h3>
+            <ul class="object-tools" style="margin:0; list-style:none;">
+                {% block object-tools-items %}
+                    {% change_list_object_tools %}
+                {% endblock %}
+            </ul>
+        </div>
+
+        <div class="changelist-layout">
+            <div class="changelist-main">
+                <form id="changelist-form" method="post"{% if cl.formset and cl.formset.is_multipart %} enctype="multipart/form-data"{% endif %}>
+                    {% csrf_token %}
+                    {% if cl.formset %}<div>{{ cl.formset.management_form }}</div>{% endif %}
+
+                    {% block result_list %}
+                        {% if action_form and actions_on_top and cl.show_admin_actions %}
+                            <div class="actions">
+                                <label>Action:</label>
+                                <select name="action">
+                                    <option value="">---------</option>
+                                    {% for name, desc in action_form.fields.action.choices %}
+                                        <option value="{{ name }}">{{ desc }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="submit" name="index" value="0">Exécuter</button>
+                                {% if cl.formset and cl.result_count %}
+                                    <label class="select-all">
+                                        <input type="checkbox" class="action-select" name="select_across" value="1"> Tout sélectionner
+                                    </label>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+
+                        <div class="results-table">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        {% for header in result_headers %}
+                                            <th scope="col"{{ header.class_attrib }}>
+                                                {{ header.text|capfirst }}
+                                            </th>
+                                        {% endfor %}
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for result in results %}
+                                        <tr class="{% cycle 'row1' 'row2' %}">
+                                            {% for item in result %}
+                                                <td>{{ item }}</td>
+                                            {% endfor %}
+                                            <td class="actions-cell">
+                                                <a href="#" class="action-view">Voir</a>
+                                                <a href="#" class="action-edit">Modifier</a>
+                                                <a href="#" class="action-delete" onclick="return confirm('Confirmer la suppression ?');">Supprimer</a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {% if action_form and actions_on_bottom and cl.show_admin_actions %}
+                            <div class="actions">
+                                <label>Action:</label>
+                                <select name="action">
+                                    <option value="">---------</option>
+                                    {% for name, desc in action_form.fields.action.choices %}
+                                        <option value="{{ name }}">{{ desc }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="submit" name="index" value="0">Exécuter</button>
+                            </div>
+                        {% endif %}
+                    {% endblock %}
+
+
+                </form>
+            </div>
+
+            {% block filters %}
+                {% if cl.has_filters %}
+                    <div id="changelist-filter">
+                        <h3>Filtres</h3>
+                        {% for spec in cl.filter_specs %}{% admin_list_filter cl spec %}{% endfor %}
+                    </div>
+                {% endif %}
+            {% endblock %}
+        </div>
+    </div>
+</div>
+
+<style>
+    .card {
+        background: white;
+        border-radius: 20px;
+        padding: 24px;
+        border: 1px solid #E2E8F0;
+    }
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-bottom: 16px;
+        margin-bottom: 20px;
+        border-bottom: 1px solid #E2E8F0;
+    }
+    .card-header h3 {
+        font-size: 18px;
+        font-weight: 700;
+        color: #1E293B;
+        margin: 0;
+    }
+    .object-tools .addlink {
+        background: #0D9488;
+        border-radius: 8px;
+        padding: 6px 16px;
+        color: white !important;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 12px;
+    }
+
+    .changelist-layout {
+        display: flex;
+        gap: 24px;
+    }
+    .changelist-main {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .actions {
+        background: #F8FAFC;
+        padding: 12px 16px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    .actions select {
+        padding: 6px 12px;
+        border-radius: 6px;
+        border: 1px solid #CBD5E1;
+    }
+    .actions button {
+        background: #0D9488;
+        border: none;
+        border-radius: 6px;
+        padding: 6px 16px;
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    .select-all {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+    }
+
+    .results-table {
+        background: white;
+        border-radius: 12px;
+        overflow: auto;
+        border: 1px solid #E2E8F0;
+    }
+    .results-table table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .results-table thead th {
+        background: #F8FAFC;
+        padding: 12px 16px;
+        font-size: 12px;
+        font-weight: 700;
+        color: #64748B;
+        border-bottom: 1px solid #E2E8F0;
+        text-align: left;
+    }
+    .results-table tbody td {
+        padding: 10px 16px;
+        border-bottom: 1px solid #E2E8F0;
+        font-size: 13px;
+    }
+    .results-table tbody tr:hover {
+        background: #F8FAFC;
+    }
+
+    .actions-cell {
+        white-space: nowrap;
+    }
+    .action-view, .action-edit, .action-delete {
+        display: inline-block;
+        padding: 4px 12px;
+        margin: 0 2px;
+        text-decoration: none;
+        font-size: 12px;
+        font-weight: 500;
+        border-radius: 4px;
+    }
+    .action-view {
+        background: #E0F2FE;
+        color: #0284C7;
+    }
+    .action-edit {
+        background: #FEF3C7;
+        color: #D97706;
+    }
+    .action-delete {
+        background: #FEE2E2;
+        color: #DC2626;
+    }
+    .action-view:hover, .action-edit:hover, .action-delete:hover {
+        opacity: 0.8;
+    }
+
+    .paginator {
+        background: transparent;
+        padding: 20px 0 0 0;
+        display: flex;
+        justify-content: center;
+    }
+    .paginator .step-links {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+    .paginator a {
+        padding: 6px 12px;
+        border-radius: 6px;
+        background: white;
+        color: #0D9488;
+        border: 1px solid #E2E8F0;
+        text-decoration: none;
+        font-size: 12px;
+    }
+    .paginator .this-page {
+        padding: 6px 12px;
+        border-radius: 6px;
+        background: #0D9488;
+        color: white;
+    }
+
+    #changelist-filter {
+        width: 240px;
+        flex-shrink: 0;
+        background: white;
+        border-radius: 12px;
+        border: 1px solid #E2E8F0;
+        overflow: hidden;
+    }
+    #changelist-filter h3 {
+        background: #F8FAFC;
+        padding: 12px 16px;
+        margin: 0;
+        font-size: 13px;
+        font-weight: 700;
+        border-bottom: 1px solid #E2E8F0;
+    }
+    #changelist-filter a {
+        display: block;
+        padding: 8px 16px;
+        color: #64748B;
+        text-decoration: none;
+        font-size: 12px;
+        border-bottom: 1px solid #E2E8F0;
+    }
+    #changelist-filter a:hover {
+        background: #F8FAFC;
+        color: #0D9488;
+    }
+    #changelist-filter .selected {
+        background: #E0F2FE;
+        color: #0D9488;
+        border-left: 3px solid #0D9488;
+    }
+
+    @media (max-width: 900px) {
+        .changelist-layout {
+            flex-direction: column;
+        }
+        #changelist-filter {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}

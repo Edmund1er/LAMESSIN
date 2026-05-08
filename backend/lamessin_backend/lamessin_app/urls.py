@@ -1,62 +1,84 @@
-# lamessin_app/urls.py
-
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from .views import main_views, patient_views, doctor_views, pharma_views
-from .views.ia_views import (
-    StatutIAView,
-    ChatbotIAView,
-    AnalyseOrdonnanceIAView,
-    InteractionMedicamenteuseIAView,
-    ResumeMedicalIAView,
-    assistant_ia
-)
-
+from .views import main_views, patient_views, doctor_views, pharma_views, ia_views
 
 urlpatterns = [
+    # ====================================================================================================
+    # ADMIN - STATISTIQUES API (pour Flutter)
+    # ====================================================================================================
+    path('admin/stats/', main_views.admin_stats_api, name='admin_stats'),
+
+    # ====================================================================================================
+    # AUTHENTIFICATION & SESSION
+    # ====================================================================================================
     path('login/', main_views.Login.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('inscription/', main_views.InscriptionView.as_view(), name='inscription'),
     path('logout/', main_views.LogoutView.as_view(), name='logout'),
 
+    # ====================================================================================================
+    # PROFIL UTILISATEUR (COMMUN)
+    # ====================================================================================================
     path('profil/', main_views.UserProfil.as_view(), name='user_profil'),
     path('updateProfil/', main_views.UpdateProfilView.as_view(), name='modification_profil'),
     path('notifications/', main_views.ListeNotifications.as_view(), name='liste_notifications'),
     path('notifications/enregistrerToken/', main_views.EnregistrerFCMToken.as_view(), name='enregistrer_token'),
 
+    # ====================================================================================================
+    # PATIENT - MÉDECINS & RENDEZ-VOUS
+    # ====================================================================================================
     path('listeMedecins/', patient_views.LiteMedecins.as_view(), name='liste_medecins'),
     path('creneauxDisponible/', patient_views.CreneauxDispo.as_view(), name='creneaux_dispo'),
     path('rendezvous/', patient_views.ListeRendezVousPatient.as_view(), name='liste_rdv'),
     path('rendezvous/creer/', patient_views.CreezRendezVous.as_view(), name='creer_rendezvous'),
     path('rendezvous/<int:pk>/', patient_views.AnnulerRendezVous.as_view(), name='annuler_rdv'),
-    path('medecin/rendezvous/expirer/', doctor_views.ExpirerRendezVousView.as_view(), name='expirer_rendezvous'),
-    path('patient/rendezvous/expirer/', patient_views.ExpirerRendezVousPatientView.as_view(), name='patient_expirer_rendezvous'),
 
+    # ====================================================================================================
+    # PATIENT - MÉDICAMENTS & ÉTABLISSEMENTS
+    # ====================================================================================================
     path('medicaments/recherche/', patient_views.RechercheMedicament.as_view(), name='recherche_medicament'),
     path('etablissements/', patient_views.ListeEtablissements.as_view(), name='liste_etablissements'),
 
+    # ====================================================================================================
+    # PATIENT - TRAITEMENTS & ORDONNANCES
+    # ====================================================================================================
     path('traitements/', patient_views.ListeTraitementsPatient.as_view(), name='liste_traitements'),
     path('traitements/<int:pk>/', patient_views.DetailTraitement.as_view(), name='detail_traitement'),
     path('traitements/valider-prise/<int:prise_id>/', patient_views.ValiderPriseMedicament.as_view(), name='valider_prise'),
     path('ordonnances/', patient_views.ListeOrdonnancesPatient.as_view(), name='liste_ordonnances'),
 
+    # ====================================================================================================
+    # PATIENT - COMMANDES
+    # ====================================================================================================
     path('commandes/', patient_views.MesCommandesView.as_view(), name='mes_commandes'),
     path('commandes/creer/', patient_views.CreerCommandeMultiple.as_view(), name='creer_paiement'),
 
+    # ====================================================================================================
+    # PAIEMENT MOBILE MONEY (PAYGATE)
+    # ====================================================================================================
     path('paiement/initier/', patient_views.InitierPaiementMobileMoney.as_view(), name='initier_paiement'),
     path('paiement/verifier/<int:commande_id>/', patient_views.VerifierStatutPaiement.as_view(), name='verifier_paiement'),
 
+    # ====================================================================================================
+    # PATIENT - ASSISTANT IA (ANCIEN)
+    # ====================================================================================================
     path('assistant/chat/', patient_views.assistant, name='assistant_gemini'),
     path('assistant/historique/', patient_views.AssistantHistoriqueView.as_view(), name='assistant_historique'),
 
-    path('ia/statut/', StatutIAView.as_view(), name='ia_statut'),
-    path('ia/chatbot/', ChatbotIAView.as_view(), name='ia_chatbot'),
-    path('ia/analyse-ordonnance/', AnalyseOrdonnanceIAView.as_view(), name='ia_analyse_ordonnance'),
-    path('ia/interactions/', InteractionMedicamenteuseIAView.as_view(), name='ia_interactions'),
-    path('ia/resume/', ResumeMedicalIAView.as_view(), name='ia_resume'),
-    path('assistant-ia/', assistant_ia, name='assistant_ia'),
+    # ====================================================================================================
+    # IA - GROQ CHATBOT (NOUVEAU)
+    # ====================================================================================================
+    path('ia/statut/', ia_views.StatutIAView.as_view(), name='ia_statut'),
+    path('ia/chatbot/', ia_views.ChatbotIAView.as_view(), name='ia_chatbot'),
+    path('ia/analyse-ordonnance/', ia_views.AnalyseOrdonnanceIAView.as_view(), name='ia_analyse_ordonnance'),
+    path('ia/interactions/', ia_views.InteractionMedicamenteuseIAView.as_view(), name='ia_interactions'),
+    path('ia/resume/', ia_views.ResumeMedicalIAView.as_view(), name='ia_resume'),
+    path('assistant-ia/', ia_views.assistant_ia, name='assistant_ia'),
 
+    # ====================================================================================================
+    # MÉDECIN - URLs
+    # ====================================================================================================
     path('medecin/dashboard/', doctor_views.DashboardMedecinView.as_view(), name='medecin_dashboard'),
     path('medecin/statistiques/', doctor_views.StatistiquesMedecinView.as_view(), name='medecin_statistiques'),
     path('medecin/rendezvous/', doctor_views.MedecinRendezVousView.as_view(), name='medecin_rendezvous'),
@@ -71,7 +93,12 @@ urlpatterns = [
     path('medecin/patients/', doctor_views.ListePatientsMedecinView.as_view(), name='medecin_patients'),
     path('medecin/patients/<int:patient_id>/dossier/', doctor_views.DossierPatientView.as_view(), name='medecin_dossier_patient'),
     path('medecin/documents/upload/', doctor_views.UploadDocumentMedicalView.as_view(), name='medecin_upload_document'),
+    path('medecin/rendezvous/expirer/', doctor_views.ExpirerRendezVousView.as_view(), name='expirer_rendezvous'),
+    path('patient/rendezvous/expirer/', patient_views.ExpirerRendezVousPatientView.as_view(), name='patient_expirer_rendezvous'),
 
+    # ====================================================================================================
+    # PHARMACIEN - URLs
+    # ====================================================================================================
     path('pharmacien/dashboard/', pharma_views.DashboardPharmacienView.as_view(), name='pharmacien_dashboard'),
     path('pharmacien/statistiques/', pharma_views.StatistiquesPharmacieView.as_view(), name='pharmacien_statistiques'),
     path('pharmacien/stocks/', pharma_views.GererStockView.as_view(), name='pharmacien_stocks'),

@@ -1,0 +1,136 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block content %}
+<div id="content-main">
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon"><i class="bx bx-user-md"></i></div>
+            <div class="stat-number">{{ total_medecins|default:"0" }}</div>
+            <div class="stat-label">Médecins</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon"><i class="bx bx-user"></i></div>
+            <div class="stat-number">{{ total_patients|default:"0" }}</div>
+            <div class="stat-label">Patients</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon"><i class="bx bx-calendar-check"></i></div>
+            <div class="stat-number">{{ rdv_aujourdhui|default:"0" }}</div>
+            <div class="stat-label">RDV aujourd'hui</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon"><i class="bx bx-cart"></i></div>
+            <div class="stat-number">{{ commandes_total|default:"0" }}</div>
+            <div class="stat-label">Commandes totales</div>
+        </div>
+    </div>
+
+    <div class="charts-grid">
+        <div class="chart-card full-width">
+            <div class="chart-title"><i class="bx bx-line-chart"></i> Évolution des rendez-vous (7 derniers jours)</div>
+            <canvas id="evolutionChart" style="height: 320px;"></canvas>
+        </div>
+    </div>
+
+    <div class="charts-grid">
+        <div class="chart-card">
+            <div class="chart-title"><i class="bx bx-pie-chart-alt"></i> Commandes par statut</div>
+            <canvas id="commandeChart" style="height: 260px;"></canvas>
+        </div>
+        <div class="chart-card">
+            <div class="chart-title"><i class="bx bx-bar-chart-alt-2"></i> Stocks par médicament</div>
+            <canvas id="stockChart" style="height: 260px;"></canvas>
+        </div>
+    </div>
+
+    <div class="charts-grid">
+        <div class="chart-card">
+            <div class="chart-title"><i class="bx bx-calendar-stats"></i> Rendez-vous par statut</div>
+            <canvas id="rdvChart" style="height: 260px;"></canvas>
+        </div>
+        <div class="chart-card">
+            <div class="chart-title"><i class="bx bx-error-circle"></i> Alertes stock critique</div>
+            <div>
+                <div style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #E2E8F0;">
+                    <div><strong>Paracétamol 500mg</strong><br><span style="font-size:12px; color:#64748B;">Stock: 23 unités</span></div>
+                    <span class="badge badge-warning"> Alerte</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #E2E8F0;">
+                    <div><strong>Amoxicilline 1g</strong><br><span style="font-size:12px; color:#64748B;">Stock: 8 unités</span></div>
+                    <span class="badge badge-danger"> Critique</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 12px 0;">
+                    <div><strong>Vitamine C 1000mg</strong><br><span style="font-size:12px; color:#64748B;">Stock: 145 unités</span></div>
+                    <span class="badge badge-success"> Normal</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    new Chart(document.getElementById('evolutionChart'), {
+        type: 'line',
+        data: {
+            labels: {{ evolution_labels|default:"['Lun','Mar','Mer','Jeu','Ven','Sam','Dim']"|safe }},
+            datasets: [{
+                label: 'Rendez-vous',
+                data: {{ evolution_data|default:"[12,19,15,22,28,24,18]" }},
+                borderColor: '#0D9488',
+                backgroundColor: 'rgba(13,148,136,0.05)',
+                borderWidth: 3,
+                tension: 0.4,
+                fill: true,
+                pointBackgroundColor: '#0D9488',
+                pointBorderColor: 'white',
+                pointRadius: 5
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'top' } } }
+    });
+    new Chart(document.getElementById('commandeChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['En attente', 'Payé', 'Livré', 'Annulé'],
+            datasets: [{
+                data: [{{ commandes_attente|default:"5" }}, {{ commandes_payees|default:"12" }}, {{ commandes_livrees|default:"8" }}, {{ commandes_annulees|default:"3" }}],
+                backgroundColor: ['#F59E0B', '#0D9488', '#10B981', '#EF4444'],
+                borderWidth: 0,
+                cutout: '65%'
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom' } } }
+    });
+    new Chart(document.getElementById('stockChart'), {
+        type: 'bar',
+        data: {
+            labels: ['Paracétamol', 'Amoxicilline', 'Vitamine C', 'Ibuprofène', 'Aspirine'],
+            datasets: [{
+                label: 'Quantité en stock',
+                data: [23, 8, 145, 67, 42],
+                backgroundColor: '#0D9488',
+                borderRadius: 8,
+                barPercentage: 0.6
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'top' } } }
+    });
+    new Chart(document.getElementById('rdvChart'), {
+        type: 'bar',
+        data: {
+            labels: ['En attente', 'Confirmé', 'Terminé', 'Annulé'],
+            datasets: [{
+                label: 'Nombre',
+                data: [{{ rdv_en_attente|default:"8" }}, {{ rdv_confirme|default:"15" }}, {{ rdv_termine|default:"22" }}, {{ rdv_annule|default:"4" }}],
+                backgroundColor: ['#F59E0B', '#0D9488', '#10B981', '#EF4444'],
+                borderRadius: 10,
+                barPercentage: 0.5
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'top' } } }
+    });
+});
+</script>
+{% endblock %}

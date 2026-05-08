@@ -49,6 +49,8 @@ import 'PAGES_/PHARMACIEN_/pharmacien_profil_page.dart';
 import 'PAGES_/PHARMACIEN_/pharmacien_commandes_page.dart';
 import 'PAGES_/PHARMACIEN_/pharmacien_alertes_stock_page.dart';
 
+
+
 import 'MODELS_/utilisateur_model.dart';
 
 void main() async {
@@ -188,7 +190,7 @@ class MyApp extends StatelessWidget {
           case "/alertes_stock_pharmacien":
             return MaterialPageRoute(builder: (_) => const PharmacienAlertesStockPage());
 
-          default:
+            default:
             return MaterialPageRoute(builder: (_) => const Splash());
         }
       },

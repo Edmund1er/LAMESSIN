@@ -1,3 +1,5 @@
+// lib/SERVICES_/patient_service.dart
+
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -317,21 +319,30 @@ class PatientService {
     }
   }
 
-  // ========================= ANCIEN ASSISTANT =========================
+  // ========================= ASSISTANT - UNIQUE ROUTE =========================
 
+  // Envoie un message et sauvegarde dans l'historique
   static Future<String?> envoyerMessageAssistant(String prompt) async {
-    final response = await http.post(
-      Uri.parse('${ApiService.baseUrl}/assistant/chat/'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({"prompt": prompt}),
-    );
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiService.baseUrl}/assistant/chat/'),
+        headers: await ApiService.getHeaders(),
+        body: jsonEncode({"prompt": prompt}),
+      );
 
-    if (response.statusCode == 200) {
-      return json.decode(utf8.decode(response.bodyBytes))['reponse'];
+      if (response.statusCode == 200) {
+        final data = json.decode(utf8.decode(response.bodyBytes));
+        return data['reponse'];
+      }
+      debugPrint("Erreur envoyerMessageAssistant: ${response.statusCode}");
+      return null;
+    } catch (e) {
+      debugPrint("Erreur envoyerMessageAssistant: $e");
+      return null;
     }
-    return null;
   }
 
+  // Recupere l'historique des messages
   static Future<List<Message>> getHistoriqueAssistant() async {
     try {
       final response = await http.get(
@@ -345,142 +356,8 @@ class PatientService {
       }
       return [];
     } catch (e) {
-      debugPrint("Erreur historique assistant: $e");
+      debugPrint("Erreur getHistoriqueAssistant: $e");
       return [];
-    }
-  }
-
-  // ========================= NOUVEAU IA GROQ =========================
-
-  static Future<Map<String, dynamic>?> getIAStatut() async {
-    try {
-      final response = await http.get(
-        Uri.parse('${ApiService.baseUrl}/ia/statut/'),
-        headers: await ApiService.getHeaders(),
-      );
-
-      if (response.statusCode == 200) {
-        return json.decode(utf8.decode(response.bodyBytes));
-      }
-      return null;
-    } catch (e) {
-      debugPrint("Erreur getIAStatut: $e");
-      return null;
-    }
-  }
-
-  static Future<String?> envoyerMessageIAMedical(String message) async {
-    try {
-      final response = await http.post(
-        Uri.parse('${ApiService.baseUrl}/ia/chatbot/'),
-        headers: await ApiService.getHeaders(),
-        body: jsonEncode({"message": message}),
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(utf8.decode(response.bodyBytes));
-        return data['reponse'];
-      }
-      debugPrint("Erreur IA: ${response.statusCode} - ${response.body}");
-      return null;
-    } catch (e) {
-      debugPrint("Erreur envoyerMessageIAMedical: $e");
-      return null;
-    }
-  }
-
-  static Future<String?> envoyerMessageIAvecHistorique(String message, List<Map<String, String>> historique) async {
-    try {
-      final response = await http.post(
-        Uri.parse('${ApiService.baseUrl}/ia/chatbot/'),
-        headers: await ApiService.getHeaders(),
-        body: jsonEncode({
-          "message": message,
-          "historique": historique,
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(utf8.decode(response.bodyBytes));
-        return data['reponse'];
-      }
-      return null;
-    } catch (e) {
-      debugPrint("Erreur envoyerMessageIAvecHistorique: $e");
-      return null;
-    }
-  }
-
-  static Future<Map<String, dynamic>?> analyserOrdonnanceTexte(String texteOrdonnance) async {
-    try {
-      final response = await http.post(
-        Uri.parse('${ApiService.baseUrl}/ia/analyse-ordonnance/'),
-        headers: await ApiService.getHeaders(),
-        body: jsonEncode({"texte_ordonnance": texteOrdonnance}),
-      );
-
-      if (response.statusCode == 200) {
-        return json.decode(utf8.decode(response.bodyBytes));
-      }
-      return null;
-    } catch (e) {
-      debugPrint("Erreur analyserOrdonnanceTexte: $e");
-      return null;
-    }
-  }
-
-  static Future<Map<String, dynamic>?> verifierInteractions(List<String> medicaments) async {
-    try {
-      final response = await http.post(
-        Uri.parse('${ApiService.baseUrl}/ia/interactions/'),
-        headers: await ApiService.getHeaders(),
-        body: jsonEncode({"medicaments": medicaments}),
-      );
-
-      if (response.statusCode == 200) {
-        return json.decode(utf8.decode(response.bodyBytes));
-      }
-      return null;
-    } catch (e) {
-      debugPrint("Erreur verifierInteractions: $e");
-      return null;
-    }
-  }
-
-  static Future<String?> resumerTexteMedical(String longTexte) async {
-    try {
-      final response = await http.post(
-        Uri.parse('${ApiService.baseUrl}/ia/resume/'),
-        headers: await ApiService.getHeaders(),
-        body: jsonEncode({"texte": longTexte}),
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(utf8.decode(response.bodyBytes));
-        return data['resume'];
-      }
-      return null;
-    } catch (e) {
-      debugPrint("Erreur resumerTexteMedical: $e");
-      return null;
-    }
-  }
-
-  static Future<Map<String, dynamic>?> envoyerMessageAssistantNew(String prompt) async {
-    try {
-      final response = await http.post(
-        Uri.parse('${ApiService.baseUrl}/assistant-ia/'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({"prompt": prompt}),
-      );
-
-      if (response.statusCode == 200) {
-        return json.decode(utf8.decode(response.bodyBytes));
-      }
-      return null;
-    } catch (e) {
-      debugPrint("Erreur envoyerMessageAssistantNew: $e");
-      return null;
     }
   }
 }

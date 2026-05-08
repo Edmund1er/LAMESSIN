@@ -8,6 +8,7 @@ class Utilisateur {
   final bool estUnComptePatient;
   final bool estUnCompteMedecin;
   final bool estUnComptePharmacien;
+  final bool isSuperuser;  
   final String? fcmToken;
 
   Utilisateur({
@@ -20,6 +21,7 @@ class Utilisateur {
     required this.estUnComptePatient,
     required this.estUnCompteMedecin,
     required this.estUnComptePharmacien,
+    required this.isSuperuser,  
     this.fcmToken,
   });
 
@@ -34,6 +36,7 @@ class Utilisateur {
       estUnComptePatient: json['est_un_compte_patient'] ?? false,
       estUnCompteMedecin: json['est_un_compte_medecin'] ?? false,
       estUnComptePharmacien: json['est_un_compte_pharmacien'] ?? false,
+      isSuperuser: json['is_superuser'] ?? false, 
       fcmToken: json['fcm_token'],
     );
   }

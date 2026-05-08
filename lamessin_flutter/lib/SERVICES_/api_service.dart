@@ -8,7 +8,7 @@ import '../MODELS_/utilisateur_model.dart';
 import '../MODELS_/notification_model.dart';
 
 class ApiService {
-  static const bool useNgrok = true;
+  static const bool useNgrok = false;
   
   static const String pcIp = "172.26.160.1";
 
@@ -157,6 +157,7 @@ class ApiService {
           return Patient.fromJson(data);
         }
         return Utilisateur.fromJson(userData);
+        
       }
       return null;
     } catch (e) {

@@ -299,3 +299,4 @@ Avertissement: Resume simule - Mode developpement"""
 
 
 ai_service = AIService()
+

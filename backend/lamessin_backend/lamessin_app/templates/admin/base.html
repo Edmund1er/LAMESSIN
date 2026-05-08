@@ -1,0 +1,253 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <title>LAMESSIN Administration</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/boxicons@latest/css/boxicons.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet' />
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js'></script>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #0D9488;
+            --primary-dark: #0F766E;
+            --success: #10B981;
+            --danger: #EF4444;
+            --warning: #F59E0B;
+            --dark: #1E293B;
+            --gray: #64748B;
+            --light-bg: #F1F5F9;
+            --border: #E2E8F0;
+            --sidebar-bg: #1E293B;
+            --sidebar-text: #CBD5E1;
+            --sidebar-hover: #334155;
+        }
+        body { font-family: 'Inter', sans-serif; background: #F0F2F5; color: var(--dark); }
+
+        /* HEADER */
+        #header {
+            position: fixed; top: 0; left: 0; right: 0; height: 65px;
+            background: white; display: flex; justify-content: space-between;
+            align-items: center; padding: 0 28px; z-index: 1000;
+            border-bottom: 1px solid var(--border);
+        }
+        #branding h1 a {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            -webkit-background-clip: text; background-clip: text; color: transparent;
+            text-decoration: none; font-size: 22px; font-weight: 800;
+            display: flex; align-items: center; gap: 8px;
+        }
+        #user-tools {
+            display: flex; align-items: center; gap: 16px;
+            background: var(--light-bg); padding: 6px 18px;
+            border-radius: 40px; font-size: 13px; font-weight: 500;
+        }
+        #user-tools a { color: var(--gray); text-decoration: none; }
+        #user-tools a:hover { color: var(--primary); }
+
+        /* SIDEBAR */
+        #nav-sidebar {
+            position: fixed; left: 0; top: 65px; bottom: 0;
+            width: 260px; background: var(--sidebar-bg);
+            transition: width 0.2s; z-index: 999; overflow-y: auto;
+        }
+        #nav-sidebar.collapsed { width: 70px; }
+        #nav-sidebar.collapsed .nav-item span,
+        #nav-sidebar.collapsed .nav-section-title span,
+        #nav-sidebar.collapsed .sidebar-toggle span { display: none; }
+        #nav-sidebar.collapsed .nav-item { justify-content: center; padding: 12px; }
+        #nav-sidebar.collapsed .nav-item i { margin: 0; }
+        #nav-sidebar.collapsed .sidebar-toggle { justify-content: center; }
+
+        .sidebar-toggle {
+            display: flex; justify-content: flex-end;
+            padding: 16px 20px; border-bottom: 1px solid #334155;
+            cursor: pointer; color: #94A3B8; gap: 8px;
+        }
+        .sidebar-toggle:hover { color: var(--primary); }
+
+        .nav-section-title {
+            font-size: 10px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 1px; color: #64748B; margin: 20px 0 8px 20px;
+        }
+        .nav-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 10px 20px; margin: 4px 12px; border-radius: 10px;
+            color: var(--sidebar-text); text-decoration: none;
+            font-size: 13px; font-weight: 500; transition: all 0.2s;
+        }
+        .nav-item i { font-size: 18px; width: 22px; }
+        .nav-item:hover { background: var(--sidebar-hover); color: white; }
+        .nav-item.active { background: var(--primary); color: white; }
+
+        /* CONTENT */
+        .content {
+            margin-left: 260px; padding: 85px 28px 40px 28px;
+            transition: margin-left 0.2s; min-height: 100vh;
+        }
+        .content.expanded { margin-left: 70px; }
+
+        /* CARDS & STATS */
+        .card { background: white; border-radius: 20px; padding: 24px; margin-bottom: 24px; border: 1px solid var(--border); }
+        .card-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 16px; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
+        .card-header h3 { font-size: 18px; font-weight: 700; }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 28px; }
+        .stat-card { background: white; border-radius: 16px; padding: 20px; border: 1px solid var(--border); position: relative; }
+        .stat-card::before { content: ''; position: absolute; top: 0; left: 0; width: 3px; height: 100%; background: var(--primary); border-radius: 16px 0 0 16px; }
+        .stat-number { font-size: 32px; font-weight: 800; color: #1E293B; }
+        .stat-label { font-size: 12px; color: #64748B; font-weight: 600; margin-top: 4px; }
+        .stat-icon { position: absolute; right: 20px; top: 20px; font-size: 40px; opacity: 0.08; color: var(--primary); }
+
+        .charts-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; margin-bottom: 28px; }
+        .full-width { grid-column: span 2; }
+        .chart-card { background: white; border-radius: 16px; padding: 20px; border: 1px solid var(--border); }
+        .chart-title { font-size: 15px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+        canvas { max-height: 260px; width: 100%; }
+
+        /* TABLEAUX */
+        .results { background: white; border-radius: 16px; overflow: hidden; border: 1px solid var(--border); }
+        table { width: 100%; border-collapse: collapse; }
+        thead th { background: #F8FAFC; padding: 14px 16px; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748B; border-bottom: 1px solid var(--border); text-align: left; }
+        tbody td { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 13px; }
+        tbody tr:hover { background: #F8FAFC; }
+
+        /* BOUTONS */
+        .action-buttons { display: flex; gap: 6px; }
+        .btn-view, .btn-edit, .btn-delete {
+            width: 30px; height: 30px; border-radius: 8px;
+            display: inline-flex; align-items: center; justify-content: center;
+            border: none; cursor: pointer;
+        }
+        .btn-view { background: #E0F2FE; color: #0284C7; }
+        .btn-view:hover { background: #0284C7; color: white; }
+        .btn-edit { background: #FEF3C7; color: #D97706; }
+        .btn-edit:hover { background: #D97706; color: white; }
+        .btn-delete { background: #FEE2E2; color: #DC2626; }
+        .btn-delete:hover { background: #DC2626; color: white; }
+
+        /* BADGES */
+        .badge { display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; gap: 6px; }
+        .badge-success { background: #D1FAE5; color: #059669; }
+        .badge-warning { background: #FEF3C7; color: #D97706; }
+        .badge-danger { background: #FEE2E2; color: #DC2626; }
+        .badge-info { background: #E0F2FE; color: #0284C7; }
+
+        /* PAGINATION - PROPRE SANS TEXTE INDESIRABLE */
+        .paginator {
+            background: transparent; padding: 20px 0 0 0;
+            display: flex; justify-content: center; gap: 8px;
+        }
+        .paginator a, .paginator .this-page {
+            padding: 8px 14px; border-radius: 10px;
+            font-weight: 600; font-size: 13px; text-decoration: none;
+        }
+        .paginator a { background: white; color: var(--primary); border: 1px solid var(--border); }
+        .paginator .this-page { background: var(--primary); color: white; border: none; }
+
+        /* CACHER LES TEXTES INDESIRABLES */
+        .paginator .pagination-info, .paginator .paginator-count, .paginator .small,
+        .paginator span:not(.step-links):not(.this-page):not(.current-page),
+        .actions h2, .actions .action-label, .actions .question,
+        .actions .selected, .actions .action-counter, .actions .action-count,
+        .object-tools .viewsitelink, .results + .paginator .step-links + span,
+        .paginator .this-page + span, .paginator .step-links + span,
+        .actions > span:first-child {
+            display: none !important;
+        }
+        .paginator .step-links { display: inline-flex !important; gap: 8px !important; align-items: center !important; }
+        .paginator br { display: none !important; }
+
+        /* FORMULAIRES */
+        input, select, textarea {
+            border-radius: 10px; border: 1px solid var(--border);
+            padding: 10px 14px; font-size: 13px; width: 100%; max-width: 400px;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none; border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(13,148,136,0.1);
+        }
+
+        .mobile-toggle { display: none; background: none; border: none; font-size: 24px; cursor: pointer; color: var(--primary); margin-right: 16px; }
+        @media (max-width: 1024px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } .charts-grid { grid-template-columns: 1fr; } .full-width { grid-column: span 1; } }
+        @media (max-width: 768px) {
+            .mobile-toggle { display: block; }
+            #nav-sidebar { transform: translateX(-100%); width: 260px; }
+            #nav-sidebar.open { transform: translateX(0); }
+            .content, .content.expanded { margin-left: 0 !important; padding: 80px 16px 32px 16px; }
+            .stats-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="header">
+            <div style="display: flex; align-items: center;">
+                <button class="mobile-toggle" id="mobileToggle"><i class="bx bx-menu"></i></button>
+                <div id="branding">
+                    <h1 id="site-name"><a href="{% url 'admin:index' %}"><i class="fas fa-hospital-user"></i> LAMESSIN</a></h1>
+                </div>
+            </div>
+            <div id="user-tools">
+                <i class="bx bx-user-circle"></i>
+                {% if user.is_authenticated %}
+                    {{ user.get_username }}
+                    <a href="{% url 'admin:logout' %}"><i class="bx bx-log-out"></i></a>
+                {% endif %}
+            </div>
+        </div>
+        <div class="main">
+            <div id="nav-sidebar">
+                <div class="sidebar-toggle" id="sidebarToggle">
+                    <i class="bx bx-chevron-left"></i> <span>Réduire</span>
+                </div>
+                <div class="nav-section-title"><span>PRINCIPAL</span></div>
+                <a href="{% url 'admin:index' %}" class="nav-item"><i class="bx bxs-dashboard"></i> <span>Tableau de bord</span></a>
+                <div class="nav-section-title"><span>UTILISATEURS</span></div>
+                <a href="{% url 'admin:lamessin_app_patient_changelist' %}" class="nav-item"><i class="bx bx-user"></i> <span>Patients</span></a>
+                <a href="{% url 'admin:lamessin_app_medecin_changelist' %}" class="nav-item"><i class="bx bx-user-md"></i> <span>Médecins</span></a>
+                <a href="{% url 'admin:lamessin_app_pharmacien_changelist' %}" class="nav-item"><i class="bx bx-prescription"></i> <span>Pharmaciens</span></a>
+                <div class="nav-section-title"><span>PRODUITS & STOCKS</span></div>
+                <a href="{% url 'admin:lamessin_app_medicament_changelist' %}" class="nav-item"><i class="bx bx-capsule"></i> <span>Médicaments</span></a>
+                <a href="{% url 'admin:lamessin_app_stock_changelist' %}" class="nav-item"><i class="bx bx-line-chart"></i> <span>Stocks & évolution</span></a>
+                <a href="{% url 'admin:lamessin_app_commande_changelist' %}" class="nav-item"><i class="bx bx-cart"></i> <span>Commandes</span></a>
+                <div class="nav-section-title"><span>MÉDICAL</span></div>
+                <a href="{% url 'admin:lamessin_app_rendezvous_changelist' %}" class="nav-item"><i class="bx bx-calendar"></i> <span>Rendez-vous</span></a>
+                <a href="{% url 'admin:lamessin_app_consultation_changelist' %}" class="nav-item"><i class="bx bx-stethoscope"></i> <span>Consultations</span></a>
+                <a href="{% url 'admin:lamessin_app_ordonnance_changelist' %}" class="nav-item"><i class="bx bx-file"></i> <span>Ordonnances</span></a>
+                <div class="nav-section-title"><span>SYSTÈME</span></div>
+                <a href="{% url 'admin:lamessin_app_notification_changelist' %}" class="nav-item"><i class="bx bx-bell"></i> <span>Notifications</span></a>
+            </div>
+            <div class="content" id="mainContent">
+                {% block content %}{{ content }}{% endblock %}
+            </div>
+        </div>
+    </div>
+    <script>
+        const sidebar = document.getElementById('nav-sidebar');
+        const content = document.getElementById('mainContent');
+        const toggleBtn = document.getElementById('sidebarToggle');
+        if(toggleBtn) {
+            toggleBtn.addEventListener('click', function() {
+                sidebar.classList.toggle('collapsed');
+                content.classList.toggle('expanded');
+                const span = this.querySelector('span');
+                if(span) span.textContent = sidebar.classList.contains('collapsed') ? '' : 'Réduire';
+            });
+        }
+        const mobileBtn = document.getElementById('mobileToggle');
+        if(mobileBtn) mobileBtn.addEventListener('click', () => sidebar.classList.toggle('open'));
+        const currentPath = window.location.pathname;
+        document.querySelectorAll('.nav-item').forEach(link => {
+            const href = link.getAttribute('href');
+            if(href && href !== '#' && currentPath.includes(href)) link.classList.add('active');
+        });
+    </script>
+</body>
+</html>

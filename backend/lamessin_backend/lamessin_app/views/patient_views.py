@@ -427,9 +427,12 @@ class ListeOrdonnancesPatient(generics.ListAPIView):
             patient_beneficiaire__compte_utilisateur=self.request.user
         ).order_by('-date_prescription')
 
+#==========================================================================================================
+#                                       ASSISTANT
+#==========================================================================================================
 
 @api_view(["POST"])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])  # Change AllowAny en IsAuthenticated
 def assistant(request):
     prompt = request.data.get("prompt", "")
 
@@ -437,7 +440,25 @@ def assistant(request):
         return Response({"error": "Le champ prompt est requis"}, status=400)
 
     try:
+# Recuperer ou creer la session chatbot
+        session, _ = Chatbot.objects.get_or_create(utilisateur=request.user)
+
+# Sauvegarder le message de l'utilisateur
+        Message.objects.create(
+            chatbot_associe=session,
+            contenu_texte=prompt,
+            envoye_par_utilisateur=True
+        )
+
+# Appeler l'IA
         reponse = ai_service.chatbot_medical(prompt)
+
+# Sauvegarder la reponse de l'assistant
+        Message.objects.create(
+            chatbot_associe=session,
+            contenu_texte=reponse,
+            envoye_par_utilisateur=False
+        )
 
         return Response({
             "reponse": reponse,
@@ -446,6 +467,7 @@ def assistant(request):
     except Exception as e:
         return Response({"error": str(e)}, status=500)
 
+#==================================ASSISTANT HISTORIQUE========================================================================
 
 class AssistantHistoriqueView(APIView):
     permission_classes = [IsAuthenticated]
@@ -463,29 +485,22 @@ class AssistantHistoriqueView(APIView):
 
         try:
             session, _ = Chatbot.objects.get_or_create(utilisateur=request.user)
-            historique_messages = Message.objects.filter(chatbot_associe=session).order_by('-heure_message')[:10]
 
-            historique = []
-            for msg in reversed(historique_messages):
-                historique.append({
-                    "role": "user" if not msg.est_assistant else "assistant",
-                    "content": msg.message
-                })
-
+# Sauvegarder le message utilisateur
             Message.objects.create(
                 chatbot_associe=session,
-                expediteur=request.user,
-                message=message,
-                est_assistant=False
+                contenu_texte=message,
+                envoye_par_utilisateur=True
             )
 
-            reponse = ai_service.chatbot_medical(message, historique)
+# Appeler l'IA
+            reponse = ai_service.chatbot_medical(message)
 
+            # Sauvegarder la reponse
             Message.objects.create(
                 chatbot_associe=session,
-                expediteur=request.user,
-                message=reponse,
-                est_assistant=True
+                contenu_texte=reponse,
+                envoye_par_utilisateur=False
             )
 
             return Response({

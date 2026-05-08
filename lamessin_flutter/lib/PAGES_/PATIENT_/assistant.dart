@@ -69,7 +69,8 @@ class _AssistantPageState extends State<AssistantPage> {
     _controller.clear();
     _scrollToBottom();
 
-    final response = await PatientService.envoyerMessageIAMedical(texte);
+    // CHANGEMENT ICI: utiliser la bonne methode
+    final response = await PatientService.envoyerMessageAssistant(texte);
     
     if (mounted) {
       setState(() {
@@ -186,7 +187,7 @@ class _AssistantPageState extends State<AssistantPage> {
           const SizedBox(height: 16),
           const Text("Bonjour !", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Colors.black87)),
           const SizedBox(height: 6),
-          const Text("Comment puis-je vous aider\ aujourd'hui ?", textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: Colors.grey)),
+          const Text("Comment puis-je vous aider aujourd'hui ?", textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: Colors.grey)),
           const SizedBox(height: 24),
           Wrap(
             spacing: 8,

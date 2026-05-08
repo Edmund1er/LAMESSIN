@@ -1,0 +1,166 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block extrahead %}
+<link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet' />
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js'></script>
+<style>
+    .calendar-stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        margin-top: 24px;
+    }
+    .stat-card {
+        background: white;
+        border-radius: 16px;
+        padding: 20px;
+        border: 1px solid var(--border);
+        text-align: center;
+    }
+    .stat-number {
+        font-size: 28px;
+        font-weight: 800;
+        color: var(--primary);
+    }
+    .stat-label {
+        font-size: 12px;
+        color: var(--gray);
+        margin-top: 4px;
+    }
+    .fc {
+        font-family: 'Inter', sans-serif;
+    }
+    .fc-toolbar-title {
+        font-size: 18px;
+        font-weight: 700;
+    }
+    .fc-button-primary {
+        background: var(--primary) !important;
+        border-color: var(--primary) !important;
+    }
+    .fc-event {
+        cursor: pointer;
+        border-radius: 6px;
+        padding: 4px 8px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <div class="card">
+        <div class="card-header">
+            <h3>Calendrier des rendez-vous</h3>
+            <a href="{% url 'admin:lamessin_app_rendezvous_add' %}" class="btn-add">+ Nouveau rendez-vous</a>
+        </div>
+        <div id="calendar"></div>
+
+        <div class="calendar-stats">
+            <div class="stat-card">
+                <div class="stat-number" id="totalCount">0</div>
+                <div class="stat-label">Total RDV</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="todayCount">0</div>
+                <div class="stat-label">Aujourd'hui</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="weekCount">0</div>
+                <div class="stat-label">Cette semaine</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="monthCount">0</div>
+                <div class="stat-label">Ce mois</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .btn-add {
+        background: var(--primary);
+        border-radius: 10px;
+        padding: 8px 20px;
+        color: white;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 13px;
+    }
+    .btn-add:hover {
+        background: var(--primary-dark);
+    }
+</style>
+
+<script>
+const rendezvousData = [
+    {% for rdv in cl.result_list %}
+    {
+        id: {{ rdv.id }},
+        patient: "{{ rdv.patient_demandeur.compte_utilisateur.last_name }}",
+        medecin: "Dr {{ rdv.medecin_concerne.compte_utilisateur.last_name }}",
+        date: "{{ rdv.date_rdv|date:'Y-m-d' }}",
+        heure: "{{ rdv.heure_rdv|time:'H:i' }}",
+        motif: "{{ rdv.motif_consultation|escapejs }}",
+        statut: "{{ rdv.statut_actuel_rdv }}"
+    },
+    {% endfor %}
+];
+
+function updateStats() {
+    const today = new Date().toISOString().split('T')[0];
+    const todayDate = new Date(today);
+    const weekStart = new Date(todayDate);
+    weekStart.setDate(todayDate.getDate() - todayDate.getDay());
+    const monthStart = new Date(todayDate.getFullYear(), todayDate.getMonth(), 1);
+
+    document.getElementById('totalCount').innerText = rendezvousData.length;
+    document.getElementById('todayCount').innerText = rendezvousData.filter(r => r.date === today).length;
+    document.getElementById('weekCount').innerText = rendezvousData.filter(r => new Date(r.date) >= weekStart).length;
+    document.getElementById('monthCount').innerText = rendezvousData.filter(r => new Date(r.date) >= monthStart).length;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    var calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
+        initialView: 'dayGridMonth',
+        locale: 'fr',
+        firstDay: 1,
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+        },
+        buttonText: {
+            today: "Aujourd'hui",
+            month: 'Mois',
+            week: 'Semaine',
+            day: 'Jour'
+        },
+        events: rendezvousData.map(rdv => {
+            let color = '#0D9488';
+            if (rdv.statut === 'en_attente') color = '#F59E0B';
+            if (rdv.statut === 'termine') color = '#10B981';
+            if (rdv.statut === 'annule') color = '#EF4444';
+            return {
+                id: rdv.id,
+                title: rdv.patient + ' - ' + rdv.medecin,
+                start: rdv.date + 'T' + rdv.heure,
+                backgroundColor: color,
+                borderColor: color,
+                textColor: 'white',
+                extendedProps: { rdv: rdv }
+            };
+        }),
+        eventClick: function(info) {
+            const rdv = info.event.extendedProps.rdv;
+            window.location.href = '/admin/lamessin_app/rendezvous/' + rdv.id + '/change/';
+        },
+        height: 'auto'
+    });
+    calendar.render();
+    updateStats();
+});
+</script>
+{% endblock %}

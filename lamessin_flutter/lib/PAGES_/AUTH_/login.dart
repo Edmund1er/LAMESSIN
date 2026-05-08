@@ -1,10 +1,13 @@
-import 'dart:ui'; 
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../SERVICES_/api_service.dart';
 import '../../THEME_/app_theme.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});
+
   @override
   State<Login> createState() => _LoginState();
 }
@@ -24,7 +27,6 @@ class _LoginState extends State<Login> {
     setState(() => _chargement = true);
 
     try {
-// On récupère le rôle au lieu du token
       String? role = await ApiService.login(
         _telephone.text.trim(),
         _password.text,
@@ -33,25 +35,27 @@ class _LoginState extends State<Login> {
       if (!mounted) return;
 
       if (role != null) {
-// --- logique pour la redirecion par role ---
-        switch (role) {
-          case 'PATIENT':
-            Navigator.pushReplacementNamed(context, "/page_utilisateur");
-            break;
-          case 'MEDECIN':
-            Navigator.pushReplacementNamed(context, "/dashboard_medecin");
-            break;
-            
-          case 'PHARMACIEN':
-            Navigator.pushReplacementNamed(context, "/dashboard_pharmacien");
-            break;
-          default:
-            Navigator.pushReplacementNamed(context, "/page_utilisateur");
+        if (role == 'SUPERUSER') {
+          final prefs = await SharedPreferences.getInstance();
+          final String? token = prefs.getString('access_token');
+          final Uri url = Uri.parse('${ApiService.mediaBaseUrl}/admin-auto/?token=$token');
+          await launchUrl(url, mode: LaunchMode.externalApplication);
+          if (mounted) {
+            Navigator.pushReplacementNamed(context, "/login");
+          }
+        } else if (role == 'PATIENT') {
+          Navigator.pushReplacementNamed(context, "/page_utilisateur");
+        } else if (role == 'MEDECIN') {
+          Navigator.pushReplacementNamed(context, "/dashboard_medecin");
+        } else if (role == 'PHARMACIEN') {
+          Navigator.pushReplacementNamed(context, "/dashboard_pharmacien");
+        } else {
+          Navigator.pushReplacementNamed(context, "/page_utilisateur");
         }
       } else {
         AppWidgets.showSnack(
           context,
-          "Numéro ou mot de passe incorrect",
+          "Numero ou mot de passe incorrect",
           color: AppColors.danger,
         );
       }
@@ -72,12 +76,9 @@ class _LoginState extends State<Login> {
     return Scaffold(
       body: Stack(
         children: [
-// l'image de fond 
           Positioned.fill(
             child: Image.asset('assets/images/login.jpeg', fit: BoxFit.cover),
           ),
-
-// Le haut est transparent pour voir l'image, le bas est sombre pour le contraste
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
@@ -92,8 +93,6 @@ class _LoginState extends State<Login> {
               ),
             ),
           ),
-
-// contenu pricipal
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
@@ -102,8 +101,6 @@ class _LoginState extends State<Login> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const SizedBox(height: 40),
-
-// placons le logo
                     Container(
                       width: 80,
                       height: 80,
@@ -125,8 +122,6 @@ class _LoginState extends State<Login> {
                       ),
                     ),
                     const SizedBox(height: 30),
-
-// le titre ou bien le mot d'accueil 
                     Text(
                       'Bienvenue sur LAMESSIN',
                       textAlign: TextAlign.center,
@@ -146,7 +141,7 @@ class _LoginState extends State<Login> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Connectez-vous à votre espace santé',
+                      'Connectez-vous a votre espace sante',
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.8),
                         fontSize: 14,
@@ -154,10 +149,7 @@ class _LoginState extends State<Login> {
                         letterSpacing: 0.5,
                       ),
                     ),
-
                     const SizedBox(height: 60),
-
-// la carte pour le formulaire
                     ClipRRect(
                       borderRadius: BorderRadius.circular(30),
                       child: BackdropFilter(
@@ -174,7 +166,6 @@ class _LoginState extends State<Login> {
                           ),
                           child: Column(
                             children: [
-// champ telephone
                               Container(
                                 decoration: BoxDecoration(
                                   color: Colors.white.withOpacity(0.9),
@@ -189,7 +180,7 @@ class _LoginState extends State<Login> {
                                     color: AppColors.textPrimary,
                                   ),
                                   decoration: const InputDecoration(
-                                    hintText: 'Numéro de téléphone',
+                                    hintText: 'Numero de telephone',
                                     hintStyle: TextStyle(color: Colors.grey),
                                     prefixIcon: Icon(
                                       Icons.phone_rounded,
@@ -204,8 +195,6 @@ class _LoginState extends State<Login> {
                                 ),
                               ),
                               const SizedBox(height: 20),
-
-// champ pour le mot de passe
                               Container(
                                 decoration: BoxDecoration(
                                   color: Colors.white.withOpacity(0.9),
@@ -247,14 +236,12 @@ class _LoginState extends State<Login> {
                                 ),
                               ),
                               const SizedBox(height: 12),
-
-// partie pour le mot de passe oublie
                               Align(
                                 alignment: Alignment.centerRight,
                                 child: TextButton(
                                   onPressed: () {},
                                   child: const Text(
-                                    'Mot de passe oublié ?',
+                                    'Mot de passe oublie ?',
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.w600,
@@ -264,8 +251,6 @@ class _LoginState extends State<Login> {
                                 ),
                               ),
                               const SizedBox(height: 16),
-
-// bouton de connexion
                               SizedBox(
                                 width: double.infinity,
                                 height: 55,
@@ -300,8 +285,6 @@ class _LoginState extends State<Login> {
                                 ),
                               ),
                               const SizedBox(height: 24),
-
-// lien pour la redirection vers l'inscription
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
