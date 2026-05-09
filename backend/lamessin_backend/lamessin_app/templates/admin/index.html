@@ -74,12 +74,26 @@
             text-shadow: 0 2px 8px rgba(0, 180, 216, 0.3);
         }
 
+        .stat-icon {
+            font-size: 28px;
+            margin-bottom: 8px;
+            display: inline-block;
+        }
+
         .stat-label {
             font-size: 14px;
-            color: rgba(255, 255, 255, 0.8);
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 600;
+            text-transform: capitalize;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .stat-description {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 8px;
+            line-height: 1.4;
         }
 
         /* CHARTS GRID */
@@ -104,6 +118,7 @@
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2), inset 0 0 20px rgba(255, 255, 255, 0.05);
             transition: all 0.3s ease;
             animation: fadeSlideUp 0.6s ease-out;
+            position: relative;
         }
 
         .chart-card:hover {
@@ -116,12 +131,49 @@
             grid-column: 1 / -1;
         }
 
+        .chart-card canvas {
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 8px;
+            padding: 16px;
+        }
+
         .chart-title {
             font-size: 18px;
             font-weight: 600;
             color: #ffffff;
-            margin-bottom: 24px;
+            margin-bottom: 8px;
             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .chart-description {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 16px;
+            line-height: 1.4;
+        }
+
+        .chart-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .legend-color {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            display: inline-block;
         }
 
         canvas {
@@ -146,38 +198,79 @@
 <div id="content-main">
     <div class="stats-grid">
         <div class="stat-card">
+            <div class="stat-icon">👨‍⚕️</div>
             <div class="stat-number">{{ total_medecins|default:"0" }}</div>
-            <div class="stat-label">Médecins</div>
+            <div class="stat-label">Médecins actifs</div>
+            <div class="stat-description">Nombre total de médecins enregistrés</div>
         </div>
         <div class="stat-card">
+            <div class="stat-icon">👤</div>
             <div class="stat-number">{{ total_patients|default:"0" }}</div>
-            <div class="stat-label">Patients</div>
+            <div class="stat-label">Patients inscrits</div>
+            <div class="stat-description">Nombre total de patients dans le système</div>
         </div>
         <div class="stat-card">
+            <div class="stat-icon">📅</div>
             <div class="stat-number">{{ rdv_aujourdhui|default:"0" }}</div>
             <div class="stat-label">RDV aujourd'hui</div>
+            <div class="stat-description">Rendez-vous prévus pour le jour actuel</div>
         </div>
         <div class="stat-card">
+            <div class="stat-icon">📦</div>
             <div class="stat-number">{{ commandes_total|default:"0" }}</div>
-            <div class="stat-label">Commandes</div>
+            <div class="stat-label">Commandes totales</div>
+            <div class="stat-description">Nombre total de commandes de médicaments</div>
         </div>
     </div>
 
     <div class="charts-grid">
         <div class="chart-card full-width">
-            <div class="chart-title">Évolution des rendez-vous (7 derniers jours)</div>
-            <canvas id="evolutionChart" style="height: 300px;"></canvas>
+            <div class="chart-title">📈 Évolution des rendez-vous (7 derniers jours)</div>
+            <div class="chart-description">Tendance du nombre de rendez-vous programmés chaque jour</div>
+            <div style="display: flex; align-items: center; gap: 16px;">
+                <div style="writing-mode: vertical-rl; transform: rotate(180deg); color: rgba(255,255,255,0.8); font-size: 12px; font-weight: 500;">Nombre de rendez-vous</div>
+                <div style="flex: 1; height: 300px; position: relative;">
+                    <canvas id="evolutionChart"></canvas>
+                </div>
+            </div>
+            <div style="text-align: center; color: rgba(255,255,255,0.8); font-size: 12px; font-weight: 500; margin-top: 8px;">Jours de la semaine</div>
+            <div class="chart-legend">
+                <span class="legend-item"><span class="legend-color" style="background: #00b4d8;"></span> Rendez-vous</span>
+            </div>
         </div>
     </div>
 
     <div class="charts-grid">
         <div class="chart-card">
-            <div class="chart-title">Commandes par statut</div>
-            <canvas id="commandeChart" style="height: 250px;"></canvas>
+            <div class="chart-title">📦 Statut des commandes</div>
+            <div class="chart-description">Distribution des commandes par état actuel</div>
+            <div style="height: 280px; position: relative;">
+                <canvas id="commandeChart"></canvas>
+            </div>
+            <div style="text-align: center; color: rgba(255,255,255,0.8); font-size: 12px; font-weight: 500; margin-top: 8px;">État des commandes</div>
+            <div class="chart-legend">
+                <span class="legend-item"><span class="legend-color" style="background: #FCD34D;"></span> En attente</span>
+                <span class="legend-item"><span class="legend-color" style="background: #10B981;"></span> Payé</span>
+                <span class="legend-item"><span class="legend-color" style="background: #00b4d8;"></span> Livré</span>
+                <span class="legend-item"><span class="legend-color" style="background: #F87171;"></span> Annulé</span>
+            </div>
         </div>
         <div class="chart-card">
-            <div class="chart-title">Rendez-vous par statut</div>
-            <canvas id="rdvChart" style="height: 250px;"></canvas>
+            <div class="chart-title">📅 Statut des rendez-vous</div>
+            <div class="chart-description">Répartition des rendez-vous par statut</div>
+            <div style="display: flex; align-items: center; gap: 16px;">
+                <div style="writing-mode: vertical-rl; transform: rotate(180deg); color: rgba(255,255,255,0.8); font-size: 12px; font-weight: 500;">Nombre de RDV</div>
+                <div style="flex: 1; height: 280px; position: relative;">
+                    <canvas id="rdvChart"></canvas>
+                </div>
+            </div>
+            <div style="text-align: center; color: rgba(255,255,255,0.8); font-size: 12px; font-weight: 500; margin-top: 8px;">Statut du rendez-vous</div>
+            <div class="chart-legend">
+                <span class="legend-item"><span class="legend-color" style="background: #FCD34D;"></span> En attente</span>
+                <span class="legend-item"><span class="legend-color" style="background: #3B82F6;"></span> Confirmé</span>
+                <span class="legend-item"><span class="legend-color" style="background: #10B981;"></span> Terminé</span>
+                <span class="legend-item"><span class="legend-color" style="background: #F87171;"></span> Annulé</span>
+            </div>
         </div>
     </div>
 </div>
@@ -195,7 +288,7 @@ document.addEventListener('DOMContentLoaded', function() {
         data: {
             labels: {{ evolution_labels|default:"['Lun','Mar','Mer','Jeu','Ven','Sam','Dim']"|safe }},
             datasets: [{
-                label: 'Rendez-vous',
+                label: 'Nombre de rendez-vous programmés',
                 data: {{ evolution_data|default:"[12,19,15,22,28,24,18]" }},
                 borderColor: '#00b4d8',
                 backgroundColor: 'rgba(0, 180, 216, 0.1)',
@@ -213,11 +306,33 @@ document.addEventListener('DOMContentLoaded', function() {
             responsive: true,
             maintainAspectRatio: true,
             plugins: {
-                legend: { labels: { color: 'rgba(255, 255, 255, 0.8)', font: { size: 12 } } }
+                legend: {
+                    labels: {
+                        color: 'rgba(255, 255, 255, 0.9)',
+                        font: { size: 13, weight: '600' }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleColor: '#ffffff',
+                    bodyColor: '#ffffff',
+                    padding: 12,
+                    callbacks: {
+                        label: function(context) {
+                            return 'RDV: ' + context.parsed.y;
+                        }
+                    }
+                }
             },
             scales: {
-                y: { grid: { color: 'rgba(255, 255, 255, 0.1)' }, ticks: { color: 'rgba(255, 255, 255, 0.7)' } },
-                x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: 'rgba(255, 255, 255, 0.7)' } }
+                y: {
+                    grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                    ticks: { color: 'rgba(255, 255, 255, 0.7)', font: { size: 12 } }
+                },
+                x: {
+                    grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                    ticks: { color: 'rgba(255, 255, 255, 0.7)', font: { size: 12 } }
+                }
             }
         }
     });
@@ -239,7 +354,27 @@ document.addEventListener('DOMContentLoaded', function() {
             responsive: true,
             maintainAspectRatio: true,
             plugins: {
-                legend: { position: 'bottom', labels: { color: 'rgba(255, 255, 255, 0.8)', padding: 20, font: { size: 12 } } }
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        color: 'rgba(255, 255, 255, 0.9)',
+                        padding: 20,
+                        font: { size: 13, weight: '600' },
+                        usePointStyle: true,
+                        pointStyle: 'rect'
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleColor: '#ffffff',
+                    bodyColor: '#ffffff',
+                    padding: 12,
+                    callbacks: {
+                        label: function(context) {
+                            return context.label + ': ' + context.parsed + ' commande(s)';
+                        }
+                    }
+                }
             }
         }
     });
@@ -250,7 +385,7 @@ document.addEventListener('DOMContentLoaded', function() {
         data: {
             labels: ['En attente', 'Confirmé', 'Terminé', 'Annulé'],
             datasets: [{
-                label: 'Nombre',
+                label: 'Nombre de rendez-vous',
                 data: [{{ rdv_en_attente|default:"8" }}, {{ rdv_confirme|default:"15" }}, {{ rdv_termine|default:"22" }}, {{ rdv_annule|default:"4" }}],
                 backgroundColor: ['#FCD34D', '#3B82F6', '#10B981', '#F87171'],
                 borderRadius: 8,
@@ -263,11 +398,33 @@ document.addEventListener('DOMContentLoaded', function() {
             maintainAspectRatio: true,
             indexAxis: 'x',
             plugins: {
-                legend: { labels: { color: 'rgba(255, 255, 255, 0.8)', font: { size: 12 } } }
+                legend: {
+                    labels: {
+                        color: 'rgba(255, 255, 255, 0.9)',
+                        font: { size: 13, weight: '600' }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleColor: '#ffffff',
+                    bodyColor: '#ffffff',
+                    padding: 12,
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ': ' + context.parsed.y + ' RDV';
+                        }
+                    }
+                }
             },
             scales: {
-                y: { grid: { color: 'rgba(255, 255, 255, 0.1)' }, ticks: { color: 'rgba(255, 255, 255, 0.7)' } },
-                x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: 'rgba(255, 255, 255, 0.7)' } }
+                y: {
+                    grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                    ticks: { color: 'rgba(255, 255, 255, 0.7)', font: { size: 12 } }
+                },
+                x: {
+                    grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                    ticks: { color: 'rgba(255, 255, 255, 0.7)', font: { size: 12 } }
+                }
             }
         }
     });
