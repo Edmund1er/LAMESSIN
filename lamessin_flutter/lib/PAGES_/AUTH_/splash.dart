@@ -44,53 +44,58 @@ class _SplashState extends State<Splash> with SingleTickerProviderStateMixin {
 
     if (!mounted) return;
 
-    bool isConnected = await ApiService.estConnecte();
-    
-    if (!mounted) return;
+    bool isConnected = false;
+    String? role;
 
-    if (isConnected) {
-      final prefs = await SharedPreferences.getInstance();
-      String? role = prefs.getString('user_role');
-      
-      try {
-        final profil = await ApiService.getProfil();
-        
-        if (profil is Utilisateur && profil.isSuperuser) {
-          role = 'SUPERUSER';
+    try {
+      isConnected = await ApiService.estConnecte();
+
+      if (!mounted) return;
+
+      if (isConnected) {
+        final prefs = await SharedPreferences.getInstance();
+        role = prefs.getString('user_role');
+
+        try {
+          final profil = await ApiService.getProfil();
+
+          if (profil is Utilisateur && profil.isSuperuser) {
+            role = 'SUPERUSER';
+          } else if (profil is Medecin) {
+            role = 'MEDECIN';
+          } else if (profil is Pharmacien) {
+            role = 'PHARMACIEN';
+          } else if (profil is Patient) {
+            role = 'PATIENT';
+          }
+        } catch (e) {
+          print("Erreur recuperation profil: $e");
         }
-        else if (profil is Medecin) {
-          role = 'MEDECIN';
+
+        print("ROLE DETECTE: $role");
+
+        switch (role) {
+          case 'SUPERUSER':
+            final Uri url = Uri.parse('${ApiService.mediaBaseUrl}/admin-auto/');
+            await launchUrl(url, mode: LaunchMode.externalApplication);
+            if (mounted) Navigator.pushReplacementNamed(context, "/login");
+            break;
+          case 'MEDECIN':
+            if (mounted) Navigator.pushReplacementNamed(context, "/dashboard_medecin");
+            break;
+          case 'PHARMACIEN':
+            if (mounted) Navigator.pushReplacementNamed(context, "/dashboard_pharmacien");
+            break;
+          case 'PATIENT':
+          default:
+            if (mounted) Navigator.pushReplacementNamed(context, "/page_utilisateur");
         }
-        else if (profil is Pharmacien) {
-          role = 'PHARMACIEN';
-        }
-        else if (profil is Patient) {
-          role = 'PATIENT';
-        }
-      } catch (e) {
-        print("Erreur recuperation profil: $e");
+      } else {
+        if (mounted) Navigator.pushReplacementNamed(context, "/login");
       }
-      
-      print("ROLE DETECTE: $role");
-      
-      switch (role) {
-        case 'SUPERUSER':
-          final Uri url = Uri.parse('${ApiService.mediaBaseUrl}/admin-auto/');
-          await launchUrl(url, mode: LaunchMode.externalApplication);
-          Navigator.pushReplacementNamed(context, "/login");
-          break;
-        case 'MEDECIN':
-          Navigator.pushReplacementNamed(context, "/dashboard_medecin");
-          break;
-        case 'PHARMACIEN':
-          Navigator.pushReplacementNamed(context, "/dashboard_pharmacien");
-          break;
-        case 'PATIENT':
-        default:
-          Navigator.pushReplacementNamed(context, "/page_utilisateur");
-      }
-    } else {
-      Navigator.pushReplacementNamed(context, "/login");
+    } catch (e) {
+      print("Erreur splash: $e");
+      if (mounted) Navigator.pushReplacementNamed(context, "/login");
     }
   }
 

@@ -1,27 +1,34 @@
 from django.contrib import admin
-from django.contrib.admin import AdminSite
 from django.utils.html import format_html
 from django.db import models
+from django.db.models import Count, Sum, Q
+from django.db.models.functions import TruncMonth
 from .models import *
 from django.utils import timezone
-from datetime import timedelta
+from datetime import timedelta, date
 from django.template.response import TemplateResponse
 from django.urls import path
 from django.contrib.admin.views.main import ChangeList
 
 
-class LamessinAdminSite(AdminSite):
+PERIODES = {
+    '7j':  ('7 derniers jours', 7),
+    '30j': ('30 derniers jours', 30),
+    '90j': ('90 derniers jours', 90),
+    'all': ('Tout l\'historique', None),
+}
+
+
+class LamessinAdminSite(admin.AdminSite):
     site_header = "LAMESSIN"
     site_title = "Administration LAMESSIN"
     index_title = "Tableau de bord"
-    site_logo = None
-
-    index_template = 'admin/index.html'
 
     def get_urls(self):
         urls = super().get_urls()
         my_urls = [
             path('rendezvous-calendrier/', self.admin_view(self.rendezvous_calendar_view), name='rendezvous_calendar'),
+            path('statistiques/', self.admin_view(self.stats_full_view), name='stats_full'),
         ]
         return my_urls + urls
 
@@ -38,35 +45,180 @@ class LamessinAdminSite(AdminSite):
         }
         return TemplateResponse(request, 'admin/rendezvous_calendar.html', context)
 
-    def index(self, request, extra_context=None):
+    def stats_full_view(self, request):
+        """Page fullscreen dédiée aux statistiques"""
         aujourdhui = timezone.now().date()
+        periode_key = request.GET.get('periode', '30j')
+        if periode_key not in PERIODES:
+            periode_key = '30j'
+        periode_label, periode_jours = PERIODES[periode_key]
+        date_debut = aujourdhui - timedelta(days=periode_jours) if periode_jours else None
 
-        evolution_labels = []
-        evolution_data = []
-        for i in range(6, -1, -1):
-            date = aujourdhui - timedelta(days=i)
-            evolution_labels.append(date.strftime('%d/%m'))
-            count = RendezVous.objects.filter(date_rdv=date).count()
-            evolution_data.append(count)
+        n_points = min(periode_jours or 30, 30)
+        evolution_labels, evolution_data = [], []
+        for i in range(n_points - 1, -1, -1):
+            d = aujourdhui - timedelta(days=i)
+            evolution_labels.append(d.strftime('%d/%m'))
+            evolution_data.append(RendezVous.objects.filter(date_rdv=d).count())
 
-        context = {
-            'total_medecins': Utilisateur.objects.filter(est_un_compte_medecin=True).count(),
-            'total_patients': Utilisateur.objects.filter(est_un_compte_patient=True).count(),
+        date_il_y_a_un_an = aujourdhui - timedelta(days=365)
+        ordo_par_mois = list(
+            Ordonnance.objects
+            .filter(date_prescription__gte=date_il_y_a_un_an)
+            .annotate(mois=TruncMonth('date_prescription'))
+            .values('mois').annotate(total=Count('id'))
+            .order_by('mois')
+        )
+        ordo_labels = [item['mois'].strftime('%b %Y') for item in ordo_par_mois]
+        ordo_data = [item['total'] for item in ordo_par_mois]
+
+        top_medicaments = list(
+            DetailOrdonnance.objects
+            .values('medicament__nom_commercial')
+            .annotate(total=Count('id'))
+            .order_by('-total')[:10]
+        )
+
+        cmd_qs = Commande.objects.all()
+        ordo_qs = Ordonnance.objects.all()
+        if date_debut:
+            cmd_qs = cmd_qs.filter(date_creation__date__gte=date_debut)
+            ordo_qs = ordo_qs.filter(date_prescription__gte=date_debut)
+
+        revenus = cmd_qs.filter(statut='PAYE').aggregate(t=Sum('total'))['t'] or 0
+
+        stats = {
+            'periode_active': periode_key,
+            'periode_label': periode_label,
+            'periode_options': [(k, v[0]) for k, v in PERIODES.items()],
+            'total_rdv': RendezVous.objects.count(),
+            'total_patients': Utilisateur.objects.filter(est_un_compte_patient=True, is_active=True).count(),
+            'total_medecins': Utilisateur.objects.filter(est_un_compte_medecin=True, is_active=True).count(),
+            'commandes_total': cmd_qs.count(),
             'rdv_aujourdhui': RendezVous.objects.filter(date_rdv=aujourdhui).count(),
-            'commandes_total': Commande.objects.count(),
             'rdv_en_attente': RendezVous.objects.filter(statut_actuel_rdv='en_attente').count(),
             'rdv_confirme': RendezVous.objects.filter(statut_actuel_rdv='confirme').count(),
             'rdv_termine': RendezVous.objects.filter(statut_actuel_rdv='termine').count(),
             'rdv_annule': RendezVous.objects.filter(statut_actuel_rdv='annule').count(),
-            'commandes_attente': Commande.objects.filter(statut='EN_ATTENTE').count(),
-            'commandes_payees': Commande.objects.filter(statut='PAYE').count(),
-            'commandes_livrees': Commande.objects.filter(statut='LIVRE').count(),
-            'commandes_annulees': Commande.objects.filter(statut='ANNULE').count(),
             'evolution_labels': evolution_labels,
             'evolution_data': evolution_data,
+            'commandes_attente': cmd_qs.filter(statut='EN_ATTENTE').count(),
+            'commandes_payees': cmd_qs.filter(statut='PAYE').count(),
+            'commandes_livrees': cmd_qs.filter(statut='LIVRE').count(),
+            'commandes_annulees': cmd_qs.filter(statut='ANNULE').count(),
+            'revenus_periode': revenus,
+            'total_pharmacies': Pharmacie.objects.count(),
+            'pharmacies_garde': Pharmacie.objects.filter(pharmacie_est_garde=True).count(),
+            'total_hopitaux': Hopital.objects.count(),
+            'total_pharmaciens': Utilisateur.objects.filter(est_un_compte_pharmacien=True, is_active=True).count(),
+            'total_consultations': Consultation.objects.count(),
+            'total_ordonnances': ordo_qs.count(),
+            'total_medicaments': Medicament.objects.count(),
+            'stocks_alerte': Stock.objects.filter(quantite_actuelle_en_stock__lte=models.F('seuil_alerte')).count(),
+            'ordo_labels': ordo_labels,
+            'ordo_data': ordo_data,
+            'top_medicaments': top_medicaments,
         }
-        context.update(extra_context or {})
-        return TemplateResponse(request, self.index_template, context)
+
+        context = {
+            **self.each_context(request),
+            'title': 'Tableau de bord - Statistiques',
+            **stats,
+        }
+        return TemplateResponse(request, 'admin/stats_full.html', context)
+
+    def index(self, request, extra_context=None):
+        aujourdhui = timezone.now().date()
+
+        # ===== FILTRE PÉRIODE (?periode=7j|30j|90j|all) =====
+        periode_key = request.GET.get('periode', '30j')
+        if periode_key not in PERIODES:
+            periode_key = '30j'
+        periode_label, periode_jours = PERIODES[periode_key]
+        date_debut = aujourdhui - timedelta(days=periode_jours) if periode_jours else None
+
+        # ===== ÉVOLUTION RDV (sur la période, max 30 points) =====
+        n_points = min(periode_jours or 30, 30)
+        evolution_labels, evolution_data = [], []
+        for i in range(n_points - 1, -1, -1):
+            d = aujourdhui - timedelta(days=i)
+            evolution_labels.append(d.strftime('%d/%m'))
+            evolution_data.append(RendezVous.objects.filter(date_rdv=d).count())
+
+        # ===== ORDONNANCES PAR MOIS (12 derniers mois) =====
+        date_il_y_a_un_an = aujourdhui - timedelta(days=365)
+        ordo_par_mois = list(
+            Ordonnance.objects
+            .filter(date_prescription__gte=date_il_y_a_un_an)
+            .annotate(mois=TruncMonth('date_prescription'))
+            .values('mois').annotate(total=Count('id'))
+            .order_by('mois')
+        )
+        ordo_labels = [item['mois'].strftime('%b %Y') for item in ordo_par_mois]
+        ordo_data = [item['total'] for item in ordo_par_mois]
+
+        # ===== TOP 10 MÉDICAMENTS PRESCRITS =====
+        top_medicaments = list(
+            DetailOrdonnance.objects
+            .values('medicament__nom_commercial')
+            .annotate(total=Count('id'))
+            .order_by('-total')[:10]
+        )
+
+        # ===== FILTRES PÉRIODE POUR COMMANDES & ORDONNANCES =====
+        cmd_qs = Commande.objects.all()
+        ordo_qs = Ordonnance.objects.all()
+        if date_debut:
+            cmd_qs = cmd_qs.filter(date_creation__date__gte=date_debut)
+            ordo_qs = ordo_qs.filter(date_prescription__gte=date_debut)
+
+        revenus = cmd_qs.filter(statut='PAYE').aggregate(t=Sum('total'))['t'] or 0
+
+        stats = {
+            # ===== En-tête / filtres =====
+            'periode_active': periode_key,
+            'periode_label': periode_label,
+            'periode_options': [(k, v[0]) for k, v in PERIODES.items()],
+
+            # ===== KPI principaux (opérationnel santé) =====
+            'total_rdv': RendezVous.objects.count(),
+            'total_patients': Utilisateur.objects.filter(est_un_compte_patient=True, is_active=True).count(),
+            'total_medecins': Utilisateur.objects.filter(est_un_compte_medecin=True, is_active=True).count(),
+            'commandes_total': cmd_qs.count(),
+
+            # ===== Stats RDV =====
+            'rdv_aujourdhui': RendezVous.objects.filter(date_rdv=aujourdhui).count(),
+            'rdv_en_attente': RendezVous.objects.filter(statut_actuel_rdv='en_attente').count(),
+            'rdv_confirme': RendezVous.objects.filter(statut_actuel_rdv='confirme').count(),
+            'rdv_termine': RendezVous.objects.filter(statut_actuel_rdv='termine').count(),
+            'rdv_annule': RendezVous.objects.filter(statut_actuel_rdv='annule').count(),
+            'evolution_labels': evolution_labels,
+            'evolution_data': evolution_data,
+
+            # ===== Stats Commandes =====
+            'commandes_attente': cmd_qs.filter(statut='EN_ATTENTE').count(),
+            'commandes_payees': cmd_qs.filter(statut='PAYE').count(),
+            'commandes_livrees': cmd_qs.filter(statut='LIVRE').count(),
+            'commandes_annulees': cmd_qs.filter(statut='ANNULE').count(),
+            'revenus_periode': revenus,
+
+            # ===== Établissements =====
+            'total_pharmacies': Pharmacie.objects.count(),
+            'pharmacies_garde': Pharmacie.objects.filter(pharmacie_est_garde=True).count(),
+            'total_hopitaux': Hopital.objects.count(),
+            'total_pharmaciens': Utilisateur.objects.filter(est_un_compte_pharmacien=True, is_active=True).count(),
+            'total_consultations': Consultation.objects.count(),
+            'total_ordonnances': ordo_qs.count(),
+            'total_medicaments': Medicament.objects.count(),
+            'stocks_alerte': Stock.objects.filter(quantite_actuelle_en_stock__lte=models.F('seuil_alerte')).count(),
+
+            # ===== Ordonnances =====
+            'ordo_labels': ordo_labels,
+            'ordo_data': ordo_data,
+            'top_medicaments': top_medicaments,
+        }
+        extra_context = {**stats, **(extra_context or {})}
+        return super().index(request, extra_context=extra_context)
 
 
 admin_site = LamessinAdminSite(name='lamessin_admin')
@@ -302,26 +454,78 @@ class DetailOrdonnanceInline(admin.TabularInline):
     model = DetailOrdonnance
     extra = 1
     raw_id_fields = ('medicament',)
+    verbose_name = "Médicament prescrit"
+    verbose_name_plural = "Médicaments prescrits"
+
 
 @admin.register(Ordonnance, site=admin_site)
 class OrdonnanceAdmin(admin.ModelAdmin):
-    list_display = ('id', 'get_patient', 'get_medecin', 'date_prescription', 'code_securite')
+    list_display = (
+        'id',
+        'get_patient_full',
+        'get_medecin_full',
+        'date_prescription',
+        'get_nb_medicaments',
+        'code_securite',
+        'get_pdf_link',
+    )
+    list_filter = ('date_prescription', 'medecin_prescripteur__specialite_medicale')
+    date_hierarchy = 'date_prescription'
+    search_fields = (
+        'code_securite',
+        'patient_beneficiaire__compte_utilisateur__last_name',
+        'patient_beneficiaire__compte_utilisateur__first_name',
+        'patient_beneficiaire__compte_utilisateur__numero_telephone',
+        'medecin_prescripteur__compte_utilisateur__last_name',
+        'medecin_prescripteur__numero_licence',
+    )
     raw_id_fields = ('consultation', 'medecin_prescripteur', 'patient_beneficiaire')
     inlines = [DetailOrdonnanceInline]
+    list_per_page = 25
 
     fieldsets = (
-        (None, {
-            'fields': ('consultation', 'medecin_prescripteur', 'patient_beneficiaire', 'code_securite', 'fichier_ordonnance')
+        ('Liens consultation', {
+            'fields': ('consultation',),
+            'description': "Rattachement éventuel à une consultation existante",
+        }),
+        ('Acteurs', {
+            'fields': ('medecin_prescripteur', 'patient_beneficiaire'),
+        }),
+        ('Sécurité & document', {
+            'fields': ('code_securite', 'fichier_ordonnance'),
+            'description': "Le code sécurité permet la vérification en pharmacie",
         }),
     )
 
-    def get_patient(self, obj):
-        return obj.patient_beneficiaire.compte_utilisateur.last_name
-    get_patient.short_description = "Patient"
+    def get_patient_full(self, obj):
+        u = obj.patient_beneficiaire.compte_utilisateur
+        return f"{u.first_name} {u.last_name}"
+    get_patient_full.short_description = "Patient"
+    get_patient_full.admin_order_field = 'patient_beneficiaire__compte_utilisateur__last_name'
 
-    def get_medecin(self, obj):
-        return f"Dr {obj.medecin_prescripteur.compte_utilisateur.last_name}"
-    get_medecin.short_description = "Médecin"
+    def get_medecin_full(self, obj):
+        u = obj.medecin_prescripteur.compte_utilisateur
+        spec = obj.medecin_prescripteur.specialite_medicale or "—"
+        return format_html("Dr {} {}<br><small style='color:#94a3b8'>{}</small>",
+                           u.first_name, u.last_name, spec)
+    get_medecin_full.short_description = "Médecin"
+
+    def get_nb_medicaments(self, obj):
+        n = obj.lignes.count()
+        return format_html(
+            "<span style='background:#dbeafe;color:#1d4ed8;padding:2px 8px;border-radius:9999px;font-weight:600;'>{}</span>",
+            n
+        )
+    get_nb_medicaments.short_description = "Médicaments"
+
+    def get_pdf_link(self, obj):
+        if obj.fichier_ordonnance:
+            return format_html(
+                "<a href='{}' target='_blank' style='color:#2563eb;font-weight:600'>📄 PDF</a>",
+                obj.fichier_ordonnance.url
+            )
+        return format_html("<span style='color:#94a3b8'>—</span>")
+    get_pdf_link.short_description = "Document"
 
 
 # ====================================================================================================

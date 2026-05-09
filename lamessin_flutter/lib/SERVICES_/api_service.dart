@@ -32,21 +32,30 @@ class ApiService {
   }
 
   static Future<bool> estConnecte() async {
-    final prefs = await SharedPreferences.getInstance();
-    String? refreshToken = prefs.getString('refresh_token');
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      String? accessToken = prefs.getString('access_token');
+      String? refreshToken = prefs.getString('refresh_token');
 
-    final response = await http.get(
-      Uri.parse('$baseUrl/profil/'),
-      headers: await getHeaders(),
-    );
+      if (accessToken == null && refreshToken == null) return false;
 
-    if (response.statusCode == 200) return true;
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/profil/'),
+            headers: await getHeaders(),
+          )
+          .timeout(const Duration(seconds: 8));
 
-    if (response.statusCode == 401 && refreshToken != null) {
-      return await rafraichirLeToken();
+      if (response.statusCode == 200) return true;
+
+      if (response.statusCode == 401 && refreshToken != null) {
+        return await rafraichirLeToken();
+      }
+
+      return false;
+    } catch (e) {
+      return false;
     }
-
-    return false;
   }
 
   static Future<bool> rafraichirLeToken() async {

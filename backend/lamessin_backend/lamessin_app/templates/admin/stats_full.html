@@ -1,0 +1,289 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static humanize %}
+
+{% block extrahead %}
+    {{ block.super }}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        .stats-page { background:#f8fafc; min-height:100vh; padding:24px; }
+        .stats-container { max-width:1600px; margin:0 auto; }
+        .lm-page { background:transparent; padding:0; }
+        .lm-card {
+            background:#ffffff !important;
+            color:#0f172a;
+            border:1px solid #e2e8f0;
+            border-radius:12px;
+            padding:20px;
+            box-shadow:0 1px 2px rgba(15,23,42,0.04);
+        }
+        .lm-card:hover { box-shadow:0 4px 12px rgba(15,23,42,0.06); }
+        .lm-title-xl { font-size:24px; font-weight:700; color:#0f172a; margin:0; }
+        .lm-title-md { font-size:15px; font-weight:600; color:#0f172a; margin:0; }
+        .lm-subtle  { font-size:13px; color:#64748b; }
+        .lm-mini    { font-size:11px; color:#94a3b8; text-transform:uppercase; letter-spacing:.04em; font-weight:600; }
+        .lm-kpi-value { font-size:32px; font-weight:700; color:#0f172a; margin-top:6px; line-height:1.1; }
+        .lm-grid    { display:grid; gap:16px; }
+        .lm-grid-4  { grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); }
+        .lm-grid-2-3 { grid-template-columns:2fr 1fr; }
+        .lm-grid-2  { grid-template-columns:1fr 1fr; }
+        @media(max-width:900px){ .lm-grid-2, .lm-grid-2-3{ grid-template-columns:1fr; } }
+        .lm-icon-box {
+            width:44px; height:44px; border-radius:10px;
+            display:flex; align-items:center; justify-content:center; flex-shrink:0;
+        }
+        .lm-row { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+        .lm-chip { display:inline-flex; align-items:center; gap:6px; padding:8px 12px; border-radius:8px; font-size:13px; font-weight:500; }
+        .lm-dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
+        .lm-select {
+            background:#ffffff; border:1px solid #cbd5e1; color:#0f172a;
+            padding:8px 12px; border-radius:8px; font-size:13px; cursor:pointer;
+        }
+        .lm-section-title {
+            display:flex; align-items:center; gap:8px;
+            font-size:18px; font-weight:600; color:#0f172a; margin:0;
+        }
+        .lm-divider {
+            border-bottom:1px solid #e2e8f0; padding-bottom:18px;
+            display:flex; flex-direction:row; align-items:center; justify-content:space-between;
+            gap:16px; flex-wrap:wrap;
+        }
+        .lm-list-item {
+            display:flex; align-items:center; justify-content:space-between;
+            padding:8px 10px; border-radius:6px;
+        }
+        .lm-list-item:hover { background:#f1f5f9; }
+        .lm-rank {
+            width:28px; height:28px; border-radius:50%;
+            background:#dbeafe; color:#1d4ed8;
+            font-size:12px; font-weight:700;
+            display:flex; align-items:center; justify-content:center; flex-shrink:0;
+        }
+        .lm-stack > * + * { margin-top:16px; }
+        .lm-establish-card { border:1px solid #e2e8f0; border-radius:10px; padding:16px; background:#ffffff; }
+        .lm-stat-3 { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:8px; }
+        .lm-stat-3 .v { font-size:20px; font-weight:700; }
+        .lm-stat-3 .l { font-size:11px; color:#64748b; }
+        .back-button {
+            display:inline-flex; align-items:center; gap:8px;
+            padding:10px 16px; border-radius:8px; background:#f1f5f9; color:#0f172a;
+            text-decoration:none; font-weight:500; margin-bottom:20px;
+        }
+        .back-button:hover { background:#e2e8f0; }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="stats-page">
+    <div class="stats-container">
+        <a href="/lamessin_admin/" class="back-button">
+            <span class="material-symbols-outlined" style="font-size:20px">arrow_back</span>
+            Retour au tableau de bord
+        </a>
+
+        <div class="lm-page lm-stack">
+            {# HEADER #}
+            <div class="lm-divider">
+                <div style="display:flex; align-items:center; gap:14px;">
+                    <div class="lm-icon-box" style="background:#0f172a; color:#fff; width:48px; height:48px;">
+                        <span class="material-symbols-outlined" style="font-size:26px">monitoring</span>
+                    </div>
+                    <div>
+                        <h1 class="lm-title-xl">Statistiques détaillées</h1>
+                        <p class="lm-subtle" style="margin:4px 0 0">Analyse complète des données LAMESSIN</p>
+                    </div>
+                </div>
+
+                <form method="get" style="display:flex; align-items:center; gap:8px;">
+                    <span class="material-symbols-outlined" style="color:#64748b">filter_list</span>
+                    <label style="font-size:13px; color:#475569;">Période</label>
+                    <select name="periode" onchange="this.form.submit()" class="lm-select">
+                        {% for key, label in periode_options %}
+                            <option value="{{ key }}" {% if key == periode_active %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </form>
+            </div>
+
+            {# KPI CARDS #}
+            <div class="lm-grid lm-grid-4">
+                <div class="lm-card">
+                    <div class="lm-row">
+                        <div>
+                            <p class="lm-mini">Rendez-vous</p>
+                            <p class="lm-kpi-value">{{ total_rdv|default:"0" }}</p>
+                            <p class="lm-subtle" style="margin-top:6px;"><span style="color:#ea580c; font-weight:600;">{{ rdv_aujourdhui }}</span> aujourd'hui</p>
+                        </div>
+                        <div class="lm-icon-box" style="background:#dbeafe;">
+                            <span class="material-symbols-outlined" style="color:#2563eb">event</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lm-card">
+                    <div class="lm-row">
+                        <div>
+                            <p class="lm-mini">Patients actifs</p>
+                            <p class="lm-kpi-value">{{ total_patients|default:"0" }}</p>
+                            <p class="lm-subtle" style="margin-top:6px;">Comptes activés</p>
+                        </div>
+                        <div class="lm-icon-box" style="background:#dcfce7;">
+                            <span class="material-symbols-outlined" style="color:#16a34a">groups</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lm-card">
+                    <div class="lm-row">
+                        <div>
+                            <p class="lm-mini">Médecins</p>
+                            <p class="lm-kpi-value">{{ total_medecins|default:"0" }}</p>
+                            <p class="lm-subtle" style="margin-top:6px;">{{ total_consultations }} consultations</p>
+                        </div>
+                        <div class="lm-icon-box" style="background:#cffafe;">
+                            <span class="material-symbols-outlined" style="color:#0891b2">stethoscope</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lm-card">
+                    <div class="lm-row">
+                        <div>
+                            <p class="lm-mini">Commandes</p>
+                            <p class="lm-kpi-value">{{ commandes_total|default:"0" }}</p>
+                            <p class="lm-subtle" style="margin-top:6px; color:#16a34a; font-weight:600;">{{ revenus_periode|floatformat:0|default:"0" }} FCFA</p>
+                        </div>
+                        <div class="lm-icon-box" style="background:#f3e8ff;">
+                            <span class="material-symbols-outlined" style="color:#9333ea">shopping_bag</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# CHARTS #}
+            <div class="lm-grid lm-grid-2-3">
+                <div class="lm-card">
+                    <h3 class="lm-section-title" style="margin-bottom:14px;">
+                        <span class="material-symbols-outlined" style="color:#2563eb;font-size:22px">trending_up</span>
+                        Évolution RDV
+                    </h3>
+                    <div style="height:260px"><canvas id="chartEvolutionRdv"></canvas></div>
+                </div>
+
+                <div class="lm-card">
+                    <h3 class="lm-section-title" style="margin-bottom:14px;">
+                        <span class="material-symbols-outlined" style="color:#9333ea;font-size:22px">donut_small</span>
+                        Statuts RDV
+                    </h3>
+                    <div style="height:260px"><canvas id="chartStatutsRdv"></canvas></div>
+                </div>
+            </div>
+
+            <div class="lm-grid lm-grid-2">
+                <div class="lm-card">
+                    <h3 class="lm-section-title" style="margin-bottom:14px;">
+                        <span class="material-symbols-outlined" style="color:#ea580c;font-size:22px">receipt_long</span>
+                        Statuts commandes
+                    </h3>
+                    <div style="height:260px"><canvas id="chartStatutsCommandes"></canvas></div>
+                </div>
+
+                <div class="lm-card">
+                    <h3 class="lm-section-title" style="margin-bottom:14px;">
+                        <span class="material-symbols-outlined" style="color:#2563eb;font-size:22px">prescriptions</span>
+                        Ordonnances/mois
+                    </h3>
+                    <div style="height:260px"><canvas id="chartOrdonnancesMois"></canvas></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{ evolution_labels|json_script:"evo_labels" }}
+{{ evolution_data|json_script:"evo_data" }}
+{{ ordo_labels|json_script:"ordo_labels" }}
+{{ ordo_data|json_script:"ordo_data" }}
+
+<script>
+(function() {
+    Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
+    Chart.defaults.font.size = 12;
+    Chart.defaults.color = '#475569';
+    const grid = '#e2e8f0';
+    const intYAxis = { beginAtZero: true, grid: { color: grid }, ticks: { stepSize: 1, precision: 0 } };
+
+    new Chart(document.getElementById('chartEvolutionRdv'), {
+        type: 'line',
+        data: {
+            labels: JSON.parse(document.getElementById('evo_labels').textContent),
+            datasets: [{
+                label: 'RDV',
+                data: JSON.parse(document.getElementById('evo_data').textContent),
+                borderColor: '#2563eb',
+                backgroundColor: 'rgba(37, 99, 235, 0.10)',
+                tension: 0.35, fill: true,
+                pointBackgroundColor: '#2563eb',
+                pointRadius: 3, pointHoverRadius: 6, borderWidth: 2,
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { y: intYAxis, x: { grid: { display: false } } }
+        }
+    });
+
+    new Chart(document.getElementById('chartStatutsRdv'), {
+        type: 'doughnut',
+        data: {
+            labels: ['En attente', 'Confirmés', 'Terminés', 'Annulés'],
+            datasets: [{
+                data: [{{ rdv_en_attente }}, {{ rdv_confirme }}, {{ rdv_termine }}, {{ rdv_annule }}],
+                backgroundColor: ['#eab308', '#3b82f6', '#22c55e', '#ef4444'],
+                borderWidth: 2, borderColor: '#ffffff',
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false, cutout: '65%',
+            plugins: { legend: { position: 'bottom', labels: { padding: 14, boxWidth: 10, usePointStyle: true } } }
+        }
+    });
+
+    new Chart(document.getElementById('chartStatutsCommandes'), {
+        type: 'bar',
+        data: {
+            labels: ['En attente', 'Payées', 'Livrées', 'Annulées'],
+            datasets: [{
+                data: [{{ commandes_attente }}, {{ commandes_payees }}, {{ commandes_livrees }}, {{ commandes_annulees }}],
+                backgroundColor: ['#eab308', '#3b82f6', '#22c55e', '#ef4444'],
+                borderRadius: 6, borderWidth: 0,
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { y: intYAxis, x: { grid: { display: false } } }
+        }
+    });
+
+    const ordoLabels = JSON.parse(document.getElementById('ordo_labels').textContent);
+    const ordoData = JSON.parse(document.getElementById('ordo_data').textContent);
+    new Chart(document.getElementById('chartOrdonnancesMois'), {
+        type: 'bar',
+        data: {
+            labels: ordoLabels.length ? ordoLabels : ['—'],
+            datasets: [{
+                data: ordoData.length ? ordoData : [0],
+                backgroundColor: 'rgba(37, 99, 235, 0.75)',
+                borderRadius: 6, borderWidth: 0,
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { y: intYAxis, x: { grid: { display: false } } }
+        }
+    });
+})();
+</script>
+{% endblock %}
