@@ -1,460 +1,276 @@
-{% extends "admin/index.html" %}
-{% load i18n static humanize %}
+{% extends "admin/base.html" %}
+{% load static %}
 
 {% block extrahead %}
     {{ block.super }}
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <style>
-        /* ===== Force thème clair (blanc / noir) ===== */
-        .lm-page { background:#f8fafc; color:#0f172a; padding:8px 0 32px; }
-        .lm-card {
-            background:#ffffff !important;
-            color:#0f172a;
-            border:1px solid #e2e8f0;
-            border-radius:12px;
-            padding:20px;
-            box-shadow:0 1px 2px rgba(15,23,42,0.04);
+        /* ===== GLASMORPHISM - Bleu Électrique + Cyan ===== */
+        body, #content-main {
+            background: linear-gradient(135deg, #0d1b2a 0%, #1b4f8a 50%, #00b4d8 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        .lm-card:hover { box-shadow:0 4px 12px rgba(15,23,42,0.06); }
-        .lm-title-xl { font-size:24px; font-weight:700; color:#0f172a; margin:0; }
-        .lm-title-lg { font-size:18px; font-weight:600; color:#0f172a; margin:0; }
-        .lm-title-md { font-size:15px; font-weight:600; color:#0f172a; margin:0; }
-        .lm-subtle  { font-size:13px; color:#64748b; }
-        .lm-mini    { font-size:11px; color:#94a3b8; text-transform:uppercase; letter-spacing:.04em; font-weight:600; }
-        .lm-kpi-value { font-size:32px; font-weight:700; color:#0f172a; margin-top:6px; line-height:1.1; }
-        .lm-grid    { display:grid; gap:16px; }
-        .lm-grid-4  { grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); }
-        .lm-grid-2-3 { grid-template-columns:2fr 1fr; }
-        .lm-grid-2  { grid-template-columns:1fr 1fr; }
-        @media(max-width:900px){ .lm-grid-2, .lm-grid-2-3{ grid-template-columns:1fr; } }
-        .lm-icon-box {
-            width:44px; height:44px; border-radius:10px;
-            display:flex; align-items:center; justify-content:center; flex-shrink:0;
+
+        #content-main {
+            padding: 40px 20px;
         }
-        .lm-row { display:flex; align-items:center; justify-content:space-between; gap:12px; }
-        .lm-chip {
-            display:inline-flex; align-items:center; gap:6px;
-            padding:8px 12px; border-radius:8px; font-size:13px; font-weight:500;
+
+        /* ANIMATIONS */
+        @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-        .lm-dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
-        .lm-select {
-            background:#ffffff; border:1px solid #cbd5e1; color:#0f172a;
-            padding:8px 12px; border-radius:8px; font-size:13px; cursor:pointer;
+
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(0,180,216,0.4), inset 0 0 20px rgba(0,180,216,0.1); }
+            50% { box-shadow: 0 0 40px rgba(0,180,216,0.6), inset 0 0 30px rgba(0,180,216,0.15); }
         }
-        .lm-select:focus { outline:2px solid #2563eb; outline-offset:1px; }
-        .lm-section-title {
-            display:flex; align-items:center; gap:8px;
-            font-size:18px; font-weight:600; color:#0f172a; margin:0;
+
+        @keyframes slideInLeft {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
         }
-        .lm-divider {
-            border-bottom:1px solid #e2e8f0; padding-bottom:18px;
-            display:flex; flex-direction:row; align-items:center; justify-content:space-between;
-            gap:16px; flex-wrap:wrap;
+
+        /* STATS GRID */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+            animation: fadeSlideUp 0.6s ease-out;
         }
-        .lm-list-item {
-            display:flex; align-items:center; justify-content:space-between;
-            padding:8px 10px; border-radius:6px;
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.07);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 16px;
+            padding: 30px 24px;
+            text-align: center;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            animation: fadeSlideUp 0.6s ease-out;
         }
-        .lm-list-item:hover { background:#f1f5f9; }
-        .lm-rank {
-            width:28px; height:28px; border-radius:50%;
-            background:#dbeafe; color:#1d4ed8;
-            font-size:12px; font-weight:700;
-            display:flex; align-items:center; justify-content:center; flex-shrink:0;
+
+        .stat-card:nth-child(1) { animation-delay: 0.0s; }
+        .stat-card:nth-child(2) { animation-delay: 0.1s; }
+        .stat-card:nth-child(3) { animation-delay: 0.2s; }
+        .stat-card:nth-child(4) { animation-delay: 0.3s; }
+
+        .stat-card:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(0, 180, 216, 0.3);
+            box-shadow: 0 12px 48px rgba(0, 180, 216, 0.25), inset 0 0 20px rgba(0, 180, 216, 0.1);
+            transform: translateY(-6px);
         }
-        .lm-empty { text-align:center; padding:48px 16px; color:#94a3b8; }
-        .lm-stack > * + * { margin-top:16px; }
-        .lm-establish-card { border:1px solid #e2e8f0; border-radius:10px; padding:16px; background:#ffffff; }
-        .lm-stat-3 { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:8px; }
-        .lm-stat-3 .v { font-size:20px; font-weight:700; }
-        .lm-stat-3 .l { font-size:11px; color:#64748b; }
+
+        .stat-number {
+            font-size: 44px;
+            font-weight: 700;
+            color: #00b4d8;
+            margin-bottom: 12px;
+            text-shadow: 0 2px 8px rgba(0, 180, 216, 0.3);
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        /* CHARTS GRID */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        .charts-grid:nth-of-type(2) {
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        }
+
+        .chart-card {
+            background: rgba(255, 255, 255, 0.07);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 16px;
+            padding: 28px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2), inset 0 0 20px rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+            animation: fadeSlideUp 0.6s ease-out;
+        }
+
+        .chart-card:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(0, 180, 216, 0.3);
+            box-shadow: 0 12px 48px rgba(0, 180, 216, 0.25), inset 0 0 20px rgba(0, 180, 216, 0.1);
+        }
+
+        .chart-card.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .chart-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 24px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        canvas {
+            max-height: 300px;
+        }
+
+        /* RESPONSIVE */
+        @media(max-width: 768px) {
+            .charts-grid,
+            .charts-grid:nth-of-type(2) {
+                grid-template-columns: 1fr;
+            }
+
+            .stat-number {
+                font-size: 36px;
+            }
+        }
     </style>
 {% endblock %}
 
 {% block content %}
-<div class="lm-page lm-stack">
-
-    {# ========== HEADER ========== #}
-    <div class="lm-divider">
-        <div style="display:flex; align-items:center; gap:14px;">
-            <div class="lm-icon-box" style="background:#0f172a; color:#fff; width:48px; height:48px;">
-                <span class="material-symbols-outlined" style="font-size:26px">monitoring</span>
-            </div>
-            <div>
-                <h1 class="lm-title-xl">Tableau de bord analytique</h1>
-                <p class="lm-subtle" style="margin:4px 0 0">Pilotage des services médicaux et pharmaceutiques LAMESSIN</p>
-            </div>
+<div id="content-main">
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-number">{{ total_medecins|default:"0" }}</div>
+            <div class="stat-label">Médecins</div>
         </div>
-
-        <form method="get" style="display:flex; align-items:center; gap:8px;">
-            <span class="material-symbols-outlined" style="color:#64748b">filter_list</span>
-            <label style="font-size:13px; color:#475569;">Période</label>
-            <select name="periode" onchange="this.form.submit()" class="lm-select">
-                {% for key, label in periode_options %}
-                    <option value="{{ key }}" {% if key == periode_active %}selected{% endif %}>{{ label }}</option>
-                {% endfor %}
-            </select>
-        </form>
-    </div>
-
-    {# ========== KPI CARDS ========== #}
-    <div class="lm-grid lm-grid-4">
-
-        {# RDV #}
-        <div class="lm-card">
-            <div class="lm-row">
-                <div>
-                    <p class="lm-mini">Rendez-vous</p>
-                    <p class="lm-kpi-value">{{ total_rdv|default:"0" }}</p>
-                    <p class="lm-subtle" style="margin-top:6px;">
-                        <span style="color:#ea580c; font-weight:600;">{{ rdv_aujourdhui }}</span> aujourd'hui
-                    </p>
-                </div>
-                <div class="lm-icon-box" style="background:#dbeafe;">
-                    <span class="material-symbols-outlined" style="color:#2563eb">event</span>
-                </div>
-            </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ total_patients|default:"0" }}</div>
+            <div class="stat-label">Patients</div>
         </div>
-
-        {# Patients #}
-        <div class="lm-card">
-            <div class="lm-row">
-                <div>
-                    <p class="lm-mini">Patients actifs</p>
-                    <p class="lm-kpi-value">{{ total_patients|default:"0" }}</p>
-                    <p class="lm-subtle" style="margin-top:6px;">Comptes activés</p>
-                </div>
-                <div class="lm-icon-box" style="background:#dcfce7;">
-                    <span class="material-symbols-outlined" style="color:#16a34a">groups</span>
-                </div>
-            </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ rdv_aujourdhui|default:"0" }}</div>
+            <div class="stat-label">RDV aujourd'hui</div>
         </div>
-
-        {# Médecins #}
-        <div class="lm-card">
-            <div class="lm-row">
-                <div>
-                    <p class="lm-mini">Médecins</p>
-                    <p class="lm-kpi-value">{{ total_medecins|default:"0" }}</p>
-                    <p class="lm-subtle" style="margin-top:6px;">{{ total_consultations }} consultations</p>
-                </div>
-                <div class="lm-icon-box" style="background:#cffafe;">
-                    <span class="material-symbols-outlined" style="color:#0891b2">stethoscope</span>
-                </div>
-            </div>
-        </div>
-
-        {# Commandes #}
-        <div class="lm-card">
-            <div class="lm-row">
-                <div>
-                    <p class="lm-mini">Commandes</p>
-                    <p class="lm-kpi-value">{{ commandes_total|default:"0" }}</p>
-                    <p class="lm-subtle" style="margin-top:6px; color:#16a34a; font-weight:600;">
-                        {{ revenus_periode|floatformat:0|default:"0" }} FCFA
-                    </p>
-                </div>
-                <div class="lm-icon-box" style="background:#f3e8ff;">
-                    <span class="material-symbols-outlined" style="color:#9333ea">shopping_bag</span>
-                </div>
-            </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ commandes_total|default:"0" }}</div>
+            <div class="stat-label">Commandes</div>
         </div>
     </div>
 
-    {# ========== CHARTS ROW 1 ========== #}
-    <div class="lm-grid lm-grid-2-3">
-
-        <div class="lm-card">
-            <div class="lm-row" style="margin-bottom:14px;">
-                <div>
-                    <h3 class="lm-section-title">
-                        <span class="material-symbols-outlined" style="color:#2563eb;font-size:22px">trending_up</span>
-                        Évolution des rendez-vous
-                    </h3>
-                    <p class="lm-subtle" style="margin-top:4px;">{{ periode_label }}</p>
-                </div>
-            </div>
-            <div style="height:260px"><canvas id="chartEvolutionRdv"></canvas></div>
-        </div>
-
-        <div class="lm-card">
-            <div class="lm-row" style="margin-bottom:14px;">
-                <h3 class="lm-section-title">
-                    <span class="material-symbols-outlined" style="color:#9333ea;font-size:22px">donut_small</span>
-                    Statuts RDV
-                </h3>
-            </div>
-            <div style="height:260px"><canvas id="chartStatutsRdv"></canvas></div>
+    <div class="charts-grid">
+        <div class="chart-card full-width">
+            <div class="chart-title">Évolution des rendez-vous (7 derniers jours)</div>
+            <canvas id="evolutionChart" style="height: 300px;"></canvas>
         </div>
     </div>
 
-    {# ========== CHARTS ROW 2 ========== #}
-    <div class="lm-grid lm-grid-2">
-
-        <div class="lm-card">
-            <div class="lm-row" style="margin-bottom:14px;">
-                <div>
-                    <h3 class="lm-section-title">
-                        <span class="material-symbols-outlined" style="color:#ea580c;font-size:22px">receipt_long</span>
-                        Statuts des commandes
-                    </h3>
-                    <p class="lm-subtle" style="margin-top:4px;">Sur la période sélectionnée</p>
-                </div>
-            </div>
-            <div style="height:260px"><canvas id="chartStatutsCommandes"></canvas></div>
+    <div class="charts-grid">
+        <div class="chart-card">
+            <div class="chart-title">Commandes par statut</div>
+            <canvas id="commandeChart" style="height: 250px;"></canvas>
         </div>
-
-        <div class="lm-card">
-            <h3 class="lm-section-title" style="margin-bottom:14px;">
-                <span class="material-symbols-outlined" style="color:#2563eb;font-size:22px">checklist</span>
-                Détail des rendez-vous
-            </h3>
-            <div class="lm-stack" style="--space:12px;">
-                <div class="lm-chip" style="background:#fefce8; width:100%;">
-                    <span class="lm-dot" style="background:#eab308;"></span>
-                    <span style="flex:1; color:#475569;">En attente</span>
-                    <span style="font-weight:700; color:#a16207; font-size:16px;">{{ rdv_en_attente }}</span>
-                </div>
-                <div class="lm-chip" style="background:#eff6ff; width:100%; margin-top:10px;">
-                    <span class="lm-dot" style="background:#3b82f6;"></span>
-                    <span style="flex:1; color:#475569;">Confirmés</span>
-                    <span style="font-weight:700; color:#1d4ed8; font-size:16px;">{{ rdv_confirme }}</span>
-                </div>
-                <div class="lm-chip" style="background:#f0fdf4; width:100%; margin-top:10px;">
-                    <span class="lm-dot" style="background:#22c55e;"></span>
-                    <span style="flex:1; color:#475569;">Terminés</span>
-                    <span style="font-weight:700; color:#15803d; font-size:16px;">{{ rdv_termine }}</span>
-                </div>
-                <div class="lm-chip" style="background:#fef2f2; width:100%; margin-top:10px;">
-                    <span class="lm-dot" style="background:#ef4444;"></span>
-                    <span style="flex:1; color:#475569;">Annulés</span>
-                    <span style="font-weight:700; color:#b91c1c; font-size:16px;">{{ rdv_annule }}</span>
-                </div>
-            </div>
+        <div class="chart-card">
+            <div class="chart-title">Rendez-vous par statut</div>
+            <canvas id="rdvChart" style="height: 250px;"></canvas>
         </div>
     </div>
-
-    {# ========== SECTION : ÉTABLISSEMENTS ========== #}
-    <div class="lm-card">
-        <div class="lm-divider" style="border:none; padding:0; margin-bottom:18px;">
-            <div>
-                <h2 class="lm-section-title">
-                    <span class="material-symbols-outlined" style="color:#2563eb;font-size:24px">apartment</span>
-                    Répartition par établissement
-                </h2>
-                <p class="lm-subtle" style="margin-top:4px;">Comparaison Pharmacies vs Hôpitaux</p>
-            </div>
-            <div style="text-align:right;">
-                <p style="font-size:24px; font-weight:700; color:#0f172a; margin:0;">{{ total_pharmacies|add:total_hopitaux }}</p>
-                <p class="lm-subtle">Établissements totaux</p>
-            </div>
-        </div>
-
-        <div class="lm-grid lm-grid-2">
-            <div style="height:280px"><canvas id="chartEtablissements"></canvas></div>
-
-            <div class="lm-stack">
-                <div class="lm-establish-card">
-                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-                        <span class="lm-dot" style="background:#3b82f6; width:10px; height:10px;"></span>
-                        <h4 class="lm-title-md">Pharmacies</h4>
-                    </div>
-                    <p class="lm-subtle">Officines partenaires LAMESSIN</p>
-                    <div class="lm-stat-3">
-                        <div><div class="v" style="color:#0f172a;">{{ total_pharmacies }}</div><div class="l">Total</div></div>
-                        <div><div class="v" style="color:#ea580c;">{{ pharmacies_garde }}</div><div class="l">De garde</div></div>
-                        <div><div class="v" style="color:#9333ea;">{{ total_pharmaciens }}</div><div class="l">Pharmaciens</div></div>
-                    </div>
-                    {% if stocks_alerte %}
-                    <p style="font-size:12px; color:#dc2626; font-weight:600; margin-top:12px;">⚠ {{ stocks_alerte }} stock(s) en alerte</p>
-                    {% endif %}
-                </div>
-
-                <div class="lm-establish-card" style="margin-top:12px;">
-                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-                        <span class="lm-dot" style="background:#22c55e; width:10px; height:10px;"></span>
-                        <h4 class="lm-title-md">Hôpitaux</h4>
-                    </div>
-                    <p class="lm-subtle">Centres de santé référencés</p>
-                    <div class="lm-stat-3">
-                        <div><div class="v" style="color:#0f172a;">{{ total_hopitaux }}</div><div class="l">Total</div></div>
-                        <div><div class="v" style="color:#0891b2;">{{ total_medecins }}</div><div class="l">Médecins</div></div>
-                        <div><div class="v" style="color:#2563eb;">{{ total_consultations }}</div><div class="l">Consultations</div></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    {# ========== SECTION : ORDONNANCES ========== #}
-    <div class="lm-card">
-        <div class="lm-divider" style="border:none; padding:0; margin-bottom:18px;">
-            <div>
-                <h2 class="lm-section-title">
-                    <span class="material-symbols-outlined" style="color:#2563eb;font-size:24px">prescriptions</span>
-                    Suivi des ordonnances
-                </h2>
-                <p class="lm-subtle" style="margin-top:4px;">Évolution mensuelle et top médicaments prescrits</p>
-            </div>
-            <div style="display:flex; gap:24px;">
-                <div style="text-align:right;">
-                    <p style="font-size:22px; font-weight:700; color:#0f172a; margin:0;">{{ total_ordonnances }}</p>
-                    <p class="lm-subtle">Sur la période</p>
-                </div>
-                <div style="text-align:right;">
-                    <p style="font-size:22px; font-weight:700; color:#0f172a; margin:0;">{{ total_medicaments }}</p>
-                    <p class="lm-subtle">Médicaments référencés</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="lm-grid lm-grid-2">
-            <div>
-                <h4 class="lm-title-md" style="margin-bottom:12px;">Ordonnances par mois (12 derniers mois)</h4>
-                <div style="height:260px"><canvas id="chartOrdonnancesMois"></canvas></div>
-            </div>
-
-            <div>
-                <h4 class="lm-title-md" style="margin-bottom:12px;">Top 10 médicaments prescrits</h4>
-                {% if top_medicaments %}
-                <div style="max-height:260px; overflow-y:auto;">
-                    {% for m in top_medicaments %}
-                    <div class="lm-list-item">
-                        <div style="display:flex; align-items:center; gap:12px; flex:1; min-width:0;">
-                            <span class="lm-rank">{{ forloop.counter }}</span>
-                            <span style="font-size:14px; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                                {{ m.medicament__nom_commercial|default:"Médicament inconnu" }}
-                            </span>
-                        </div>
-                        <span style="font-size:14px; font-weight:700; color:#2563eb; margin-left:8px; white-space:nowrap;">{{ m.total }} ×</span>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <div class="lm-empty">
-                    <span class="material-symbols-outlined" style="font-size:40px; color:#cbd5e1;">inventory_2</span>
-                    <p style="margin-top:8px; font-size:13px;">Aucune prescription enregistrée</p>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-
 </div>
 
-{# ========== APP LIST (Django default) ========== #}
-{{ block.super }}
-
-{# ========== CHART.JS DATA + INIT ========== #}
-{{ evolution_labels|json_script:"evo_labels" }}
-{{ evolution_data|json_script:"evo_data" }}
-{{ ordo_labels|json_script:"ordo_labels" }}
-{{ ordo_data|json_script:"ordo_data" }}
-
 <script>
-(function() {
-    Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
-    Chart.defaults.font.size = 12;
-    Chart.defaults.color = '#475569';
+document.addEventListener('DOMContentLoaded', function() {
+    // Configuration globale Chart.js pour thème cyan/bleu
+    Chart.defaults.color = 'rgba(255, 255, 255, 0.7)';
+    Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.1)';
+    Chart.defaults.font.family = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
 
-    const grid = '#e2e8f0';
-    const intYAxis = {
-        beginAtZero: true,
-        grid: { color: grid },
-        ticks: { stepSize: 1, precision: 0 }
-    };
-
-    new Chart(document.getElementById('chartEvolutionRdv'), {
+    // GRAPHE 1: Évolution des RDV (Ligne)
+    new Chart(document.getElementById('evolutionChart'), {
         type: 'line',
         data: {
-            labels: JSON.parse(document.getElementById('evo_labels').textContent),
+            labels: {{ evolution_labels|default:"['Lun','Mar','Mer','Jeu','Ven','Sam','Dim']"|safe }},
             datasets: [{
                 label: 'Rendez-vous',
-                data: JSON.parse(document.getElementById('evo_data').textContent),
-                borderColor: '#2563eb',
-                backgroundColor: 'rgba(37, 99, 235, 0.10)',
-                tension: 0.35, fill: true,
-                pointBackgroundColor: '#2563eb',
-                pointRadius: 3, pointHoverRadius: 6, borderWidth: 2,
+                data: {{ evolution_data|default:"[12,19,15,22,28,24,18]" }},
+                borderColor: '#00b4d8',
+                backgroundColor: 'rgba(0, 180, 216, 0.1)',
+                borderWidth: 3,
+                tension: 0.4,
+                fill: true,
+                pointBackgroundColor: '#00b4d8',
+                pointBorderColor: 'rgba(255, 255, 255, 0.3)',
+                pointRadius: 6,
+                pointHoverRadius: 8,
+                pointBorderWidth: 2
             }]
         },
         options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: { y: intYAxis, x: { grid: { display: false } } }
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: { labels: { color: 'rgba(255, 255, 255, 0.8)', font: { size: 12 } } }
+            },
+            scales: {
+                y: { grid: { color: 'rgba(255, 255, 255, 0.1)' }, ticks: { color: 'rgba(255, 255, 255, 0.7)' } },
+                x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: 'rgba(255, 255, 255, 0.7)' } }
+            }
         }
     });
 
-    new Chart(document.getElementById('chartStatutsRdv'), {
+    // GRAPHE 2: Commandes (Donut)
+    new Chart(document.getElementById('commandeChart'), {
         type: 'doughnut',
         data: {
-            labels: ['En attente', 'Confirmés', 'Terminés', 'Annulés'],
+            labels: ['En attente', 'Payé', 'Livré', 'Annulé'],
             datasets: [{
-                data: [{{ rdv_en_attente }}, {{ rdv_confirme }}, {{ rdv_termine }}, {{ rdv_annule }}],
-                backgroundColor: ['#eab308', '#3b82f6', '#22c55e', '#ef4444'],
-                borderWidth: 2, borderColor: '#ffffff',
+                data: [{{ commandes_attente|default:"5" }}, {{ commandes_payees|default:"12" }}, {{ commandes_livrees|default:"8" }}, {{ commandes_annulees|default:"3" }}],
+                backgroundColor: ['#FCD34D', '#10B981', '#00b4d8', '#F87171'],
+                borderColor: 'rgba(255, 255, 255, 0.2)',
+                borderWidth: 2,
+                cutout: '65%'
             }]
         },
         options: {
-            responsive: true, maintainAspectRatio: false, cutout: '65%',
-            plugins: { legend: { position: 'bottom', labels: { padding: 14, boxWidth: 10, usePointStyle: true } } }
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: { position: 'bottom', labels: { color: 'rgba(255, 255, 255, 0.8)', padding: 20, font: { size: 12 } } }
+            }
         }
     });
 
-    new Chart(document.getElementById('chartStatutsCommandes'), {
+    // GRAPHE 3: Rendez-vous (Barres)
+    new Chart(document.getElementById('rdvChart'), {
         type: 'bar',
         data: {
-            labels: ['En attente', 'Payées', 'Livrées', 'Annulées'],
+            labels: ['En attente', 'Confirmé', 'Terminé', 'Annulé'],
             datasets: [{
-                data: [{{ commandes_attente }}, {{ commandes_payees }}, {{ commandes_livrees }}, {{ commandes_annulees }}],
-                backgroundColor: ['#eab308', '#3b82f6', '#22c55e', '#ef4444'],
-                borderRadius: 6, borderWidth: 0,
+                label: 'Nombre',
+                data: [{{ rdv_en_attente|default:"8" }}, {{ rdv_confirme|default:"15" }}, {{ rdv_termine|default:"22" }}, {{ rdv_annule|default:"4" }}],
+                backgroundColor: ['#FCD34D', '#3B82F6', '#10B981', '#F87171'],
+                borderRadius: 8,
+                borderWidth: 0,
+                barPercentage: 0.6
             }]
         },
         options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: { y: intYAxis, x: { grid: { display: false } } }
+            responsive: true,
+            maintainAspectRatio: true,
+            indexAxis: 'x',
+            plugins: {
+                legend: { labels: { color: 'rgba(255, 255, 255, 0.8)', font: { size: 12 } } }
+            },
+            scales: {
+                y: { grid: { color: 'rgba(255, 255, 255, 0.1)' }, ticks: { color: 'rgba(255, 255, 255, 0.7)' } },
+                x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: 'rgba(255, 255, 255, 0.7)' } }
+            }
         }
     });
-
-    new Chart(document.getElementById('chartEtablissements'), {
-        type: 'bar',
-        data: {
-            labels: ['Établissements', 'Personnel', 'Activité'],
-            datasets: [
-                { label: 'Pharmacies', data: [{{ total_pharmacies }}, {{ total_pharmaciens }}, {{ commandes_total }}],
-                  backgroundColor: '#3b82f6', borderRadius: 6, borderWidth: 0 },
-                { label: 'Hôpitaux', data: [{{ total_hopitaux }}, {{ total_medecins }}, {{ total_consultations }}],
-                  backgroundColor: '#22c55e', borderRadius: 6, borderWidth: 0 }
-            ]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom', labels: { padding: 12, boxWidth: 10, usePointStyle: true } } },
-            scales: { y: intYAxis, x: { grid: { display: false } } }
-        }
-    });
-
-    const ordoLabels = JSON.parse(document.getElementById('ordo_labels').textContent);
-    const ordoData = JSON.parse(document.getElementById('ordo_data').textContent);
-    new Chart(document.getElementById('chartOrdonnancesMois'), {
-        type: 'bar',
-        data: {
-            labels: ordoLabels.length ? ordoLabels : ['—'],
-            datasets: [{
-                data: ordoData.length ? ordoData : [0],
-                backgroundColor: 'rgba(37, 99, 235, 0.75)',
-                borderRadius: 6, borderWidth: 0,
-            }]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: { y: intYAxis, x: { grid: { display: false } } }
-        }
-    });
-})();
+});
 </script>
-
 {% endblock %}

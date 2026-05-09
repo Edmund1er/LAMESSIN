@@ -12,4 +12,4 @@ api.env
 .env
 *.env
 
-credentials.py
+db_creds.py

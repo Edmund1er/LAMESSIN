@@ -20,23 +20,23 @@ ENV_PATH = BASE_DIR / 'api.env'
 
 if ENV_PATH.exists():
     load_dotenv(ENV_PATH)
-    print(f"✓ Fichier .env charge depuis {ENV_PATH}")
+    print(f"[OK] Fichier .env charge depuis {ENV_PATH}")
 
     groq_key = os.getenv('GROQ_API_KEY')
     if groq_key:
-        print(f"✓ GROQ_API_KEY trouvee (commence par: {groq_key[:15]}...)")
+        print(f"[OK] GROQ_API_KEY trouvee (commence par: {groq_key[:15]}...)")
     else:
-        print("⚠️ GROQ_API_KEY non trouvee dans api.env - Veuillez vous inscrire sur console.groq.com")
+        print("[WARN] GROQ_API_KEY non trouvee dans api.env - Veuillez vous inscrire sur console.groq.com")
 else:
-    print(f"⚠️ Fichier api.env introuvable a {ENV_PATH}")
+    print(f"[WARN] Fichier api.env introuvable a {ENV_PATH}")
 
 # ====================================================================================================
 # CONFIGURATION DES ACCES (BASE DE DONNEES)
 # ====================================================================================================
 try:
-    from . import  db_creds
+    from . import  credentials
 except ImportError:
-    db_creds = None
+    credentials = None
 
 SECRET_KEY = 'django-insecure-*xx#hp=o=!zq@46*b#n#jc!2wiubmmz-l8dnh%p8fy6m=5$hph'
 
@@ -49,7 +49,6 @@ ALLOWED_HOSTS = ['*']
 # ====================================================================================================
 
 INSTALLED_APPS = [
-    'simpleui',  # AVANT admin pour override du design
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -71,7 +70,9 @@ INSTALLED_APPS = [
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [
+            os.path.join(BASE_DIR, 'lamessin_app/templates'),
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -106,15 +107,15 @@ WSGI_APPLICATION = 'lamessin_backend.wsgi.application'
 # DATABASE CONFIGURATION
 # ====================================================================================================
 
-if db_creds:
+if credentials:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': db_creds.DB_NAME,
-            'USER': db_creds.DB_USER,
-            'PASSWORD': db_creds.DB_PASSWORD,
-            'HOST': db_creds.DB_HOST,
-            'PORT': db_creds.DB_PORT,
+            'NAME': credentials.DB_NAME,
+            'USER': credentials.DB_USER,
+            'PASSWORD': credentials.DB_PASSWORD,
+            'HOST': credentials.DB_HOST,
+            'PORT': credentials.DB_PORT,
         }
     }
 else:
@@ -265,11 +266,11 @@ if os.path.exists(FIREBASE_KEY_PATH):
         if not firebase_admin._apps:
             certification_obj = fb_creds.Certificate(FIREBASE_KEY_PATH)
             firebase_admin.initialize_app(certification_obj)
-            print("Firebase Admin SDK initialise avec succes !")
+            print("[OK] Firebase Admin SDK initialise avec succes !")
     except Exception as e:
-        print(f"Erreur initialisation Firebase : {e}")
+        print(f"[ERROR] Erreur initialisation Firebase : {e}")
 else:
-    print("Attention : firebase-auth.json introuvable. Les notifications ne fonctionneront pas.")
+    print("[WARN] firebase-auth.json introuvable. Les notifications ne fonctionneront pas.")
 
 # ====================================================================================================
 # INTERNATIONALISATION

@@ -1,0 +1,207 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls %}
+
+{% block content %}
+<div id="content-main">
+    <div class="card">
+        <div class="card-header">
+            <h3>{% if add %}Ajouter {{ opts.verbose_name }}{% else %}Modifier {{ opts.verbose_name }}{% endif %}</h3>
+        </div>
+
+        <form {% if has_file_field %}enctype="multipart/form-data"{% endif %} action="{{ form_url }}" method="post" id="{{ opts.model_name }}_form" novalidate>
+            {% csrf_token %}
+            {% block form_top %}{% endblock %}
+
+            {% if errors %}
+                <div class="alert-error">
+                    <strong>Erreur :</strong> Veuillez corriger les erreurs ci-dessous.
+                </div>
+            {% endif %}
+
+            {% for fieldset in adminform %}
+                <fieldset>
+                    {% if fieldset.name %}
+                        <h2>{{ fieldset.name }}</h2>
+                    {% endif %}
+
+                    <div class="form-grid">
+                        {% for line in fieldset %}
+                            {% for field in line %}
+                                <div class="form-group">
+                                    <label for="{{ field.field.id_for_label }}" class="form-label">
+                                        {{ field.field.label }}
+                                        {% if field.field.field.required %}
+                                            <span class="required">*</span>
+                                        {% endif %}
+                                    </label>
+                                    <div class="form-widget">
+                                        {{ field.field }}
+                                    </div>
+                                    {% if field.field.help_text %}
+                                        <div class="help-text">{{ field.field.help_text|safe }}</div>
+                                    {% endif %}
+                                    {% if field.field.errors %}
+                                        <div class="error-text">{{ field.field.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        {% endfor %}
+                    </div>
+                </fieldset>
+            {% endfor %}
+
+            <div class="submit-row">
+                <button type="submit" name="_save" class="btn-save">Enregistrer</button>
+                <button type="submit" name="_continue" class="btn-secondary">Enregistrer et continuer</button>
+                <button type="submit" name="_addanother" class="btn-secondary">Enregistrer et ajouter un autre</button>
+                {% if show_delete_link %}
+                    <a href="delete/" class="btn-delete">Supprimer</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .alert-error {
+        background: rgba(248,113,113,0.1);
+        padding: 12px 16px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        color: #F87171;
+        border-left: 3px solid #F87171;
+        font-size: 13px;
+    }
+    fieldset {
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 14px;
+        padding: 20px;
+        margin-bottom: 20px;
+        background: rgba(255,255,255,0.05);
+        backdrop-filter: blur(10px);
+    }
+    fieldset h2 {
+        font-size: 14px;
+        font-weight: 700;
+        margin-bottom: 16px;
+        padding-bottom: 8px;
+        border-bottom: 2px solid #00b4d8;
+        color: white;
+    }
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+    }
+    .form-group {
+        display: flex;
+        flex-direction: column;
+    }
+    .form-label {
+        font-weight: 500;
+        margin-bottom: 8px;
+        font-size: 14px;
+        color: white;
+    }
+    .required {
+        color: #F87171;
+        margin-left: 2px;
+    }
+    .form-widget input,
+    .form-widget select,
+    .form-widget textarea {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 8px;
+        font-size: 14px;
+        background: rgba(255,255,255,0.08);
+        color: white;
+        font-family: inherit;
+        transition: all 0.2s ease;
+    }
+    .form-widget input::placeholder,
+    .form-widget textarea::placeholder {
+        color: rgba(255,255,255,0.4);
+    }
+    .form-widget input:focus,
+    .form-widget select:focus,
+    .form-widget textarea:focus {
+        outline: none;
+        background: rgba(255,255,255,0.12);
+        border-color: rgba(0,180,216,0.5);
+        box-shadow: 0 0 0 3px rgba(0,180,216,0.1);
+    }
+    .form-widget textarea {
+        min-height: 100px;
+    }
+    .help-text {
+        margin-top: 6px;
+        font-size: 12px;
+        color: rgba(255,255,255,0.6);
+    }
+    .error-text {
+        margin-top: 6px;
+        color: #F87171;
+        font-size: 12px;
+    }
+    .submit-row {
+        display: flex;
+        gap: 12px;
+        margin-top: 24px;
+        padding-top: 24px;
+        border-top: 1px solid rgba(255,255,255,0.08);
+        justify-content: flex-start;
+    }
+    .btn-save {
+        background: linear-gradient(135deg, #1b4f8a, #00b4d8);
+        border: none;
+        border-radius: 8px;
+        padding: 12px 24px;
+        color: white;
+        font-weight: 500;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .btn-save:hover {
+        box-shadow: 0 8px 24px rgba(0,180,216,0.3);
+        transform: translateY(-2px);
+    }
+    .btn-secondary {
+        background: rgba(255,255,255,0.1);
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 8px;
+        padding: 12px 24px;
+        color: white;
+        font-weight: 500;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .btn-secondary:hover {
+        background: rgba(255,255,255,0.15);
+        border-color: rgba(255,255,255,0.2);
+    }
+    .btn-delete {
+        background: rgba(248,113,113,0.1);
+        border: 1px solid rgba(248,113,113,0.3);
+        border-radius: 8px;
+        padding: 12px 24px;
+        color: #F87171;
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 14px;
+        transition: all 0.2s ease;
+    }
+    .btn-delete:hover {
+        background: rgba(248,113,113,0.2);
+        border-color: rgba(248,113,113,0.5);
+    }
+    @media (max-width: 768px) {
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}

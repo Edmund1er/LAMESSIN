@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\WILSTER\\\\AppData\\\\Local\\\\Packages\\\\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\\\\LocalCache\\\\local-packages\\\\Python313\\\\site-packages\\\\simpleui\\\\static\" -Recurse | Where-Object {$_.PSIsContainer} | Select-Object FullName)",
+      "PowerShell(python manage.py collectstatic --noinput)"
+    ]
+  }
+}
