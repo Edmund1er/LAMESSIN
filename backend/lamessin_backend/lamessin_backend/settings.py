@@ -34,7 +34,7 @@ else:
 # CONFIGURATION DES ACCES (BASE DE DONNEES)
 # ====================================================================================================
 try:
-    from . import  credentials
+    from . import credentials
 except ImportError:
     credentials = None
 
@@ -45,10 +45,11 @@ DEBUG = True
 ALLOWED_HOSTS = ['*']
 
 # ====================================================================================================
-# APPLICATION DEFINITION - SANS UNFOLD
+# APPLICATION DEFINITION - AVEC JET REBOOT
 # ====================================================================================================
 
 INSTALLED_APPS = [
+    'jet',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -62,6 +63,13 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'lamessin_app',
 ]
+
+# Configuration Jet Reboot
+JET_REBOOT_THEME = 'default'  # 'default', 'light', 'dark'
+JET_REBOOT_SIDEBAR_STYLE = 'compact'  # 'compact', 'expanded'
+JET_REBOOT_LOGO = None  # Met ton logo si besoin
+JET_REBOOT_TITLE = "LAMESSIN Administration"
+JET_REBOOT_HEADER_TITLE = "LAMESSIN"
 
 # ====================================================================================================
 # TEMPLATES
@@ -139,81 +147,6 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
-}
-SIMPLEUI_CONFIG = {
-    'system_keep': False,
-    'dynamic': True,
-    'menus': [
-        {
-            'name': 'Accueil',
-            'icon': 'home',
-            'url': '/admin/',
-        },
-        {
-            'name': 'Utilisateurs & Rôles',
-            'icon': 'people',
-            'models': [
-                {'name': 'Utilisateurs', 'icon': 'person', 'url': '/admin/lamessin_app/utilisateur/'},
-                {'name': 'Patients', 'icon': 'favorite', 'url': '/admin/lamessin_app/patient/'},
-                {'name': 'Médecins', 'icon': 'medical_services', 'url': '/admin/lamessin_app/medecin/'},
-                {'name': 'Pharmaciens', 'icon': 'local_pharmacy', 'url': '/admin/lamessin_app/pharmacien/'},
-            ]
-        },
-        {
-            'name': 'Rendez-vous & Consultations',
-            'icon': 'calendar_today',
-            'models': [
-                {'name': 'Rendez-vous', 'icon': 'event', 'url': '/admin/lamessin_app/rendezvous/'},
-                {'name': 'Consultations', 'icon': 'assignment', 'url': '/admin/lamessin_app/consultation/'},
-            ]
-        },
-        {
-            'name': 'Pharmacie & Stocks',
-            'icon': 'local_pharmacy',
-            'models': [
-                {'name': 'Pharmacies', 'icon': 'store', 'url': '/admin/lamessin_app/pharmacie/'},
-                {'name': 'Médicaments', 'icon': 'medication', 'url': '/admin/lamessin_app/medicament/'},
-                {'name': 'Stocks', 'icon': 'inventory', 'url': '/admin/lamessin_app/stock/'},
-            ]
-        },
-        {
-            'name': 'Ordonnances & Commandes',
-            'icon': 'receipt',
-            'models': [
-                {'name': 'Ordonnances', 'icon': 'description', 'url': '/admin/lamessin_app/ordonnance/'},
-                {'name': 'Commandes', 'icon': 'shopping_cart', 'url': '/admin/lamessin_app/commande/'},
-            ]
-        },
-        {
-            'name': 'Établissements',
-            'icon': 'apartment',
-            'models': [
-                {'name': 'Hôpitaux', 'icon': 'local_hospital', 'url': '/admin/lamessin_app/hopital/'},
-                {'name': 'Pharmacies', 'icon': 'local_pharmacy', 'url': '/admin/lamessin_app/pharmacie/'},
-            ]
-        },
-        {
-            'name': 'Notifications',
-            'icon': 'notifications',
-            'url': '/admin/lamessin_app/notification/',
-        },
-    ],
-    'LANGUAGE_CHOICE': False,
-    'RECENT_ACTIONS': True,
-    'QUICK_ACTIONS': [
-        {
-            'name': 'Tableau de bord analytique',
-            'icon': 'monitoring',
-            'url': '/lamessin_admin/',
-            'description': 'Voir le dashboard principal'
-        },
-        {
-            'name': 'Statistiques détaillées',
-            'icon': 'analytics',
-            'url': '/lamessin_admin/statistiques/',
-            'description': 'Rapport complet des stats'
-        },
-    ],
 }
 
 SIMPLE_JWT = {

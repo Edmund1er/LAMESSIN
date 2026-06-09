@@ -20,7 +20,6 @@ version: 1.0.0+1
 
 environment:
   sdk: ^3.10.4
-  
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -52,13 +51,16 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
-  # The "flutter_lints" package below contains a set of recommended lints to
-  # encourage good coding practices. The lint set provided by the package is
-  # activated in the `analysis_options.yaml` file located at the root of your
-  # package. See that file for information about deactivating specific lint
-  # rules and activating additional ones.
+  flutter_launcher_icons: ^0.13.1
   flutter_lints: ^6.0.0
+
+# Configuration des icônes de l'application
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/images/icone.jpg"
+  adaptive_icon_background: "#0D9488"
+  adaptive_icon_foreground: "assets/images/icone.jpg"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -100,6 +102,10 @@ flutter:
     - assets/images/fond_pharmacien_scan.jpg
     - assets/images/fond_pharmacien_detail_ordonnance.jpg
     - assets/images/fond_pharmacien_alertes.jpg
+
+    # Icône de l'application (déjà dans assets/images/)
+    - assets/images/icone.jpg
+
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 
@@ -125,9 +131,3 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
-
-
-
-
-
-  

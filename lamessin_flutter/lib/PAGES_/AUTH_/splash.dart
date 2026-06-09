@@ -75,12 +75,13 @@ class _SplashState extends State<Splash> with SingleTickerProviderStateMixin {
         print("ROLE DETECTE: $role");
 
         switch (role) {
-          case 'SUPERUSER':
-            final Uri url = Uri.parse('${ApiService.mediaBaseUrl}/admin-auto/');
-            await launchUrl(url, mode: LaunchMode.externalApplication);
-            if (mounted) Navigator.pushReplacementNamed(context, "/login");
-            break;
-          case 'MEDECIN':
+
+        case 'SUPERUSER':
+          final Uri url = Uri.parse(ApiService.getAdminUrl());
+          await launchUrl(url, mode: LaunchMode.externalApplication);
+          if (mounted) Navigator.pushReplacementNamed(context, "/login");
+          break;
+        case 'MEDECIN':
             if (mounted) Navigator.pushReplacementNamed(context, "/dashboard_medecin");
             break;
           case 'PHARMACIEN':

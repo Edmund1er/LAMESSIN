@@ -53,7 +53,9 @@ def admin_auto_login(request):
 
 
 urlpatterns = [
+    path('jet/', include('jet.urls', 'jet')),
     path('admin-auto/', admin_auto_login),
     path('admin/', admin_site.urls),
     path('api/', include('lamessin_app.urls')),
 ]
+

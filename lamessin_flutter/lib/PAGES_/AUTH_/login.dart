@@ -36,10 +36,12 @@ class _LoginState extends State<Login> {
 
       if (role != null) {
         if (role == 'SUPERUSER') {
-          final prefs = await SharedPreferences.getInstance();
-          final String? token = prefs.getString('access_token');
-          final Uri url = Uri.parse('${ApiService.mediaBaseUrl}/admin-auto/?token=$token');
-          await launchUrl(url, mode: LaunchMode.externalApplication);
+          final Uri url = Uri.parse(ApiService.getAdminUrl());
+          await launchUrl(
+            url, 
+            mode: LaunchMode.externalApplication,
+          );
+
           if (mounted) {
             Navigator.pushReplacementNamed(context, "/login");
           }
@@ -149,7 +151,7 @@ class _LoginState extends State<Login> {
                         letterSpacing: 0.5,
                       ),
                     ),
-                    const SizedBox(height: 60),
+                    const SizedBox(height: 50), // Réduit un peu pour éviter overflow
                     ClipRRect(
                       borderRadius: BorderRadius.circular(30),
                       child: BackdropFilter(
@@ -166,6 +168,8 @@ class _LoginState extends State<Login> {
                           ),
                           child: Column(
                             children: [
+                              // ... (les TextFields restent identiques)
+
                               Container(
                                 decoration: BoxDecoration(
                                   color: Colors.white.withOpacity(0.9),
@@ -174,23 +178,13 @@ class _LoginState extends State<Login> {
                                 child: TextField(
                                   controller: _telephone,
                                   keyboardType: TextInputType.phone,
-                                  style: const TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.textPrimary,
-                                  ),
+                                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                                   decoration: const InputDecoration(
                                     hintText: 'Numero de telephone',
                                     hintStyle: TextStyle(color: Colors.grey),
-                                    prefixIcon: Icon(
-                                      Icons.phone_rounded,
-                                      color: AppColors.primary,
-                                    ),
+                                    prefixIcon: Icon(Icons.phone_rounded, color: AppColors.primary),
                                     border: InputBorder.none,
-                                    contentPadding: EdgeInsets.symmetric(
-                                      horizontal: 20,
-                                      vertical: 18,
-                                    ),
+                                    contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 18),
                                   ),
                                 ),
                               ),
@@ -203,35 +197,17 @@ class _LoginState extends State<Login> {
                                 child: TextField(
                                   controller: _password,
                                   obscureText: _obscure,
-                                  style: const TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.textPrimary,
-                                  ),
+                                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                                   decoration: InputDecoration(
                                     hintText: 'Mot de passe',
-                                    hintStyle: const TextStyle(
-                                      color: Colors.grey,
-                                    ),
-                                    prefixIcon: const Icon(
-                                      Icons.lock_rounded,
-                                      color: AppColors.primary,
-                                    ),
+                                    hintStyle: const TextStyle(color: Colors.grey),
+                                    prefixIcon: const Icon(Icons.lock_rounded, color: AppColors.primary),
                                     suffixIcon: IconButton(
-                                      icon: Icon(
-                                        _obscure
-                                            ? Icons.visibility_off_rounded
-                                            : Icons.visibility_rounded,
-                                        color: AppColors.textSecondary,
-                                      ),
-                                      onPressed: () =>
-                                          setState(() => _obscure = !_obscure),
+                                      icon: Icon(_obscure ? Icons.visibility_off_rounded : Icons.visibility_rounded, color: AppColors.textSecondary),
+                                      onPressed: () => setState(() => _obscure = !_obscure),
                                     ),
                                     border: InputBorder.none,
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 20,
-                                      vertical: 18,
-                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
                                   ),
                                 ),
                               ),
@@ -240,14 +216,7 @@ class _LoginState extends State<Login> {
                                 alignment: Alignment.centerRight,
                                 child: TextButton(
                                   onPressed: () {},
-                                  child: const Text(
-                                    'Mot de passe oublie ?',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 13,
-                                    ),
-                                  ),
+                                  child: const Text('Mot de passe oublie ?', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
                                 ),
                               ),
                               const SizedBox(height: 16),
@@ -258,55 +227,25 @@ class _LoginState extends State<Login> {
                                   onPressed: _clicConnexion,
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: AppColors.primary,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(15),
-                                    ),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                                     elevation: 5,
-                                    shadowColor: Colors.black.withOpacity(0.2),
                                   ),
                                   child: _chargement
-                                      ? const SizedBox(
-                                          width: 25,
-                                          height: 25,
-                                          child: CircularProgressIndicator(
-                                            color: Colors.white,
-                                            strokeWidth: 3,
-                                          ),
-                                        )
-                                      : const Text(
-                                          'Se connecter',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w800,
-                                            letterSpacing: 0.5,
-                                          ),
-                                        ),
+                                      ? const SizedBox(width: 25, height: 25, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
+                                      : const Text('Se connecter', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
                                 ),
                               ),
                               const SizedBox(height: 24),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Text(
-                                    'Pas encore de compte ? ',
-                                    style: TextStyle(
-                                      color: Colors.white.withOpacity(0.8),
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                  GestureDetector(
-                                    onTap: () => Navigator.pushNamed(
-                                      context,
-                                      "/register",
-                                    ),
-                                    child: const Text(
-                                      "S'inscrire",
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w800,
-                                        fontSize: 14,
-                                        decoration: TextDecoration.underline,
+                                  const Text('Pas encore de compte ? ', style: TextStyle(color: Colors.white70, fontSize: 14)),
+                                  Flexible(
+                                    child: GestureDetector(
+                                      onTap: () => Navigator.pushNamed(context, "/register"),
+                                      child: const Text(
+                                        "S'inscrire",
+                                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14, decoration: TextDecoration.underline),
                                       ),
                                     ),
                                   ),
@@ -317,7 +256,7 @@ class _LoginState extends State<Login> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 30),
                   ],
                 ),
               ),

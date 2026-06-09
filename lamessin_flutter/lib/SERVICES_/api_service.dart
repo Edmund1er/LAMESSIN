@@ -26,6 +26,20 @@ class ApiService {
     return "http://localhost:8000";
   }
 
+  // Helper ADMIN avec bypass ngrok plus robuste
+  static String getAdminUrl({String path = '/admin-auto/'}) {
+    String url = '$mediaBaseUrl$path';
+    
+    if (useNgrok) {
+     
+      String separator = url.contains('?') ? '&' : '?';
+      url += '${separator}ngrok-skip-browser-warning=true';
+      
+   
+      url += '&ngrok-skip-browser-warning=1';
+    }
+    return url;
+  }
   static Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('access_token');
@@ -166,7 +180,6 @@ class ApiService {
           return Patient.fromJson(data);
         }
         return Utilisateur.fromJson(userData);
-        
       }
       return null;
     } catch (e) {
